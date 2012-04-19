@@ -19,7 +19,7 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
 /**
  * @author dws04
- * edit for shiggles
+ * 
  */
 public class BasicAgent extends AbstractParticipant {
 
