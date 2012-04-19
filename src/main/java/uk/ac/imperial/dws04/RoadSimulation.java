@@ -12,14 +12,19 @@ import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.util.random.Random;
+import uk.ac.imperial.presage2.core.plugin.PluginModule;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.location.Location;
+import uk.ac.imperial.presage2.util.location.LocationStoragePlugin;
 import uk.ac.imperial.presage2.util.location.MoveHandler;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
 
 /**
+ * run with uk.ac.imperial.dws04.RoadSimulation finishTime=10 length=10 lanes=3 agents=2 maxSpeed=3 maxAccel=1 maxDeccel=1 junctionCount=0
+ * CLI add -classname uk.ac.imperial.dws04.RoadSimulation -finish 10 -name RoadSim  -P length=10 -P lanes=3 -P agents=2 -P maxSpeed=3 -P maxAccel=1 -P maxDeccel=1 -P junctionCount=0
+ * 
  * @author dws04
  *
  */
@@ -81,6 +86,8 @@ public class RoadSimulation extends InjectedSimulation {
 			.addParticipantEnvironmentService(ParticipantLocationService.class));
 		// No network
 		modules.add(NetworkModule.noNetworkModule());
+		// Location plugin
+		modules.add(new PluginModule().addPlugin(LocationStoragePlugin.class));
 	 
 		return modules;
 	}
