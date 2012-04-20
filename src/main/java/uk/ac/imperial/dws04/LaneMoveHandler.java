@@ -11,6 +11,8 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import uk.ac.imperial.presage2.core.Action;
+import uk.ac.imperial.presage2.core.db.persistent.PersistentEnvironment;
+import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
@@ -20,6 +22,7 @@ import uk.ac.imperial.presage2.core.event.EventBus;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
+import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
 import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.location.LocationService;
 import uk.ac.imperial.presage2.util.location.Move;
@@ -29,6 +32,7 @@ import uk.ac.imperial.presage2.util.location.area.EdgeException;
 import uk.ac.imperial.presage2.util.location.area.HasArea;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 /**
  * Special move handler to deal with moves in an area representing a multi-lane
@@ -38,10 +42,13 @@ import com.google.inject.Inject;
  * 
  */
 @ServiceDependencies({ AreaService.class, LocationService.class })
+@Singleton
 public class LaneMoveHandler extends MoveHandler {
 
 	private final Logger logger = Logger.getLogger(LaneMoveHandler.class);
 	private List<CollisionCheck> checks = new LinkedList<LaneMoveHandler.CollisionCheck>();
+	private int collisions = 0;
+	private PersistentEnvironment persist = null;
 
 	@Inject
 	public LaneMoveHandler(HasArea environment,
@@ -52,12 +59,30 @@ public class LaneMoveHandler extends MoveHandler {
 		eb.subscribe(this);
 	}
 
+	@Inject(optional = true)
+	void setPersistence(PersistentSimulation sim) {
+		persist = sim.getEnvironment();
+	}
+
 	@EventListener
-	public void checkForCollisions(EndOfTimeCycle e) {
-		for (CollisionCheck c : checks) {
-			c.checkForCollision();
+	public int checkForCollisions(EndOfTimeCycle e) {
+		int collisionsThisCycle = 0;
+		for (CollisionCheck c : this.checks) {
+			collisionsThisCycle += c.checkForCollision();
 		}
-		checks.clear();
+		this.checks.clear();
+		this.collisions += collisionsThisCycle;
+		if (this.persist != null)
+			this.persist.setProperty("collisions", e.getTime().intValue(),
+					Integer.toString(collisionsThisCycle));
+		return collisionsThisCycle;
+	}
+
+	@EventListener
+	public void onSimulationComplete(FinalizeEvent e) {
+		if (this.persist != null)
+			this.persist.setProperty("totalcollisions",
+					Integer.toString(this.collisions));
 	}
 
 	@Override
@@ -81,6 +106,11 @@ public class LaneMoveHandler extends MoveHandler {
 					"Cannot change greater than one lane at once. Move was: "
 							+ m);
 		}
+		// cannot change lane without forward movement
+		if (Math.abs(m.getX()) > 0 && (int) m.getY() == 0) {
+			throw new ActionHandlingException(
+					"Cannot change lane while stationary");
+		}
 
 		RoadLocation start = (RoadLocation) locationService
 				.getAgentLocation(actor);
@@ -95,7 +125,7 @@ public class LaneMoveHandler extends MoveHandler {
 			}
 		}
 		this.locationService.setAgentLocation(actor, target);
-		checks.add(new CollisionCheck(start, target));
+		checks.add(new CollisionCheck(actor, start, target));
 
 		logger.info(actor + " move: " + m);
 		return null;
@@ -108,9 +138,12 @@ public class LaneMoveHandler extends MoveHandler {
 		Map<UUID, RoadLocation> candidateLocs = new HashMap<UUID, RoadLocation>();
 		final boolean laneChange;
 		final int areaLength = areaService.getSizeY();
+		final UUID self;
 
-		public CollisionCheck(RoadLocation startFrom, RoadLocation finishAt) {
+		public CollisionCheck(UUID pov, RoadLocation startFrom,
+				RoadLocation finishAt) {
 			super();
+			this.self = pov;
 			this.startFrom = startFrom;
 			this.finishAt = finishAt;
 
@@ -119,10 +152,11 @@ public class LaneMoveHandler extends MoveHandler {
 			int finishOffset = finishAt.getOffset();
 			if (finishOffset < startOffset)
 				finishOffset += areaLength;
-			for (int lane = 1; lane < areaService.getSizeX(); lane++) {
-				collisionCandidates.addAll(getAgentsInLane(lane,
-						startOffset + 1, finishOffset));
+			for (int lane = 0; lane < areaService.getSizeX(); lane++) {
+				collisionCandidates.addAll(getAgentsInLane(lane, startOffset,
+						finishOffset));
 			}
+			collisionCandidates.remove(this.self);
 			laneChange = startFrom.getLane() != finishAt.getLane();
 			for (UUID a : collisionCandidates) {
 				candidateLocs.put(a,
@@ -138,14 +172,14 @@ public class LaneMoveHandler extends MoveHandler {
 			return agents;
 		}
 
-		public boolean checkForCollision() {
-			boolean collisionOccured = false;
+		public int checkForCollision() {
+			int collisionsOccured = 0;
 			Set<UUID> agentsOnCurrentCell = areaService.getCell(
 					finishAt.getLane(), finishAt.getOffset(), 0);
 			if (agentsOnCurrentCell.size() > 1) {
 				logger.warn("Collision Occurred: Multiple agents on one cell. Cell: "
 						+ this.finishAt + ", agents: " + agentsOnCurrentCell);
-				collisionOccured = true;
+				collisionsOccured++;
 			}
 			for (UUID a : collisionCandidates) {
 				RoadLocation current = (RoadLocation) locationService
@@ -161,17 +195,18 @@ public class LaneMoveHandler extends MoveHandler {
 					if (hisOffset < myOffset) {
 						logger.warn("Collision Occured: Agent "
 								+ agentsOnCurrentCell + " went through " + a);
-						collisionOccured = true;
+						collisionsOccured++;
 					}
 				}
 				if (laneChange && current.getLane() == startFrom.getLane()
-						&& finishAt.getLane() == candidateLocs.get(a).getLane()) {
+						&& finishAt.getLane() == candidateLocs.get(a).getLane()
+						&& current.getOffset() <= finishAt.getOffset()) {
 					logger.warn("Collision Occured: Agent "
 							+ agentsOnCurrentCell + " crossed paths with " + a);
-					collisionOccured = true;
+					collisionsOccured++;
 				}
 			}
-			return collisionOccured;
+			return collisionsOccured;
 		}
 
 	}
