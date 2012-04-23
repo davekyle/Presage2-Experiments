@@ -28,7 +28,7 @@ public class BasicSimulation extends InjectedSimulation {
 	@Parameter(name="size")
 	public int size;
 	 
-	@Parameter(name="agents")
+	@Parameter(name="initialAgents")
 	public int agents;
 	
 	/**
