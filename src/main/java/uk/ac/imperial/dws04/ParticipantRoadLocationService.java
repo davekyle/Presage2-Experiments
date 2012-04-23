@@ -23,12 +23,10 @@ import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
  */
 public class ParticipantRoadLocationService extends ParticipantLocationService {
 
-	@Inject
 	public ParticipantRoadLocationService(
 			Participant p,
 			EnvironmentSharedStateAccess sharedState,
-			EnvironmentServiceProvider serviceProvider,
-			@Named("params.junctionCount") int junctions) {
+			EnvironmentServiceProvider serviceProvider) {
 		super(p, sharedState, serviceProvider);
 	}
 
