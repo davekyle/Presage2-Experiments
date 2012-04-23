@@ -1,0 +1,449 @@
+package uk.ac.imperial.dws04;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+import java.util.Set;
+import java.util.UUID;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import uk.ac.imperial.dws04.LaneMoveHandler;
+import uk.ac.imperial.dws04.RoadLocation;
+import uk.ac.imperial.presage2.core.Action;
+import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
+import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
+import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
+import uk.ac.imperial.presage2.core.event.EventBusModule;
+import uk.ac.imperial.presage2.core.messaging.Input;
+import uk.ac.imperial.presage2.core.util.random.Random;
+import uk.ac.imperial.presage2.util.environment.AbstractEnvironment;
+import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
+import uk.ac.imperial.presage2.util.location.CellMove;
+import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
+import uk.ac.imperial.presage2.util.location.area.Area;
+import uk.ac.imperial.presage2.util.location.area.Area.Edge;
+import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
+import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
+
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+
+public class LaneMoveHandlerTest {
+
+	Injector injector;
+	AbstractEnvironment env;
+	LaneMoveHandler handler;
+
+	@Before
+	public void setUp() throws Exception {
+		injector = Guice.createInjector(
+				new AbstractEnvironmentModule().addActionHandler(
+						LaneMoveHandler.class)
+						.addParticipantEnvironmentService(
+								ParticipantLocationService.class),
+				Area.Bind.area2D(3, 10).addEdgeHander(Edge.Y_MAX,
+						WrapEdgeHandler.class), new EventBusModule());
+
+		env = injector.getInstance(AbstractEnvironment.class);
+		handler = injector.getInstance(LaneMoveHandler.class);
+	}
+
+	@After
+	public void tearDown() throws Exception {
+	}
+
+	class TestAgent extends AbstractParticipant {
+
+		RoadLocation startLoc;
+		ParticipantLocationService locationService;
+
+		public TestAgent(UUID id, String name, RoadLocation startLoc) {
+			super(id, name);
+			this.startLoc = startLoc;
+		}
+
+		@Override
+		protected Set<ParticipantSharedState> getSharedState() {
+			Set<ParticipantSharedState> ss = super.getSharedState();
+			ss.add(ParticipantLocationService.createSharedState(getID(),
+					startLoc));
+			return ss;
+		}
+
+		@Override
+		public void initialise() {
+			super.initialise();
+			try {
+				this.locationService = getEnvironmentService(ParticipantLocationService.class);
+			} catch (UnavailableServiceException e) {
+				logger.warn(e);
+			}
+		}
+
+		@Override
+		protected void processInput(Input in) {
+		}
+
+		public void performAction(Action a) throws ActionHandlingException {
+			environment.act(a, getID(), authkey);
+		}
+
+		public void assertLocation(int lane, int offset) {
+			RoadLocation current = (RoadLocation) this.locationService
+					.getAgentLocation(getID());
+			assertEquals(lane, current.getLane());
+			assertEquals(offset, current.getOffset());
+		}
+	}
+
+	private TestAgent createTestAgent(String name, RoadLocation start) {
+		TestAgent a = new TestAgent(Random.randomUUID(), name, start);
+		injector.injectMembers(a);
+		a.initialise();
+		return a;
+	}
+
+	@Test
+	public void testValidMoves() throws ActionHandlingException {
+
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+
+		env.incrementTime();
+
+		a.assertLocation(1, 0);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		// perform a series of valid moves.
+		a.performAction(new CellMove(0, 2));
+		env.incrementTime();
+		a.assertLocation(1, 2);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		a.performAction(new CellMove(0, 3));
+		env.incrementTime();
+		a.assertLocation(1, 5);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		a.performAction(new CellMove(1, 3));
+		env.incrementTime();
+		a.assertLocation(2, 8);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		a.performAction(new CellMove(0, 3));
+		env.incrementTime();
+		a.assertLocation(2, 1);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		a.performAction(new CellMove(-1, 1));
+		env.incrementTime();
+		a.assertLocation(1, 2);
+		assertEquals(0, handler.checkForCollisions(null));
+	}
+
+	@Test
+	public void testInvalidMove() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(2, 0));
+
+		env.incrementTime();
+
+		a.assertLocation(2, 0);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		a.performAction(new CellMove(1, 2));
+		env.incrementTime();
+		a.assertLocation(3, 2);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		try {
+			// move to non existent lane
+			a.performAction(new CellMove(1, 2));
+			fail();
+		} catch (ActionHandlingException e) {
+		}
+		try {
+			// move multiple lanes at once.
+			a.performAction(new CellMove(-2, 2));
+			fail();
+		} catch (ActionHandlingException e) {
+		}
+	}
+
+	@Test
+	public void testMoveToSameCellOnSameLaneCollisions()
+			throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 3));
+
+		env.incrementTime();
+
+		a.assertLocation(1, 0);
+		b.assertLocation(1, 3);
+
+		// b stationary, a move to b's cell
+		a.performAction(new CellMove(0, 3));
+		b.performAction(new CellMove(0, 0));
+		env.incrementTime();
+		// two collisions counted as both agents detect double occupied cell.
+		assertEquals(2, handler.checkForCollisions(null));
+		// note their locations have still be updated.
+		a.assertLocation(1, 3);
+		b.assertLocation(1, 3);
+
+		// separate them again
+		a.performAction(new CellMove(0, 2));
+		b.performAction(new CellMove(0, 0));
+		env.incrementTime();
+		a.assertLocation(1, 5);
+		b.assertLocation(1, 3);
+
+		// both moving, land on same cell
+		a.performAction(new CellMove(0, 1));
+		b.performAction(new CellMove(0, 3));
+		env.incrementTime();
+		assertEquals(2, handler.checkForCollisions(null));
+		a.assertLocation(1, 6);
+		b.assertLocation(1, 6);
+	}
+
+	@Test
+	public void testSameLaneCollision() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 3));
+
+		env.incrementTime();
+
+		a.assertLocation(1, 0);
+		b.assertLocation(1, 3);
+
+		// a leapfrog b
+		/*   | | |      |a| |
+		 *   | | |      |b| |
+		 *   |b| |      | | |
+		 *   | | |      | | |
+		 *   | | | -->  | | |
+		 *   |a| |      | | |
+		 *  Collision: yes
+		 */
+		a.performAction(new CellMove(0, 5));
+		b.performAction(new CellMove(0, 1));
+		env.incrementTime();
+		assertEquals(1, handler.checkForCollisions(null));
+		a.assertLocation(1, 5);
+		b.assertLocation(1, 4);
+
+		// valid moves
+		a.performAction(new CellMove(0, 3));
+		b.performAction(new CellMove(0, 3));
+		env.incrementTime();
+		assertEquals(0, handler.checkForCollisions(null));
+		a.assertLocation(1, 8);
+		b.assertLocation(1, 7);
+
+		// b leapfrog a over wrap-around point
+		a.performAction(new CellMove(0, 1));
+		b.performAction(new CellMove(0, 4));
+		env.incrementTime();
+		assertEquals(1, handler.checkForCollisions(null));
+		a.assertLocation(1, 9);
+		b.assertLocation(1, 1);
+
+	}
+
+	@Test
+	public void testMultiLaneCollision1() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(2, 1));
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(2, 1);
+
+		/*   | | |      | |a|
+		 *   | | |      | |b|
+		 *   | |b| -->  | | |
+		 *   |a| |      | | |
+		 *   Collision: yes
+		 */
+
+		a.performAction(new CellMove(1, 3));
+		b.performAction(new CellMove(0, 1));
+		env.incrementTime();
+		a.assertLocation(2, 3);
+		b.assertLocation(2, 2);
+		assertEquals(1, handler.checkForCollisions(null));
+	}
+	
+	@Test
+	public void testMultiLaneCollision2() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(2, 1));
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(2, 1);
+
+		/*   | | | |      | |a| |
+		 *   | | | |      |b| | |
+		 *   | |b| | -->  | | | |
+		 *   |a| | |      | | | |
+		 *   Collision: yes
+		 */
+
+		a.performAction(new CellMove(1, 3));
+		b.performAction(new CellMove(-1, 1));
+		env.incrementTime();
+		assertEquals(1, handler.checkForCollisions(null));
+		b.assertLocation(1, 2);
+		a.assertLocation(2, 3);
+	}
+
+	@Test
+	public void testMultiLaneCollision3() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(2, 1));
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(2, 1);
+
+		/*   | | | |      | | | |
+		 *   | | | |      |b| | |
+		 *   | |b| | -->  | |a| |
+		 *   |a| | |      | | | |
+		 *   Collision: no
+		 */
+
+		a.performAction(new CellMove(1, 1));
+		b.performAction(new CellMove(-1, 1));
+		env.incrementTime();
+		a.assertLocation(2, 1);
+		b.assertLocation(1, 2);
+		assertEquals(0, handler.checkForCollisions(null));
+	}
+
+	@Test
+	public void testMultiLaneCollision4() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(2, 1));
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(2, 1);
+
+		/*   | | | |      |a| | |
+		 *   | | | |      |b| | |
+		 *   | |b| | -->  | | | |
+		 *   |a| | |      | | | |
+		 *   Collision: yes
+		 */
+
+		a.performAction(new CellMove(0, 3));
+		b.performAction(new CellMove(-1, 1));
+		env.incrementTime();
+		a.assertLocation(1, 3);
+		b.assertLocation(1, 2);
+		assertEquals(1, handler.checkForCollisions(null));
+	}
+
+	@Test
+	public void testMultiLaneCollision5() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(3, 1));
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(3, 1);
+
+		/*   | | | |      | | | |
+		 *   | | | |      | |b| |
+		 *   | | |b| -->  | |a| |
+		 *   |a| | |      | | | |
+		 *   Collision: no
+		 */
+
+		a.performAction(new CellMove(1, 1));
+		b.performAction(new CellMove(-1, 1));
+		env.incrementTime();
+		a.assertLocation(2, 1);
+		b.assertLocation(2, 2);
+		assertEquals(0, handler.checkForCollisions(null));
+	}
+
+	@Test
+	public void testMultiLaneCollision6() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(2, 0));
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(2, 0);
+
+		/*   | | | |      | | | |
+		 *   | | | |      | | | |
+		 *   | | | | -->  |b|a| |
+		 *   |a|b| |      | | | |
+		 *   Collision: yes
+		 */
+
+		a.performAction(new CellMove(1, 1));
+		b.performAction(new CellMove(-1, 1));
+		env.incrementTime();
+		a.assertLocation(2, 1);
+		b.assertLocation(1, 1);
+		assertEquals(2, handler.checkForCollisions(null));
+	}
+
+	@Test
+	public void testMultiLaneCollision7() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(2, 0));
+		TestAgent c = createTestAgent("a", new RoadLocation(3, 1));
+		TestAgent d = createTestAgent("b", new RoadLocation(2, 2));
+
+		env.incrementTime();
+
+		/*   | | | |      | |d| |
+		 *   | |d| |      |a|c| |
+		 *   | | |c| -->  | |b| |
+		 *   |a|b| |      | | | |
+		 *   Collision: no
+		 */
+
+		a.performAction(new CellMove(0, 2));
+		b.performAction(new CellMove(0, 1));
+		c.performAction(new CellMove(-1, 1));
+		d.performAction(new CellMove(0, 1));
+		env.incrementTime();
+		a.assertLocation(1, 2);
+		b.assertLocation(2, 1);
+		c.assertLocation(2, 2);
+		d.assertLocation(2, 3);
+		assertEquals(0, handler.checkForCollisions(null));
+	}
+
+	@Test
+	public void testMultiLaneCollision8() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0));
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 1));
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(1, 1);
+
+		/*   | | | |      | | | |
+		 *   | | | |      | | | |
+		 *   |b| | | -->  |b|a| |
+		 *   |a| | |      | | | |
+		 *   Collision: no
+		 */
+
+		a.performAction(new CellMove(1, 1));
+		b.performAction(new CellMove(0, 0));
+		env.incrementTime();
+		a.assertLocation(2, 1);
+		b.assertLocation(1, 1);
+		assertEquals(0, handler.checkForCollisions(null));
+	}
+}
