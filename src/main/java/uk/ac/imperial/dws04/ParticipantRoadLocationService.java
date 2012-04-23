@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
@@ -26,7 +27,8 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	public ParticipantRoadLocationService(
 			Participant p,
 			EnvironmentSharedStateAccess sharedState,
-			EnvironmentServiceProvider serviceProvider) {
+			EnvironmentServiceProvider serviceProvider,
+			@Named("params.junctionCount") int junctions) {
 		super(p, sharedState, serviceProvider);
 	}
 
