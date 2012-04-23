@@ -15,7 +15,6 @@ import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.util.location.Cell;
 import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
-import uk.ac.imperial.presage2.util.participant.HasPerceptionRange;
 
 /**
  * @author dws04
@@ -29,7 +28,6 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 			EnvironmentSharedStateAccess sharedState,
 			EnvironmentServiceProvider serviceProvider) {
 		super(p, sharedState, serviceProvider);
-		// TODO Auto-generated constructor stub
 	}
 
 	/**
@@ -38,7 +36,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	 * 
 	 * TODO distance you can see infront of you is likely to be >> than width of road. Want to be able to see all lanes for the distance you can see.
 	 * TODO Does this need to check that the Area has a wrap edge on the MAX_Y or can we assume ?
-	 * FIXME make this more efficient - remove z and do it with mod ?
+	 * FIXME make this more efficient - do it with mod ?
 	 * 
 	 * @return {@link HashMap} of agent's {@link UUID} to {@link Location}
 	 */
@@ -55,12 +53,9 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 					.getSizeX(), (int) (myLoc.getX() + range)); x++) {
 				for (int y = Math.max(0, (int) (myLoc.getY() - range)); y < Math.min(
 						getAreaService().getSizeY(), (int) (myLoc.getY() + range)); y++) {
-					//for (int z = Math.max(0, (int) (myLoc.getZ() - range)); z < Math.min(
-							//getAreaService().getSizeZ(), (int) (myLoc.getZ() + range)); z++) { // TODO Remove this z part ?
-						Cell c = new Cell(x, y, 0);
-						for (UUID a : getAreaService().getCell(x, y, 0)) {
-							agents.put(a, c);
-						//}
+					Cell c = new Cell(x, y, 0);
+					for (UUID a : getAreaService().getCell(x, y, 0)) {
+						agents.put(a, c);
 					}
 				}
 			}
@@ -76,13 +71,10 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 				for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
 						.getSizeX(), (int) (myLoc.getX() + range)); x++) {
 					for (int y = 0; y < diff; y++) {
-						//for (int z = Math.max(0, (int) (myLoc.getZ() - range)); z < Math.min(
-							//	getAreaService().getSizeZ(), (int) (myLoc.getZ() + range)); z++) { // TODO Remove this z part ?
 							Cell c = new Cell(x, y, 0);
-							for (UUID a : getAreaService().getCell(x, y, 0)) {
-								agents.put(a, c);
-							}
-						//}
+						for (UUID a : getAreaService().getCell(x, y, 0)) {
+							agents.put(a, c);
+						}
 					}
 				}
 			}

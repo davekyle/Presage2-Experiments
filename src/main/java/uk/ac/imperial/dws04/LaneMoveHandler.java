@@ -96,7 +96,6 @@ public class LaneMoveHandler extends MoveHandler {
 		CellMove m = (CellMove) action;
 
 		// TODO - requires environment services for agents' max speed etc.
-		// check move is not backwards
 		// check move forward magnitude is <= actor's max speed
 		// check move forward change in magnitude <= actor's max
 		// acceleration/deceleration
