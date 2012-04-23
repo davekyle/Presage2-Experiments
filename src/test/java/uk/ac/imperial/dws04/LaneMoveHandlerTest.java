@@ -169,6 +169,28 @@ public class LaneMoveHandlerTest {
 		} catch (ActionHandlingException e) {
 		}
 	}
+	
+	@Test
+	public void testReverseMove() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(2, 0));
+
+		env.incrementTime();
+
+		a.assertLocation(2, 0);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		a.performAction(new CellMove(1, 2));
+		env.incrementTime();
+		a.assertLocation(3, 2);
+		assertEquals(0, handler.checkForCollisions(null));
+
+		try {
+			// move backwards.
+			a.performAction(new CellMove(0, -1));
+			fail();
+		} catch (ActionHandlingException e) {
+		}
+	}
 
 	@Test
 	public void testMoveToSameCellOnSameLaneCollisions()
