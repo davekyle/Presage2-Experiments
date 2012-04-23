@@ -27,14 +27,20 @@ import uk.ac.imperial.presage2.util.location.area.Area.Edge;
 import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
+import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.name.Names;
 
 public class LaneMoveHandlerTest {
 
 	Injector injector;
 	AbstractEnvironment env;
 	LaneMoveHandler handler;
+	RoadEnvironmentService roadEnvironmentService;
+	
+	private final int lanes = 3;
+	private final int length = 10;
 
 	@Before
 	public void setUp() throws Exception {
@@ -42,12 +48,26 @@ public class LaneMoveHandlerTest {
 				new AbstractEnvironmentModule().addActionHandler(
 						LaneMoveHandler.class)
 						.addParticipantEnvironmentService(
-								ParticipantLocationService.class),
-				Area.Bind.area2D(3, 10).addEdgeHander(Edge.Y_MAX,
-						WrapEdgeHandler.class), new EventBusModule());
+								ParticipantLocationService.class)
+						.addGlobalEnvironmentServices(RoadEnvironmentService.class),
+				Area.Bind.area2D(lanes, length).addEdgeHander(Edge.Y_MAX,
+						WrapEdgeHandler.class), new EventBusModule(),
+				new AbstractModule() {
+					// add in params that are required
+					@Override
+					protected void configure() {
+						bind(Integer.TYPE).annotatedWith(Names.named("params.maxSpeed")).toInstance(10);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.maxAccel")).toInstance(1);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.maxDeccel")).toInstance(1);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.junctionCount")).toInstance(0);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
+					}
+				});
 
 		env = injector.getInstance(AbstractEnvironment.class);
 		handler = injector.getInstance(LaneMoveHandler.class);
+		roadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
 	}
 
 	@After
@@ -140,6 +160,13 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(1, 2);
 		assertEquals(0, handler.checkForCollisions(null));
+		
+		//Testing moving very (legally) fast - this should probably loop...
+		a.performAction(new CellMove(0, (roadEnvironmentService.getMaxSpeed()-1) ));
+		env.incrementTime();
+		a.assertLocation(1, ((2+(roadEnvironmentService.getMaxSpeed()-1))%roadEnvironmentService.getLength()) );
+		assertEquals(0, handler.checkForCollisions(null));
+		
 	}
 
 	@Test
@@ -165,6 +192,12 @@ public class LaneMoveHandlerTest {
 		try {
 			// move multiple lanes at once.
 			a.performAction(new CellMove(-2, 2));
+			fail();
+		} catch (ActionHandlingException e) {
+		}
+		try {
+			// move too fast.
+			a.performAction(new CellMove(-2, (roadEnvironmentService.getMaxSpeed()+1) ));
 			fail();
 		} catch (ActionHandlingException e) {
 		}

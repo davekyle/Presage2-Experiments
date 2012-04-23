@@ -16,6 +16,7 @@ import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
 /**
+ * TODO add max speed etc injected from the simulation
  * @author dws04
  * 
  */
@@ -64,7 +65,7 @@ public class RoadAgent extends AbstractParticipant {
 	 
 		// Create a random Move.
 		int dx = Random.randomInt(2) - 1;
-		int dy = Random.randomInt(2) - 1;
+		int dy = Random.randomInt(2);
 		CellMove move = new CellMove(dx, dy);
 	 
 		// submit move action to the environment.

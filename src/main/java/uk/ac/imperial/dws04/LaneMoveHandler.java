@@ -49,6 +49,7 @@ public class LaneMoveHandler extends MoveHandler {
 	private List<CollisionCheck> checks = new LinkedList<LaneMoveHandler.CollisionCheck>();
 	private int collisions = 0;
 	private PersistentEnvironment persist = null;
+	private RoadEnvironmentService roadEnvironmentService;
 
 	@Inject
 	public LaneMoveHandler(HasArea environment,
@@ -57,6 +58,7 @@ public class LaneMoveHandler extends MoveHandler {
 			throws UnavailableServiceException {
 		super(environment, serviceProvider, sharedState);
 		eb.subscribe(this);
+		this.roadEnvironmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);
 	}
 
 	@Inject(optional = true)
@@ -105,6 +107,13 @@ public class LaneMoveHandler extends MoveHandler {
 		if (m.getY() < 0) {
 			throw new ActionHandlingException(
 					"Cannot move backwards. Move was: "
+							+ m);
+		}
+		
+		// check move is not too fast
+		if (m.getY() > roadEnvironmentService.getMaxSpeed()) {
+			throw new ActionHandlingException(
+					"Cannot move faster than the maximum speed (" + roadEnvironmentService.getMaxSpeed() + "). Move was: "
 							+ m);
 		}
 

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import org.apache.log4j.Logger;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
@@ -20,6 +21,7 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
  * @author dws04
  *
  */
+@Singleton
 public class RoadEnvironmentService extends EnvironmentService {
 
 	private final Logger logger = Logger.getLogger(RoadEnvironmentService.class);
@@ -33,6 +35,11 @@ public class RoadEnvironmentService extends EnvironmentService {
 		super(sharedState);
 		junctionLocations = createJunctionList(length, junctionCount);
 		sharedState.createGlobal("junctionLocations", junctionLocations);
+		sharedState.createGlobal("maxSpeed", maxSpeed);
+		sharedState.createGlobal("maxAccel", maxAccel);
+		sharedState.createGlobal("maxDeccel", maxDeccel);
+		sharedState.createGlobal("length", length);
+		sharedState.createGlobal("lanes", lanes);
 	}
 	
 	/**
@@ -52,6 +59,14 @@ public class RoadEnvironmentService extends EnvironmentService {
 			}
 		}
 		return result;
+	}
+
+	public int getMaxSpeed() {
+		return (Integer) this.sharedState.getGlobal("maxSpeed");
+	}
+
+	public int getLength() {
+		return (Integer) this.sharedState.getGlobal("length");
 	}
 
 }
