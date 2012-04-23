@@ -101,6 +101,13 @@ public class LaneMoveHandler extends MoveHandler {
 		// check move forward change in magnitude <= actor's max
 		// acceleration/deceleration
 		// check agent only moving in/out of lane0 when off/on ramp is present 
+		
+		// check move direction is positive or 0
+		if (m.getY() < 0) {
+			throw new ActionHandlingException(
+					"Cannot move backwards. Move was: "
+							+ m);
+		}
 
 		// check move sideways magnitude is 0 or 1
 		if (Math.abs(m.getX()) > 1) {
