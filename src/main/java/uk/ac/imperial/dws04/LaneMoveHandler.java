@@ -50,6 +50,7 @@ public class LaneMoveHandler extends MoveHandler {
 	private int collisions = 0;
 	private PersistentEnvironment persist = null;
 	private RoadEnvironmentService roadEnvironmentService;
+	private SpeedService speedService;
 
 	@Inject
 	public LaneMoveHandler(HasArea environment,
@@ -59,6 +60,7 @@ public class LaneMoveHandler extends MoveHandler {
 		super(environment, serviceProvider, sharedState);
 		eb.subscribe(this);
 		this.roadEnvironmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);
+		this.speedService = serviceProvider.getEnvironmentService(SpeedService.class);
 	}
 
 	@Inject(optional = true)
@@ -96,6 +98,11 @@ public class LaneMoveHandler extends MoveHandler {
 	public Input handle(Action action, UUID actor)
 			throws ActionHandlingException {
 		CellMove m = (CellMove) action;
+		int prevSpeed = speedService.getAgentSpeed(actor);
+		int maxSpeed = roadEnvironmentService.getMaxSpeed();
+		int maxAccel = roadEnvironmentService.getMaxAccel();
+		int maxDeccel = roadEnvironmentService.getMaxDeccel();
+		
 
 		// TODO - requires environment services for agents' max speed etc.
 		// check move forward change in magnitude <= actor's max
@@ -110,10 +117,28 @@ public class LaneMoveHandler extends MoveHandler {
 		}
 		
 		// check move is not too fast
-		if (m.getY() > roadEnvironmentService.getMaxSpeed()) {
+		if (m.getY() > maxSpeed) {
 			throw new ActionHandlingException(
-					"Cannot move faster than the maximum speed (" + roadEnvironmentService.getMaxSpeed() + "). Move was: "
+					"Cannot move faster than the maximum speed (" + maxSpeed + "). Move was: "
 							+ m);
+		}
+		
+		// check acceleration is not too fast
+		if (m.getY() > prevSpeed) {
+			if ((m.getY() - prevSpeed) > maxAccel) {
+				throw new ActionHandlingException(
+						"Cannot accelerate faster than the maximum acceleration (" + maxAccel + "). Move was: "
+							+ m + " and previous speed was " + prevSpeed);
+			}
+		}
+		
+		// check decceleration is not too fast
+		if (m.getY() < prevSpeed) {
+			if ((prevSpeed-m.getY()) > maxDeccel) {
+				throw new ActionHandlingException(
+						"Cannot deccelerate faster than the maximum decceleration (" + maxDeccel + "). Move was: "
+							+ m + " and previous speed was " + prevSpeed);
+			}
 		}
 
 		// check move sideways magnitude is 0 or 1
@@ -141,6 +166,7 @@ public class LaneMoveHandler extends MoveHandler {
 			}
 		}
 		this.locationService.setAgentLocation(actor, target);
+		this.speedService.setAgentSpeed(actor, (int) m.getY());
 		checks.add(new CollisionCheck(actor, start, target));
 
 		logger.info(actor + " move: " + m);

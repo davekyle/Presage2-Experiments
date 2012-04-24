@@ -69,4 +69,12 @@ public class RoadEnvironmentService extends EnvironmentService {
 		return (Integer) this.sharedState.getGlobal("length");
 	}
 
+	public int getMaxAccel() {
+		return (Integer) this.sharedState.getGlobal("maxAccel");
+	}
+
+	public int getMaxDeccel() {
+		return (Integer) this.sharedState.getGlobal("maxDeccel");
+	}
+	
 }
