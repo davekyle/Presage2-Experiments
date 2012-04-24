@@ -46,9 +46,15 @@ public class RoadAgent extends AbstractParticipant {
 	@Override
 	public void initialise() {
 		super.initialise();
-		// get the ParticipantLocationService.
+		// get the ParticipantRoadLocationService.
 		try {
 			this.locationService = getEnvironmentService(ParticipantRoadLocationService.class);
+		} catch (UnavailableServiceException e) {
+			logger.warn(e);
+		}
+		// get the ParticipantRoadSpeedService.
+		try {
+			this.speedService = getEnvironmentService(ParticipantSpeedService.class);
 		} catch (UnavailableServiceException e) {
 			logger.warn(e);
 		}

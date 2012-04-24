@@ -12,7 +12,6 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
-import uk.ac.imperial.presage2.util.location.area.AreaService;
 
 /**
  * An {@link EnvironmentService} to provide information on the speeds of

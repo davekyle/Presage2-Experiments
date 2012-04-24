@@ -5,7 +5,6 @@ package uk.ac.imperial.dws04;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -19,7 +18,6 @@ import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
 import uk.ac.imperial.presage2.util.location.CannotSeeAgent;
-import uk.ac.imperial.presage2.util.location.Cell;
 import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.participant.HasPerceptionRange;
@@ -30,7 +28,7 @@ import uk.ac.imperial.presage2.util.participant.HasPerceptionRange;
  * @author dws04
  *
  */
-@ServiceDependencies({ EnvironmentMembersService.class })
+@ServiceDependencies({ EnvironmentMembersService.class, ParticipantRoadLocationService.class })
 public class ParticipantSpeedService extends SpeedService {
 	
 	protected final UUID myID;
@@ -39,8 +37,11 @@ public class ParticipantSpeedService extends SpeedService {
 	protected final EnvironmentMembersService membersService;
 	protected final ParticipantRoadLocationService locationService;
 
-	protected ParticipantSpeedService(Participant p, EnvironmentSharedStateAccess sharedState,
-			EnvironmentServiceProvider serviceProvider, ParticipantRoadLocationService locationService) {
+	/*
+	 * This has to only have the 3 args; you can pull everything else from the agent through the serviceProvider
+	 */
+	public ParticipantSpeedService(Participant p, EnvironmentSharedStateAccess sharedState,
+			EnvironmentServiceProvider serviceProvider) {
 		super(sharedState, serviceProvider);
 		this.myID = p.getID();
 		if (p instanceof HasPerceptionRange) {
@@ -53,7 +54,7 @@ public class ParticipantSpeedService extends SpeedService {
 			}
 		}
 		this.membersService = getMembersService(serviceProvider);
-		this.locationService = locationService;
+		this.locationService = getLocationService(serviceProvider);
 	}
 	
 	/**
@@ -65,6 +66,19 @@ public class ParticipantSpeedService extends SpeedService {
 			return serviceProvider.getEnvironmentService(EnvironmentMembersService.class);
 		} catch (UnavailableServiceException e) {
 			logger.warn("Could not retrieve EnvironmentMembersService; functionality limited.");
+			return null;
+		}
+	}
+	
+	/**
+	 * @param serviceProvider
+	 * @return
+	 */
+	private ParticipantRoadLocationService getLocationService(EnvironmentServiceProvider serviceProvider) {
+		try {
+			return serviceProvider.getEnvironmentService(ParticipantRoadLocationService.class);
+		} catch (UnavailableServiceException e) {
+			logger.warn("Could not retrieve ParticipantRoadLocationService; functionality limited.");
 			return null;
 		}
 	}

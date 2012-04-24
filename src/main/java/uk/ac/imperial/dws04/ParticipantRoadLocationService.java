@@ -7,8 +7,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.inject.Inject;
-import com.google.inject.name.Named;
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
