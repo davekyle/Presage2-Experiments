@@ -33,7 +33,7 @@ public class SpeedService extends EnvironmentService {
 	private RoadEnvironmentService roadEnvironmentService;
 
 	@Inject
-	protected SpeedService(EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider) {
+	public SpeedService(EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider) {
 		super(sharedState);
 		this.serviceProvider = serviceProvider;
 	}
