@@ -23,19 +23,23 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 public class RoadAgent extends AbstractParticipant {
 
 	RoadLocation myLoc;
+	int mySpeed;
 	
 	// Variable to store the location service.
 	ParticipantRoadLocationService locationService;
+	ParticipantSpeedService speedService;
 	 
-	RoadAgent(UUID id, String name, RoadLocation myLoc) {
+	RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed) {
 		super(id, name);
 		this.myLoc = myLoc;
+		this.mySpeed = mySpeed;
 	}
 	
 	@Override
 	protected Set<ParticipantSharedState> getSharedState() {
 		Set<ParticipantSharedState> ss = super.getSharedState();
 		ss.add(ParticipantRoadLocationService.createSharedState(getID(), myLoc));
+		ss.add(ParticipantSpeedService.createSharedState(getID(), mySpeed));
 		return ss;
 	}
 	
@@ -53,14 +57,16 @@ public class RoadAgent extends AbstractParticipant {
 	@Override
 	public void execute() {
 		myLoc = (RoadLocation) locationService.getAgentLocation(getID());
+		mySpeed = speedService.getAgentSpeed(getID());
 	 
-		logger.info("My location is: "+ this.myLoc);
+		logger.info("My location is: "+ this.myLoc + " and my speed is " + this.mySpeed);
 		// get current simulation time
 		int time = SimTime.get().intValue();
 		// check db is available
 		if (this.persist != null) {
 			// save our location for this timestep
 			this.persist.getState(time).setProperty("location", this.myLoc.toString());
+			this.persist.getState(time).setProperty("speed", ((Integer)(this.mySpeed)).toString());
 		}
 	 
 		// Create a random Move.

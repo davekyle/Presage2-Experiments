@@ -72,7 +72,8 @@ public class RoadSimulation extends InjectedSimulation {
 			int initialX = Random.randomInt(lanes);
 			int initialY = Random.randomInt(length);
 			RoadLocation startLoc = new RoadLocation(initialX, initialY);
-			s.addParticipant(new RoadAgent(Random.randomUUID(), "agent"+ i, startLoc));
+			int startSpeed = Random.randomInt(maxSpeed);
+			s.addParticipant(new RoadAgent(Random.randomUUID(), "agent"+ i, startLoc, startSpeed));
 		}
 	}
 
@@ -89,6 +90,7 @@ public class RoadSimulation extends InjectedSimulation {
 		modules.add(new AbstractEnvironmentModule()
 			.addActionHandler(LaneMoveHandler.class)
 			.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
+			.addParticipantEnvironmentService(ParticipantSpeedService.class)
 			.addGlobalEnvironmentServices(RoadEnvironmentService.class));
 		// No network
 		modules.add(NetworkModule.noNetworkModule());
@@ -108,7 +110,7 @@ public class RoadSimulation extends InjectedSimulation {
 	@EventListener
 	public int makeNewAgent(EndOfTimeCycle e) {
 		if (false) {
-			this.scenario.addParticipant(new RoadAgent(null, null, null));
+			this.scenario.addParticipant(new RoadAgent(null, null, null, 0));
 		}
 		return 0;
 	}
