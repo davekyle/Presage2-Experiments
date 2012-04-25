@@ -25,8 +25,13 @@ public class RoadLocation extends Cell {
 	}
 
 	public RoadLocation(Vector3D v) {
-		this((int) (v.getX() + 0.5), (int) (v.getY() + 0.5));
+		this((int)v.getX(), (int)v.getY());
 	}
+	
+	/*// Removing the explicit rounding to ensure that attempts to move to -1 don't round up to 0...
+	public RoadLocation(Vector3D v) {
+		this((int) (v.getX() + 0.5), (int) (v.getY() + 0.5));
+	}*/
 
 	public int getLane() {
 		return (int) this.getX();
