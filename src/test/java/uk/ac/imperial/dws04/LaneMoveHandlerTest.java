@@ -268,7 +268,7 @@ public class LaneMoveHandlerTest {
 		b.performAction(new CellMove(0,maxSpeed));
 		env.incrementTime();
 		a.assertLocation(2, 1);
-		b.assertLocation(1, maxSpeed);
+		b.assertLocation(1, (length%maxSpeed));
 		a.assertSpeed(1);
 		b.assertSpeed(maxSpeed);
 		assertEquals(0, handler.checkForCollisions(null));
