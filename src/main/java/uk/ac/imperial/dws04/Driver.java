@@ -10,12 +10,14 @@ import uk.ac.imperial.presage2.util.location.LocationService;
 public class Driver {
 
 	final private LocationService locationService;
+	final private SpeedService speedService;
 	final private UUID myId;
 
-	public Driver(UUID myId, LocationService locationService) {
+	public Driver(UUID myId, LocationService locationService, SpeedService speedService) {
 		super();
 		this.myId = myId;
 		this.locationService = locationService;
+		this.speedService = speedService;
 	}
 
 	public Driver(UUID myId, EnvironmentServiceProvider serviceProvider)
@@ -24,30 +26,43 @@ public class Driver {
 		this.myId = myId;
 		this.locationService = serviceProvider
 				.getEnvironmentService(LocationService.class);
+		this.speedService = serviceProvider.getEnvironmentService(SpeedService.class);
 	}
 	
 	RoadLocation getLocation() {
 		return (RoadLocation) this.locationService.getAgentLocation(myId);
 	}
+	
+	int getSpeed() {
+		return this.speedService.getAgentSpeed(myId);
+	}
 
+	public CellMove accelerate(int n) {
+		return new CellMove(getLocation().getLane(), getSpeed()+n);
+	}
+	
 	public CellMove accelerate() {
-		return null;
+		return new CellMove(getLocation().getLane(), getSpeed()+1);
+	}
+
+	public CellMove decelerate(int n) {
+		return new CellMove(getLocation().getLane(), getSpeed()+n);
 	}
 
 	public CellMove decelerate() {
-		return null;
+		return new CellMove(getLocation().getLane(), getSpeed()+1);
 	}
-
+	
 	public CellMove changeLaneLeft() {
-		return null;
+		return new CellMove(getLocation().getLane()-1, getSpeed());
 	}
 
 	public CellMove changeLaneRight() {
-		return null;
+		return new CellMove(getLocation().getLane()+1, getSpeed());
 	}
 
 	public CellMove constantSpeed() {
-		return null;
+		return new CellMove(getLocation().getLane(), getSpeed());
 	}
 
 }
