@@ -212,21 +212,31 @@ public class LaneMoveHandlerTest {
 
 	@Test
 	public void testInvalidLocationMove() throws ActionHandlingException {
-		TestAgent a = createTestAgent("a", new RoadLocation(2, 0), 0);
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 0);
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 5), 0);
 
 		env.incrementTime();
 
-		a.assertLocation(2, 0);
+		a.assertLocation(1, 0);
+		b.assertLocation(1, 5);
 		assertEquals(0, handler.checkForCollisions(null));
 
 		a.performAction(new CellMove(1, 1));
+		b.performAction(new CellMove(-1,1));
 		env.incrementTime();
-		a.assertLocation(3, 1);
+		a.assertLocation(2, 1);
+		b.assertLocation(0, 6);
 		assertEquals(0, handler.checkForCollisions(null));
 
 		try {
 			// move to non existent lane
 			a.performAction(new CellMove(1, 2));
+			fail();
+		} catch (ActionHandlingException e) {
+		}
+		try {
+			// move to non existent lane
+			b.performAction(new CellMove(-1, 2));
 			fail();
 		} catch (ActionHandlingException e) {
 		}
@@ -285,16 +295,16 @@ public class LaneMoveHandlerTest {
 	
 	@Test
 	public void testReverseMove() throws ActionHandlingException {
-		TestAgent a = createTestAgent("a", new RoadLocation(2, 0), 0);
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 0);
 
 		env.incrementTime();
 
-		a.assertLocation(2, 0);
+		a.assertLocation(1, 0);
 		assertEquals(0, handler.checkForCollisions(null));
 
 		a.performAction(new CellMove(1, 1));
 		env.incrementTime();
-		a.assertLocation(3, 1);
+		a.assertLocation(2, 1);
 		assertEquals(0, handler.checkForCollisions(null));
 
 		try {
