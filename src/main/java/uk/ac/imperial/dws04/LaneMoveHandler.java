@@ -41,7 +41,7 @@ import com.google.inject.Singleton;
  * @author Sam Macbeth
  * 
  */
-@ServiceDependencies({ AreaService.class, LocationService.class })
+@ServiceDependencies({ AreaService.class, LocationService.class, SpeedService.class })
 @Singleton
 public class LaneMoveHandler extends MoveHandler {
 
@@ -49,6 +49,8 @@ public class LaneMoveHandler extends MoveHandler {
 	private List<CollisionCheck> checks = new LinkedList<LaneMoveHandler.CollisionCheck>();
 	private int collisions = 0;
 	private PersistentEnvironment persist = null;
+	private RoadEnvironmentService roadEnvironmentService;
+	private SpeedService speedService;
 
 	@Inject
 	public LaneMoveHandler(HasArea environment,
@@ -57,6 +59,8 @@ public class LaneMoveHandler extends MoveHandler {
 			throws UnavailableServiceException {
 		super(environment, serviceProvider, sharedState);
 		eb.subscribe(this);
+		this.roadEnvironmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);
+		this.speedService = serviceProvider.getEnvironmentService(SpeedService.class);
 	}
 
 	@Inject(optional = true)
@@ -94,11 +98,48 @@ public class LaneMoveHandler extends MoveHandler {
 	public Input handle(Action action, UUID actor)
 			throws ActionHandlingException {
 		CellMove m = (CellMove) action;
+		int prevSpeed = speedService.getAgentSpeed(actor);
+		int maxSpeed = roadEnvironmentService.getMaxSpeed();
+		int maxAccel = roadEnvironmentService.getMaxAccel();
+		int maxDeccel = roadEnvironmentService.getMaxDeccel();
+		
 
 		// TODO - requires environment services for agents' max speed etc.
-		// check move forward magnitude is <= actor's max speed
 		// check move forward change in magnitude <= actor's max
 		// acceleration/deceleration
+		// check agent only moving in/out of lane0 when off/on ramp is present 
+		
+		// check move direction is positive or 0
+		if (m.getY() < 0) {
+			throw new ActionHandlingException(
+					"Cannot move backwards. Move was: "
+							+ m);
+		}
+		
+		// check move is not too fast
+		if (m.getY() > maxSpeed) {
+			throw new ActionHandlingException(
+					"Cannot move faster than the maximum speed (" + maxSpeed + "). Move was: "
+							+ m);
+		}
+		
+		// check acceleration is not too fast
+		if (m.getY() > prevSpeed) {
+			if ((m.getY() - prevSpeed) > maxAccel) {
+				throw new ActionHandlingException(
+						"Cannot accelerate faster than the maximum acceleration (" + maxAccel + "). Move was: "
+							+ m + " and previous speed was " + prevSpeed);
+			}
+		}
+		
+		// check decceleration is not too fast
+		if (m.getY() < prevSpeed) {
+			if ((prevSpeed-m.getY()) > maxDeccel) {
+				throw new ActionHandlingException(
+						"Cannot deccelerate faster than the maximum decceleration (" + maxDeccel + "). Move was: "
+							+ m + " and previous speed was " + prevSpeed);
+			}
+		}
 
 		// check move sideways magnitude is 0 or 1
 		if (Math.abs(m.getX()) > 1) {
@@ -125,6 +166,7 @@ public class LaneMoveHandler extends MoveHandler {
 			}
 		}
 		this.locationService.setAgentLocation(actor, target);
+		this.speedService.setAgentSpeed(actor, (int) m.getY());
 		checks.add(new CollisionCheck(actor, start, target));
 
 		logger.info(actor + " move: " + m);
