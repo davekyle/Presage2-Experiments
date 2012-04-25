@@ -77,4 +77,8 @@ public class RoadEnvironmentService extends EnvironmentService {
 		return (Integer) this.sharedState.getGlobal("maxDeccel");
 	}
 	
+	public int getLanes() {
+		return (Integer) this.sharedState.getGlobal("lanes");
+	}
+	
 }
