@@ -2,39 +2,59 @@ package uk.ac.imperial.dws04;
 
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
+
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.util.location.CellMove;
-import uk.ac.imperial.presage2.util.location.LocationService;
 
+/**
+ * 
+ * @author Sam MacBeth, dws04
+ *
+ */
 public class Driver {
 
-	final private LocationService locationService;
-	final private SpeedService speedService;
-	final private RoadEnvironmentService environmentService;
+	private ParticipantRoadLocationService locationService;
+	final private ParticipantSpeedService speedService;
+	//final private RoadEnvironmentService environmentService;
 	final private UUID myId;
+	private EnvironmentServiceProvider serviceProvider;
+	private final Logger logger = Logger.getLogger(Driver.class);
 
-	public Driver(UUID myId, LocationService locationService, SpeedService speedService, RoadEnvironmentService environmentService) {
+	public Driver(UUID myId, ParticipantRoadLocationService locationService, ParticipantSpeedService speedService/*, RoadEnvironmentService environmentService*/) {
 		super();
 		this.myId = myId;
 		this.locationService = locationService;
 		this.speedService = speedService;
-		this.environmentService = environmentService;
+		/*this.environmentService = environmentService;*/
 	}
 
 	public Driver(UUID myId, EnvironmentServiceProvider serviceProvider)
 			throws UnavailableServiceException {
 		super();
 		this.myId = myId;
+		this.serviceProvider = serviceProvider;
 		this.locationService = serviceProvider
-				.getEnvironmentService(LocationService.class);
-		this.speedService = serviceProvider.getEnvironmentService(SpeedService.class);
-		this.environmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);
+				.getEnvironmentService(ParticipantRoadLocationService.class);
+		this.speedService = serviceProvider.getEnvironmentService(ParticipantSpeedService.class);
+		/*this.environmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);*/
+	}
+	
+	private ParticipantRoadLocationService getLocationService() {
+		if (this.locationService == null) {
+			try {
+				locationService = serviceProvider.getEnvironmentService(ParticipantRoadLocationService.class);
+			} catch (UnavailableServiceException e) {
+				logger.warn(e);
+			}
+		}
+		return locationService;
 	}
 	
 	RoadLocation getLocation() {
-		return (RoadLocation) this.locationService.getAgentLocation(myId);
+		return (RoadLocation) this.getLocationService().getAgentLocation(myId);
 	}
 	
 	int getSpeed() {
@@ -42,47 +62,47 @@ public class Driver {
 	}
 	
 	int getMaxAccel() {
-		return this.environmentService.getMaxAccel();
+		return this.speedService.getMaxAccel();
 	}
 	
 	int getMaxDecel() {
-		return this.environmentService.getMaxDecel();
+		return this.speedService.getMaxDecel();
 	}
 
 	public CellMove accelerate(int n) {
-		return new CellMove(getLocation().getLane(), getSpeed()+n);
+		return new CellMove(0, getSpeed()+n);
 	}
 	
 	public CellMove accelerateMax() {
-		return new CellMove(getLocation().getLane(), getSpeed()+getMaxAccel());
+		return new CellMove(0, getSpeed()+getMaxAccel());
 	}
 	
 	public CellMove accelerate() {
-		return new CellMove(getLocation().getLane(), getSpeed()+1);
+		return new CellMove(0, getSpeed()+1);
 	}
 
 	public CellMove decelerate(int n) {
-		return new CellMove(getLocation().getLane(), getSpeed()-n);
+		return new CellMove(0, getSpeed()-n);
 	}
 	
 	public CellMove decelerateMax() {
-		return new CellMove(getLocation().getLane(), getSpeed()-getMaxDecel());
+		return new CellMove(0, getSpeed()-getMaxDecel());
 	}
 
 	public CellMove decelerate() {
-		return new CellMove(getLocation().getLane(), getSpeed()-1);
+		return new CellMove(0, getSpeed()-1);
 	}
 	
 	public CellMove changeLaneLeft() {
-		return new CellMove(getLocation().getLane()-1, getSpeed());
+		return new CellMove(-1, getSpeed());
 	}
 
 	public CellMove changeLaneRight() {
-		return new CellMove(getLocation().getLane()+1, getSpeed());
+		return new CellMove(1, getSpeed());
 	}
 
 	public CellMove constantSpeed() {
-		return new CellMove(getLocation().getLane(), getSpeed());
+		return new CellMove(0, getSpeed());
 	}
 	
 	public CellMove random() {

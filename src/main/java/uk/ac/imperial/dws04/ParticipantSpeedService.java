@@ -32,8 +32,7 @@ import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 public class ParticipantSpeedService extends SpeedService {
 
 	protected final UUID myID;
-	private final Logger logger = Logger
-			.getLogger(ParticipantSpeedService.class);
+	private final Logger logger = Logger.getLogger(ParticipantSpeedService.class);
 	// protected final HasPerceptionRange rangeProvider;
 	protected final EnvironmentMembersService membersService;
 	protected ParticipantRoadLocationService locationService;
@@ -123,6 +122,28 @@ public class ParticipantSpeedService extends SpeedService {
 		}
 		return super.getConservativeStoppingDistance(participantID);
 		// }
+	}
+	
+	/**
+	 * 
+	 * @param dist distance in which you want to stop
+	 * @return the speed you need to be travelling at, or any negative if it is not possible
+	 */
+	public int getSpeedToStopInDistance(int dist) {
+		double mD = (Integer)getMaxDecel();
+		double n;
+		/*
+		 * equation is :
+		 *  sum-to-n * mD = dist
+		 *  (((n+1)n)/2)*mD = dist
+		 *  n^2+n = (2*(dist/mD))
+		 *  n^2 + n - (2*(dist/mD)) = 0
+		 *  use x = ( -b +/- sqrt(b^2-4ac)) / 2a
+		 *  n = ( -1 +/- sqrt(1+(8*(dist/mD))) ) / 2
+		 *  we want the -'ve because we use a +ve mD not a -ve one...
+		 */
+		n = ( -1 - Math.sqrt(1+(8*(((double)dist)/mD))) ) / 2;
+		return ((Double)(n*mD)).intValue();
 	}
 
 	/**

@@ -26,54 +26,6 @@ public class RoadAgent extends AbstractParticipant {
 	 */
 	protected enum MoveType { CONSTANT, LEFT, RIGHT, ACCEL, ACCELMAX, DECEL, DECELMAX, RANDOM	}
 
-	/**
-	 * Class to contain goals for the RoadAgent
-	 * @author dws04
-	 *
-	 */
-	protected class RoadAgentGoals {
-		/**
-		 *  Preferred speed
-		 */
-		private final int speed;
-		/**
-		 *  Goal destination - how many junctions to pass
-		 */
-		private final int dest;
-		/**
-		 * The preferred space left between this agent and the ones around it
-		 * when not in a cluster
-		 */
-		private final int spacing;
-		
-		RoadAgentGoals(int speed, int dest, int spacing) {
-			this.speed = speed;
-			this.dest = dest;
-			this.spacing = spacing;
-		}
-
-		/**
-		 * @return the speed
-		 */
-		public int getSpeed() {
-			return speed;
-		}
-
-		/**
-		 * @return the goal dest
-		 */
-		public int getDest() {
-			return dest;
-		}
-
-		/**
-		 * @return the spacing
-		 */
-		public int getSpacing() {
-			return spacing;
-		}
-	}
-
 	protected Driver driver;
 	protected RoadLocation myLoc;
 	protected int mySpeed;
@@ -82,12 +34,15 @@ public class RoadAgent extends AbstractParticipant {
 	// Variable to store the location service.
 	ParticipantRoadLocationService locationService;
 	ParticipantSpeedService speedService;
+	/*RoadEnvironmentService environmentService;*/
 	 
 	RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
 		this.myLoc = myLoc;
 		this.mySpeed = mySpeed;
 		this.goals = goals;
+		//this.driver = new Driver(id, locationService, speedService/*, environmentService*/);
+		
 	}
 	
 	@Override
@@ -113,6 +68,18 @@ public class RoadAgent extends AbstractParticipant {
 		} catch (UnavailableServiceException e) {
 			logger.warn(e);
 		}
+		try {
+			this.driver = new Driver(getID(), this);
+		} catch (UnavailableServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		/*// get the RoadEnvironmentService.
+		try {
+			this.environmentService = getEnvironmentService(RoadEnvironmentService.class);
+		} catch (UnavailableServiceException e) {
+			logger.warn(e);
+		}*/
 	}
 	
 	@Override
@@ -124,7 +91,7 @@ public class RoadAgent extends AbstractParticipant {
 		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		saveDataToDB();
 	 
-		CellMove move = randomMove();
+		CellMove move = createMove();
 	 
 		submitMove(move);
 	}
@@ -133,13 +100,70 @@ public class RoadAgent extends AbstractParticipant {
 	 * @return a reasoned move
 	 */
 	private CellMove createMove() {
-		CellMove result;
-		int speedDelta = mySpeed-goals.getSpeed();
-		if (speedDelta<0) {
-
+		int newSpeed;
+		
+		// get agent in front
+		UUID target = this.locationService.getAgentToFront(myLoc.getLane());
+		// if there is someone there
+		if (target!=null) {
+			// get agent in front's stopping distance
+			int targetStopDist = speedService.getConservativeStoppingDistance(target);
+			// work out what speed you can be at to stop in time
+			int stoppingSpeed = speedService.getSpeedToStopInDistance(targetStopDist);
+			// if this is more than your preferred speed, aim to go at your preferred speed instead
+			if (stoppingSpeed > goals.getSpeed()) {
+				newSpeed = goals.getSpeed();
+				logger.debug("Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
+			}// otherwise, aim to go at that speed
+			else {
+				newSpeed = stoppingSpeed; 
+				logger.debug("Agent " + getName() + " deciding to move at safe speed of " + newSpeed);
+			}
+		}
+		// if there isn't anyone there, aim to go at your preferred speed
+		else {
+			newSpeed = goals.getSpeed();
+			logger.debug("Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
+		}
+		// if newSpeed is negative then it's not possible for you to move at a safe speed, so move out of lane
+		// TODO 
+		// get the difference between it and your current speed
+		int speedDelta = mySpeed-newSpeed;
+		// if there isn't a difference, chill
+		if (speedDelta == 0) {
+			logger.debug("Agent " + getName() + " attempting move at constant speed of " + newSpeed);
+			return driver.constantSpeed();
+		}
+		// if it's greater than your current speed, accelerate
+		else if (speedDelta < 0) {
+			// work out if you can change to that speed now
+			if (speedDelta < speedService.getMaxAccel()) {
+				// if you can, do so
+				logger.debug("Agent " + getName() + " attempting to accelerate by " + Math.abs(speedDelta));
+				return driver.accelerate(speedDelta);
+			}
+			else {
+				// if not, just accel as much as you can, and you'll make it up
+				logger.debug("Agent " + getName() + " attempting to accelerate as much as possible to meet speedDelta of " + Math.abs(speedDelta));
+				return driver.accelerateMax();
+			}
+		}
+		// if it's less than your current speed, decelerate
+		else {
+			// work out if you can change to that speed now
+			if (speedDelta < speedService.getMaxDecel()) {
+				// if you can, do so
+				logger.debug("Agent " + getName() + " attempting to decelerate by " + Math.abs(speedDelta));
+				return driver.decelerate(speedDelta);
+			}
+			else {
+				// if not, PANIC ! (just decel max and hope for the best ? maybe change lanes...)
+				logger.debug("Agent " + getName() + " attempting to decelerate as much as possible to meet speedDelta of " + Math.abs(speedDelta));
+				return driver.decelerateMax();
+			}
 		}
 		
-		return this.driver.randomValid();
+		//return this.driver.randomValid();
 	}
 
 	/**
@@ -172,6 +196,7 @@ public class RoadAgent extends AbstractParticipant {
 	private void submitMove(CellMove move) {
 		// submit move action to the environment.
 		try {
+			logger.debug("Agent " + getName() + " attempting move: " + move);
 			environment.act(move, getID(), authkey);
 		} catch (ActionHandlingException e) {
 			logger.warn("Error trying to move", e);

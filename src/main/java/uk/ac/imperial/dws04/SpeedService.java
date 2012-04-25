@@ -56,6 +56,10 @@ public class SpeedService extends EnvironmentService {
 	public int getMaxDecel() {
 		return (Integer) this.getRoadEnvironmentService().getMaxDecel();
 	}
+	
+	public int getMaxAccel() {
+		return (Integer) this.getRoadEnvironmentService().getMaxAccel();
+	}
 
 	/**
 	 * Get the speed of a given agent specified by it's participant UUID.
