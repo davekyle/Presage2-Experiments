@@ -69,6 +69,7 @@ public class RoadAgent extends AbstractParticipant {
 		}
 	}
 
+	protected Driver driver;
 	protected RoadLocation myLoc;
 	protected int mySpeed;
 	protected final RoadAgentGoals goals;
@@ -127,11 +128,7 @@ public class RoadAgent extends AbstractParticipant {
 	 * @return
 	 */
 	private CellMove createMove() {
-		// Create a random Move.
-		int dx = Random.randomInt(2) - 1;
-		int dy = Random.randomInt(2);
-		CellMove move = new CellMove(dx, dy);
-		return move;
+		return this.driver.random();
 	}
 
 	/**
