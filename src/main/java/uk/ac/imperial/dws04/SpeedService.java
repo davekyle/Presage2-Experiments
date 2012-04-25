@@ -52,6 +52,10 @@ public class SpeedService extends EnvironmentService {
 	public int getMaxSpeed() {
 		return (Integer) this.getRoadEnvironmentService().getMaxSpeed();
 	}
+	
+	public int getMaxDeccel() {
+		return (Integer) this.getRoadEnvironmentService().getMaxDeccel();
+	}
 
 	/**
 	 * Get the speed of a given agent specified by it's participant UUID.
@@ -73,5 +77,26 @@ public class SpeedService extends EnvironmentService {
 	 */
 	public void setAgentSpeed(final UUID participantID, final int s) {
 		this.sharedState.change("util.speed", participantID, s);
+	}
+	
+	/**
+	 * @param speed
+	 * @return the distance required to stop at the given speed. Allows one extra cycle of movement at current speed
+	 */
+	public int getConservativeStoppingDistance(int speed) {
+		double mD = (Integer)getMaxDeccel();
+		double n = (((double)speed) / mD);
+		return (int) (((((n+1)*n)/2)*mD) + ((double)speed));
+	}
+	
+	/**
+	 * @param speed
+	 * @return the distance required to stop at the given speed. Allows one extra cycle of movement at current speed
+	 */
+	public int getConservativeStoppingDistance(UUID agent) {
+		double speed = getAgentSpeed(agent);
+		double mD = (Integer)getMaxDeccel();
+		double n = (speed / mD);
+		return (int) (((((n+1)*n)/2)*mD) + speed);
 	}
 }

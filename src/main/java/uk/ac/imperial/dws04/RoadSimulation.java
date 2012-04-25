@@ -92,7 +92,7 @@ public class RoadSimulation extends InjectedSimulation {
 			.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 			.addParticipantEnvironmentService(ParticipantSpeedService.class)
 			//.addGlobalEnvironmentService(SpeedService.class)
-			.addGlobalEnvironmentServices(RoadEnvironmentService.class));
+			.addGlobalEnvironmentService(RoadEnvironmentService.class));
 		// No network
 		modules.add(NetworkModule.noNetworkModule());
 		// Location plugin

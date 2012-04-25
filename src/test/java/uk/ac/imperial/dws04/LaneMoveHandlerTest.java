@@ -48,8 +48,9 @@ public class LaneMoveHandlerTest {
 				new AbstractEnvironmentModule().addActionHandler(
 						LaneMoveHandler.class)
 						.addParticipantEnvironmentService(ParticipantLocationService.class)
+						.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 						.addParticipantEnvironmentService(ParticipantSpeedService.class)
-						.addGlobalEnvironmentServices(RoadEnvironmentService.class),
+						.addGlobalEnvironmentService(RoadEnvironmentService.class),
 				Area.Bind.area2D(lanes, length).addEdgeHander(Edge.Y_MAX,
 						WrapEdgeHandler.class), new EventBusModule(),
 				new AbstractModule() {
