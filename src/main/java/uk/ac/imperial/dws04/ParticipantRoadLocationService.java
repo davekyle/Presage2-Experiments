@@ -5,12 +5,12 @@ package uk.ac.imperial.dws04;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
-import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.util.location.Cell;
 import uk.ac.imperial.presage2.util.location.Location;
@@ -99,6 +99,22 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		} else {
 			throw new UnsupportedOperationException("Not a cell area !");
 		}
+	}
+	
+	/**
+	 * @param lane to check 
+	 * @return Entry containing UUID and Location of closest agent to front
+	 */
+	public Entry<UUID,Location> getAgentToFront(int lane){
+		Entry <UUID,Location> result = null;
+		for (Entry<UUID, Location> entry : getNearbyAgents().entrySet()) {
+			if (((RoadLocation)(entry.getValue())).getLane() == lane) {
+				if ((result==null) || ((((RoadLocation)(entry.getValue())).getOffset()) < (((RoadLocation)(result.getValue())).getOffset())) ) {
+					result = entry;
+				}
+			}
+		}
+		return result;
 	}
 
 }
