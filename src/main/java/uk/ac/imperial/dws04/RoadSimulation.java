@@ -73,7 +73,7 @@ public class RoadSimulation extends InjectedSimulation {
 			int initialY = Random.randomInt(length);
 			RoadLocation startLoc = new RoadLocation(initialX, initialY);
 			int startSpeed = Random.randomInt(maxSpeed);
-			s.addParticipant(new RoadAgent(Random.randomUUID(), "agent"+ i, startLoc, startSpeed));
+			s.addParticipant(new RoadAgent(Random.randomUUID(), "agent"+ i, startLoc, startSpeed, null));
 		}
 	}
 
@@ -111,7 +111,7 @@ public class RoadSimulation extends InjectedSimulation {
 	@EventListener
 	public int makeNewAgent(EndOfTimeCycle e) {
 		if (false) {
-			this.scenario.addParticipant(new RoadAgent(null, null, null, 0));
+			this.scenario.addParticipant(new RoadAgent(null, null, null, 0, null));
 		}
 		return 0;
 	}
