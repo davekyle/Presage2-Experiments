@@ -101,7 +101,7 @@ public class LaneMoveHandler extends MoveHandler {
 		int prevSpeed = speedService.getAgentSpeed(actor);
 		int maxSpeed = roadEnvironmentService.getMaxSpeed();
 		int maxAccel = roadEnvironmentService.getMaxAccel();
-		int maxDeccel = roadEnvironmentService.getMaxDeccel();
+		int maxDecel = roadEnvironmentService.getMaxDecel();
 		
 
 		// TODO - requires environment services for agents' max speed etc.
@@ -132,11 +132,11 @@ public class LaneMoveHandler extends MoveHandler {
 			}
 		}
 		
-		// check decceleration is not too fast
+		// check deceleration is not too fast
 		if (m.getY() < prevSpeed) {
-			if ((prevSpeed-m.getY()) > maxDeccel) {
+			if ((prevSpeed-m.getY()) > maxDecel) {
 				throw new ActionHandlingException(
-						"Cannot deccelerate faster than the maximum decceleration (" + maxDeccel + "). Move was: "
+						"Cannot decelerate faster than the maximum deceleration (" + maxDecel + "). Move was: "
 							+ m + " and previous speed was " + prevSpeed);
 			}
 		}

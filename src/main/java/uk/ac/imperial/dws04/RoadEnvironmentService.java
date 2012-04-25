@@ -31,13 +31,13 @@ public class RoadEnvironmentService extends EnvironmentService {
 	protected RoadEnvironmentService(EnvironmentSharedStateAccess sharedState,
 			@Named("params.length") int length, @Named("params.junctionCount") int junctionCount,
 			@Named("params.lanes") int lanes, @Named("params.maxSpeed") int maxSpeed,
-			@Named("params.maxAccel") int maxAccel, @Named("params.maxDeccel") int maxDeccel){
+			@Named("params.maxAccel") int maxAccel, @Named("params.maxDecel") int maxDecel){
 		super(sharedState);
 		junctionLocations = createJunctionList(length, junctionCount);
 		sharedState.createGlobal("junctionLocations", junctionLocations);
 		sharedState.createGlobal("maxSpeed", maxSpeed);
 		sharedState.createGlobal("maxAccel", maxAccel);
-		sharedState.createGlobal("maxDeccel", maxDeccel);
+		sharedState.createGlobal("maxDecel", maxDecel);
 		sharedState.createGlobal("length", length);
 		sharedState.createGlobal("lanes", lanes);
 	}
@@ -73,8 +73,8 @@ public class RoadEnvironmentService extends EnvironmentService {
 		return (Integer) this.sharedState.getGlobal("maxAccel");
 	}
 
-	public int getMaxDeccel() {
-		return (Integer) this.sharedState.getGlobal("maxDeccel");
+	public int getMaxDecel() {
+		return (Integer) this.sharedState.getGlobal("maxDecel");
 	}
 	
 	public int getLanes() {

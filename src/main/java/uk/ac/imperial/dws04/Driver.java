@@ -40,9 +40,21 @@ public class Driver {
 	int getSpeed() {
 		return this.speedService.getAgentSpeed(myId);
 	}
+	
+	int getMaxAccel() {
+		return this.environmentService.getMaxAccel();
+	}
+	
+	int getMaxDecel() {
+		return this.environmentService.getMaxDecel();
+	}
 
 	public CellMove accelerate(int n) {
 		return new CellMove(getLocation().getLane(), getSpeed()+n);
+	}
+	
+	public CellMove accelerateMax() {
+		return new CellMove(getLocation().getLane(), getSpeed()+getMaxAccel());
 	}
 	
 	public CellMove accelerate() {
@@ -50,11 +62,15 @@ public class Driver {
 	}
 
 	public CellMove decelerate(int n) {
-		return new CellMove(getLocation().getLane(), getSpeed()+n);
+		return new CellMove(getLocation().getLane(), getSpeed()-n);
+	}
+	
+	public CellMove decelerateMax() {
+		return new CellMove(getLocation().getLane(), getSpeed()-getMaxDecel());
 	}
 
 	public CellMove decelerate() {
-		return new CellMove(getLocation().getLane(), getSpeed()+1);
+		return new CellMove(getLocation().getLane(), getSpeed()-1);
 	}
 	
 	public CellMove changeLaneLeft() {

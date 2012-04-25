@@ -21,6 +21,12 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 public class RoadAgent extends AbstractParticipant {
 
 	/**
+	 * @author dws04
+	 *
+	 */
+	protected enum MoveType { CONSTANT, LEFT, RIGHT, ACCEL, ACCELMAX, DECEL, DECELMAX, RANDOM	}
+
+	/**
 	 * Class to contain goals for the RoadAgent
 	 * @author dws04
 	 *
@@ -118,16 +124,46 @@ public class RoadAgent extends AbstractParticipant {
 		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		saveDataToDB();
 	 
-		CellMove move = createMove();
+		CellMove move = randomMove();
 	 
 		submitMove(move);
 	}
-
+	
 	/**
-	 * @return
+	 * @return a reasoned move
 	 */
 	private CellMove createMove() {
+		CellMove result;
+		int speedDelta = mySpeed-goals.getSpeed();
+		if (speedDelta<0) {
+
+		}
+		
+		return this.driver.randomValid();
+	}
+
+	/**
+	 * @return a random move
+	 */
+	private CellMove randomMove() {
 		return this.driver.random();
+	}
+	
+	/**
+	 * @return a move
+	 */
+	private CellMove explicitMove(MoveType type, int n) {
+		switch (type) {
+		case CONSTANT : return driver.constantSpeed();
+		case ACCEL : return driver.accelerate(n);
+		case ACCELMAX : return driver.accelerateMax();
+		case DECEL : return driver.decelerate(n);
+		case DECELMAX : return driver.decelerateMax();
+		case LEFT : return driver.changeLaneLeft();
+		case RIGHT : return driver.changeLaneRight();
+		case RANDOM : return driver.randomValid();
+		default : return driver.random();
+		}
 	}
 
 	/**

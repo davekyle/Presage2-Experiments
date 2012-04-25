@@ -38,7 +38,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	 * @return
 	 */
 	private double calculatePerceptionRange(EnvironmentSharedStateAccess sharedState) {
-		double mD = ((Integer)sharedState.getGlobal("maxDeccel"));
+		double mD = ((Integer)sharedState.getGlobal("maxDecel"));
 		double mS = ((Integer)sharedState.getGlobal("maxSpeed"));
 		double n = (mS / mD);
 		return ((((n+1)*n)/2)*mD) + mS;
