@@ -92,6 +92,10 @@ public class ParticipantSpeedService extends SpeedService {
 		if (this.rangeProvider == null) {
 			return super.getAgentSpeed(participantID);
 		} else {
+			// locationService wont have been loaded when class is created, because services are still being generated
+			if (this.locationService == null) { 
+				this.getLocationService(serviceProvider);
+			}
 			try { // try to observe them; if you can then they're close enough.
 				final Location theirLoc = locationService.getAgentLocation(participantID);
 			} catch (CannotSeeAgent e) {
@@ -117,6 +121,10 @@ public class ParticipantSpeedService extends SpeedService {
 	 * @return {@link HashMap} of agent's {@link UUID} to {@link RoadSpeed}
 	 */
 	public Map<UUID, Integer> getNearbyAgents() {
+		// locationService wont have been loaded when class is created, because services are still being generated
+		if (this.locationService == null) { 
+			this.getLocationService(serviceProvider);
+		}
 		if ((this.membersService == null)||(this.locationService == null)) {
 			throw new UnsupportedOperationException();
 		} else {

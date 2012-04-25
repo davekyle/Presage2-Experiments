@@ -66,7 +66,7 @@ public class RoadAgent extends AbstractParticipant {
 		mySpeed = speedService.getAgentSpeed(getID());
 	 
 		logger.info("My location is: "+ this.myLoc + " and my speed is " + this.mySpeed);
-		//logger.info("I can see the following agents:" + locationService.getNearbyAgents());
+		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		// get current simulation time
 		int time = SimTime.get().intValue();
 		// check db is available

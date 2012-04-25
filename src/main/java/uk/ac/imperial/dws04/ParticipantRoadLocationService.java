@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.util.location.Cell;
 import uk.ac.imperial.presage2.util.location.Location;
@@ -21,11 +22,26 @@ import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
  */
 public class ParticipantRoadLocationService extends ParticipantLocationService {
 
+	private final double perceptionRange;
+	
 	public ParticipantRoadLocationService(
 			Participant p,
 			EnvironmentSharedStateAccess sharedState,
 			EnvironmentServiceProvider serviceProvider) {
 		super(p, sharedState, serviceProvider);
+		this.perceptionRange = calculatePerceptionRange(sharedState);
+	}
+	
+	/**
+	 * Perception range should be stopping distance at maxSpeed.
+	 * @param sharedState
+	 * @return
+	 */
+	private double calculatePerceptionRange(EnvironmentSharedStateAccess sharedState) {
+		double mD = ((Integer)sharedState.getGlobal("maxDeccel"));
+		double mS = ((Integer)sharedState.getGlobal("maxSpeed"));
+		double n = (mS / mD);
+		return ((((n+1)*n)/2)*mD) + mS;
 	}
 
 	/**
@@ -45,7 +61,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		} else if (this.getAreaService() != null && this.getAreaService().isCellArea())  {
 			final Map<UUID, Location> agents = new HashMap<UUID, Location>();
 			Cell myLoc = (Cell) super.getAgentLocation(myID);
-			double range = this.rangeProvider.getPerceptionRange();
+			double range = this.perceptionRange;
 
 			for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
 					.getSizeX(), (int) (myLoc.getX() + range)); x++) {
