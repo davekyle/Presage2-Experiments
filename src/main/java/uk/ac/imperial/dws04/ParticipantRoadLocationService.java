@@ -125,9 +125,9 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	 * 
 	 * @param locA
 	 * @param locB
-	 * @return the (straight-line) distance that must be travelled between A and B
+	 * @return the distance that must be travelled between A.offset and B.offset (ie, it ignores difference in lanes)
 	 */
-	public int getDistanceBetween(RoadLocation locA, RoadLocation locB) {
+	public int getOffsetDistanceBetween(RoadLocation locA, RoadLocation locB) {
 		// check locations aren't the same
 		if (locA.getOffset() == locB.getOffset()) {
 			return 0;
@@ -141,6 +141,14 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 			int distanceToEnd = (this.getAreaService().getSizeY()-1) - locA.getOffset();
 			return distanceToEnd + locB.getOffset();
 		}
+	}
+	
+	public int getLanes() {
+		return this.getAreaService().getSizeX()-1;
+	}
+	
+	public boolean isValidLane(int lane) {
+		return (lane>=0 && lane<=getLanes());
 	}
 
 }

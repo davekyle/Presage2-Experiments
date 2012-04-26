@@ -68,10 +68,11 @@ public class RoadSimulation extends InjectedSimulation {
 	 */
 	@Override
 	protected void addToScenario(Scenario s) {
+		/*FIXME put this here temp*/int initialX = Random.randomInt(lanes);int initialY = Random.randomInt(length);
 		for (int i = 0; i < initialAgents; i++) {
-			int initialX = Random.randomInt(lanes);
-			int initialY = Random.randomInt(length);
-			RoadLocation startLoc = new RoadLocation(initialX, initialY);
+			//int initialX = Random.randomInt(lanes);
+			//int initialY = Random.randomInt(length);
+			RoadLocation startLoc = new RoadLocation(initialX, initialY++);//FIXME remove the ++
 			// don't want speeds to be 0
 			int startSpeed = Random.randomInt(maxSpeed)+1;
 			RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed)+1), 0, 1);

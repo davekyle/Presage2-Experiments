@@ -3,11 +3,16 @@
  */
 package uk.ac.imperial.dws04;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.log4j.Level;
+
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
+import uk.ac.imperial.presage2.core.environment.SharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
@@ -95,14 +100,50 @@ public class RoadAgent extends AbstractParticipant {
 		submitMove(move);
 	}
 	
+	private CellMove createMove(){
+		CellMove result = null;
+		ArrayList<Integer> list = new ArrayList<Integer>();
+		list.add(myLoc.getLane());
+		list.add(myLoc.getLane()+1);
+		list.add(myLoc.getLane()-1);
+		Level lvl = logger.getLevel();
+		logger.setLevel(Level.TRACE);
+		logger.trace("list of lanes is: " + list);
+		logger.setLevel(lvl);
+		
+		for (int i = 0; i <=list.size()-1; i++) {
+			if (locationService.isValidLane(list.get(i))) {
+				result = createMove(list.get(i));
+				if (result!=null) {
+					logger.debug("Agent " + getName() + " found a safe move in lane " + list.get(i)); 
+					// at this point you have the right speed, but not the right lane
+					return new CellMove((list.get(i)-myLoc.getLane()), (int)result.getY());
+				}
+				else {
+					logger.debug("Agent " + getName() + " couldn't find a safe move in lane " + list.get(i)); 
+				}
+			}
+			else {
+				// skip, not a valid lane
+			}
+		}
+		if (result==null) {
+			logger.warn("Agent " + getName() + " doesn't think there is a safe move to make !");
+			return driver.decelerateMax();
+		}
+		logger.error("You should never get here, so let's pass out a null to throw some exceptions later :D");
+		return null;
+	}
+	
 	/**
 	 * @return a reasoned move
 	 */
-	private CellMove createMove() {
+	private CellMove createMove(int lane) {
 		int newSpeed;
 		
+		logger.debug("Agent " + getName() + " is checking lane " + lane + " for a valid move");
 		// get agent in front
-		UUID target = this.locationService.getAgentToFront(myLoc.getLane());
+		UUID target = this.locationService.getAgentToFront(lane);
 		// if there is someone there
 		if (target!=null) {
 			// get agent in front's stopping distance
@@ -110,14 +151,15 @@ public class RoadAgent extends AbstractParticipant {
 			int targetStopDist = speedService.getConservativeStoppingDistance(target);
 			logger.debug("Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
 			// add the distance between you and their current location
-			int reqStopDist = targetStopDist + (locationService.getDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)));
+			int reqStopDist = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)));
 			logger.debug("Agent " + getName() + " got a reqStopDist of " + reqStopDist
-					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(target) +")= " + (locationService.getDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target))) + ") ");
+					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(target) +")= " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target))) + ") ");
 			// work out what speed you can be at to stop in time
 			int stoppingSpeed = speedService.getSpeedToStopInDistance(reqStopDist);
 			logger.debug("Agent " + getName() + " thinks they need to travel at " + stoppingSpeed + " to stop in " + reqStopDist);
 			if (stoppingSpeed <0) {
-				logger.debug("Agent " + getName() + " doesn't think they can stop in time.");
+				logger.debug("Agent " + getName() + " doesn't think they can stop in time in lane " + lane);
+				return null;
 			}
 			// if this is more than your preferred speed, aim to go at your preferred speed instead
 			if (stoppingSpeed > goals.getSpeed()) {
