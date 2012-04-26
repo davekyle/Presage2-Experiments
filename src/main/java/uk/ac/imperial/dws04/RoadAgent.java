@@ -107,11 +107,16 @@ public class RoadAgent extends AbstractParticipant {
 		// if there is someone there
 		if (target!=null) {
 			// get agent in front's stopping distance
+			logger.debug("Agent " + getName() + " saw agent " + target + " at " + (RoadLocation)locationService.getAgentLocation(target));
 			int targetStopDist = speedService.getConservativeStoppingDistance(target);
+			logger.debug("Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
 			// add the distance between you and their current location
 			int reqStopDist = targetStopDist + (locationService.getDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)));
+			logger.debug("Agent " + getName() + " got a reqStopDist of " + reqStopDist
+					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(target) +")= " + (locationService.getDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target))) + ") ");
 			// work out what speed you can be at to stop in time
 			int stoppingSpeed = speedService.getSpeedToStopInDistance(reqStopDist);
+			logger.debug("Agent " + getName() + " thinks they need to travel at " + stoppingSpeed + " to stop in " + reqStopDist);
 			if (stoppingSpeed <0) {
 				logger.debug("Agent " + getName() + " doesn't think they can stop in time.");
 			}

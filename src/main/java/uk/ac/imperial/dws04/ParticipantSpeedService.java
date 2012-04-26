@@ -143,7 +143,8 @@ public class ParticipantSpeedService extends SpeedService {
 		 *  we want the -'ve because we use a +ve mD not a -ve one...
 		 */
 		n = ( -1 - Math.sqrt(1+(8*(((double)dist)/mD))) ) / 2;
-		return ((Double)(n*mD)).intValue();
+		// We need to invert the value because we're taking the -ve root above... :P
+		return -((Double)(n*mD)).intValue();
 	}
 
 	/**
