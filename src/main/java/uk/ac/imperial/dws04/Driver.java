@@ -105,6 +105,15 @@ public class Driver {
 		return new CellMove(0, getSpeed());
 	}
 	
+	/**
+	 * This is probably a risky one to use, although convenient.
+	 * @param speed
+	 * @return
+	 */
+	public CellMove moveAt(int speed){
+		return new CellMove(0, speed);
+	}
+	
 	public CellMove random() {
 		return new CellMove(Random.randomInt(2), Random.randomInt(2));
 	}
