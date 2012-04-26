@@ -1,5 +1,6 @@
 package uk.ac.imperial.dws04;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -46,7 +47,7 @@ import com.google.inject.Singleton;
 public class LaneMoveHandler extends MoveHandler {
 
 	private final Logger logger = Logger.getLogger(LaneMoveHandler.class);
-	private List<CollisionCheck> checks = new LinkedList<LaneMoveHandler.CollisionCheck>();
+	private List<CollisionCheck> checks = Collections.synchronizedList(new LinkedList<LaneMoveHandler.CollisionCheck>());
 	private int collisions = 0;
 	private PersistentEnvironment persist = null;
 	private RoadEnvironmentService roadEnvironmentService;
