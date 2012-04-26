@@ -105,10 +105,7 @@ public class LaneMoveHandler extends MoveHandler {
 		int maxDecel = roadEnvironmentService.getMaxDecel();
 		
 
-		// TODO - requires environment services for agents' max speed etc.
-		// check move forward change in magnitude <= actor's max
-		// acceleration/deceleration
-		// check agent only moving in/out of lane0 when off/on ramp is present 
+		// TODO -  check agent only moving in/out of lane0 when off/on ramp is present 
 		
 		// check move direction is positive or 0
 		if (m.getY() < 0) {

@@ -71,7 +71,6 @@ public class RoadAgent extends AbstractParticipant {
 		try {
 			this.driver = new Driver(getID(), this);
 		} catch (UnavailableServiceException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		/*// get the RoadEnvironmentService.
