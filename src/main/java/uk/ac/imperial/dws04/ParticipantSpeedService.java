@@ -111,7 +111,7 @@ public class ParticipantSpeedService extends SpeedService {
 	}
 
 	@Override
-	public int getConservativeStoppingDistance(UUID participantID) {
+	public int getStoppingDistance(UUID participantID) {
 		// if (this.rangeProvider == null) {
 		// return super.getAgentSpeed(participantID);
 		// } else {
@@ -120,7 +120,7 @@ public class ParticipantSpeedService extends SpeedService {
 		} catch (CannotSeeAgent e) {
 			throw e;
 		}
-		return super.getConservativeStoppingDistance(participantID);
+		return super.getStoppingDistance(participantID);
 		// }
 	}
 	
@@ -144,7 +144,8 @@ public class ParticipantSpeedService extends SpeedService {
 		 */
 		n = ( -1 - Math.sqrt(1+(8*(((double)dist)/mD))) ) / 2;
 		// We need to invert the value because we're taking the -ve root above... :P
-		return -((Double)(n*mD)).intValue();
+		// -1 for correct result - you have to be travelling LESS THAN the result...
+		return (0-((Double)(n*mD)).intValue())-1;
 	}
 
 	/**

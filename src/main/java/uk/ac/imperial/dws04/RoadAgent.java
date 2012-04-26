@@ -146,9 +146,9 @@ public class RoadAgent extends AbstractParticipant {
 		UUID target = this.locationService.getAgentToFront(lane);
 		// if there is someone there
 		if (target!=null) {
-			// get agent in front's stopping distance
+			// get agent in front's stopping distance // FIXME this should not be conservative !
 			logger.debug("Agent " + getName() + " saw agent " + target + " at " + (RoadLocation)locationService.getAgentLocation(target));
-			int targetStopDist = speedService.getConservativeStoppingDistance(target);
+			int targetStopDist = speedService.getStoppingDistance(target);
 			logger.debug("Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
 			// add the distance between you and their current location
 			int reqStopDist = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)));
