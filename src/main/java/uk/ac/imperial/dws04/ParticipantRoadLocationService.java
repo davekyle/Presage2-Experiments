@@ -12,6 +12,7 @@ import java.util.UUID;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.participant.Participant;
+import uk.ac.imperial.presage2.util.location.CannotSeeAgent;
 import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 
@@ -41,6 +42,23 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		double mS = ((Integer)sharedState.getGlobal("maxSpeed"));
 		double n = (mS / mD);
 		return ((((n+1)*n)/2)*mD) + mS;
+	}
+	
+	/**
+	 * Overriding this because we don't have a range provider...
+	 * 
+	 */
+	@Override
+	public Location getAgentLocation(UUID participantID) {
+		final Location theirLoc = super.getAgentLocation(participantID);
+		final Location myLoc = super.getAgentLocation(myID);
+
+		if (myLoc.distanceTo(theirLoc) <= this.perceptionRange) {
+			return theirLoc;
+		} else {
+			return null;
+			//FIXME throw new CannotSeeAgent(this.myID, participantID);
+		}
 	}
 
 	/**

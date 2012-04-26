@@ -4,7 +4,6 @@
 package uk.ac.imperial.dws04;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Set;
 import java.util.UUID;
 
@@ -12,7 +11,6 @@ import org.apache.log4j.Level;
 
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
-import uk.ac.imperial.presage2.core.environment.SharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
@@ -146,7 +144,7 @@ public class RoadAgent extends AbstractParticipant {
 		UUID target = this.locationService.getAgentToFront(lane);
 		// if there is someone there
 		if (target!=null) {
-			// get agent in front's stopping distance // FIXME this should not be conservative !
+			// get agent in front's stopping distance
 			logger.debug("Agent " + getName() + " saw agent " + target + " at " + (RoadLocation)locationService.getAgentLocation(target));
 			int targetStopDist = speedService.getStoppingDistance(target);
 			logger.debug("Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
