@@ -72,8 +72,9 @@ public class RoadSimulation extends InjectedSimulation {
 			int initialX = Random.randomInt(lanes);
 			int initialY = Random.randomInt(length);
 			RoadLocation startLoc = new RoadLocation(initialX, initialY);
-			int startSpeed = Random.randomInt(maxSpeed);
-			RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed-1)+1), 0, 1);
+			// don't want speeds to be 0
+			int startSpeed = Random.randomInt(maxSpeed)+1;
+			RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed)+1), 0, 1);
 			s.addParticipant(new RoadAgent(Random.randomUUID(), "agent"+ i, startLoc, startSpeed, goals));
 		}
 	}
