@@ -140,7 +140,7 @@ public class RoadAgent extends AbstractParticipant {
 			if (speedDelta < speedService.getMaxAccel()) {
 				// if you can, do so
 				logger.debug("Agent " + getName() + " attempting to accelerate by " + Math.abs(speedDelta));
-				return driver.accelerate(speedDelta);
+				return driver.accelerate(Math.abs(speedDelta));
 			}
 			else {
 				// if not, just accel as much as you can, and you'll make it up
@@ -154,7 +154,7 @@ public class RoadAgent extends AbstractParticipant {
 			if (speedDelta < speedService.getMaxDecel()) {
 				// if you can, do so
 				logger.debug("Agent " + getName() + " attempting to decelerate by " + Math.abs(speedDelta));
-				return driver.decelerate(speedDelta);
+				return driver.decelerate(Math.abs(speedDelta));
 			}
 			else {
 				// if not, PANIC ! (just decel max and hope for the best ? maybe change lanes...)
