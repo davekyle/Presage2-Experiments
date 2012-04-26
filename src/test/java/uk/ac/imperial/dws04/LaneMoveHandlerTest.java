@@ -59,7 +59,7 @@ public class LaneMoveHandlerTest {
 					protected void configure() {
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxSpeed")).toInstance(10);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxAccel")).toInstance(1);
-						bind(Integer.TYPE).annotatedWith(Names.named("params.maxDeccel")).toInstance(1);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.maxDecel")).toInstance(1);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.junctionCount")).toInstance(0);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
@@ -190,8 +190,8 @@ public class LaneMoveHandlerTest {
 		a.assertSpeed(tempSpeed);
 		assertEquals(0, handler.checkForCollisions(null));
 		
-		//Testing max deccel
-		tempSpeed = tempSpeed - roadEnvironmentService.getMaxDeccel();
+		//Testing max decel
+		tempSpeed = tempSpeed - roadEnvironmentService.getMaxDecel();
 		a.performAction(new CellMove(0, tempSpeed));
 		env.incrementTime();
 		a.assertLocation(0, (tempLocation+tempSpeed));
@@ -286,8 +286,8 @@ public class LaneMoveHandlerTest {
 		} catch (ActionHandlingException e) {
 		}
 		try {
-			// deccelerate too fast.
-			b.performAction(new CellMove(0, (maxSpeed-(roadEnvironmentService.getMaxDeccel()+1)) ));
+			// decelerate too fast.
+			b.performAction(new CellMove(0, (maxSpeed-(roadEnvironmentService.getMaxDecel()+1)) ));
 			fail();
 		} catch (ActionHandlingException e) {
 		}

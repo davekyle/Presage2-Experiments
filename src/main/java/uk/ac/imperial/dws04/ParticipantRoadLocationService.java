@@ -38,7 +38,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	 * @return
 	 */
 	private double calculatePerceptionRange(EnvironmentSharedStateAccess sharedState) {
-		double mD = ((Integer)sharedState.getGlobal("maxDeccel"));
+		double mD = ((Integer)sharedState.getGlobal("maxDecel"));
 		double mS = ((Integer)sharedState.getGlobal("maxSpeed"));
 		double n = (mS / mD);
 		return ((((n+1)*n)/2)*mD) + mS;
@@ -60,14 +60,14 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 			throw new UnsupportedOperationException();
 		} else if (this.getAreaService() != null && this.getAreaService().isCellArea())  {
 			final Map<UUID, Location> agents = new HashMap<UUID, Location>();
-			Cell myLoc = (Cell) super.getAgentLocation(myID);
+			RoadLocation myLoc = (RoadLocation) super.getAgentLocation(myID);
 			double range = this.perceptionRange;
 
 			for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
 					.getSizeX(), (int) (myLoc.getX() + range)); x++) {
 				for (int y = Math.max(0, (int) (myLoc.getY() - range)); y < Math.min(
 						getAreaService().getSizeY(), (int) (myLoc.getY() + range)); y++) {
-					Cell c = new Cell(x, y, 0);
+					RoadLocation c = new RoadLocation(x, y);
 					for (UUID a : getAreaService().getCell(x, y, 0)) {
 						agents.put(a, c);
 					}
@@ -85,7 +85,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 				for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
 						.getSizeX(), (int) (myLoc.getX() + range)); x++) {
 					for (int y = 0; y < diff; y++) {
-							Cell c = new Cell(x, y, 0);
+						RoadLocation c = new RoadLocation(x, y);
 						for (UUID a : getAreaService().getCell(x, y, 0)) {
 							agents.put(a, c);
 						}
@@ -103,9 +103,9 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	
 	/**
 	 * @param lane to check 
-	 * @return Entry containing UUID and Location of closest agent to front
+	 * @return UUID of closest agent to front, or null if there wasn't one
 	 */
-	public Entry<UUID,Location> getAgentToFront(int lane){
+	public UUID getAgentToFront(int lane){
 		Entry <UUID,Location> result = null;
 		for (Entry<UUID, Location> entry : getNearbyAgents().entrySet()) {
 			if (((RoadLocation)(entry.getValue())).getLane() == lane) {
@@ -114,7 +114,14 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 				}
 			}
 		}
-		return result;
+		if (result!=null) {
+			return result.getKey();
+		}
+		else {
+			return null;
+		}
+			
+		
 	}
 
 }

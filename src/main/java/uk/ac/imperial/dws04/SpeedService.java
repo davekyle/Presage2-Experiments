@@ -53,8 +53,12 @@ public class SpeedService extends EnvironmentService {
 		return (Integer) this.getRoadEnvironmentService().getMaxSpeed();
 	}
 	
-	public int getMaxDeccel() {
-		return (Integer) this.getRoadEnvironmentService().getMaxDeccel();
+	public int getMaxDecel() {
+		return (Integer) this.getRoadEnvironmentService().getMaxDecel();
+	}
+	
+	public int getMaxAccel() {
+		return (Integer) this.getRoadEnvironmentService().getMaxAccel();
 	}
 
 	/**
@@ -84,7 +88,7 @@ public class SpeedService extends EnvironmentService {
 	 * @return the distance required to stop at the given speed. Allows one extra cycle of movement at current speed
 	 */
 	public int getConservativeStoppingDistance(int speed) {
-		double mD = (Integer)getMaxDeccel();
+		double mD = (Integer)getMaxDecel();
 		double n = (((double)speed) / mD);
 		return (int) (((((n+1)*n)/2)*mD) + ((double)speed));
 	}
@@ -95,7 +99,7 @@ public class SpeedService extends EnvironmentService {
 	 */
 	public int getConservativeStoppingDistance(UUID agent) {
 		double speed = getAgentSpeed(agent);
-		double mD = (Integer)getMaxDeccel();
+		double mD = (Integer)getMaxDecel();
 		double n = (speed / mD);
 		return (int) (((((n+1)*n)/2)*mD) + speed);
 	}
