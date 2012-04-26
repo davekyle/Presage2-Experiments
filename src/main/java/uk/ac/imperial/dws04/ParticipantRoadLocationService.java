@@ -47,8 +47,6 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	 * Get the agents who are visible to me at this time and their
 	 * {@link Location}s.
 	 * 
-	 * TODO distance you can see infront of you is likely to be >> than width of road. Want to be able to see all lanes for the distance you can see.
-	 * TODO Does this need to check that the Area has a wrap edge on the MAX_Y or can we assume ?
 	 * FIXME make this more efficient - do it with mod ?
 	 * 
 	 * @return {@link HashMap} of agent's {@link UUID} to {@link Location}
