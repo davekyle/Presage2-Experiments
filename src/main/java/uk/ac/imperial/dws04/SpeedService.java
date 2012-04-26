@@ -95,7 +95,7 @@ public class SpeedService extends EnvironmentService {
 	
 	/**
 	 * @param speed
-	 * @return the distance required to stop at the given speed. Allows one extra cycle of movement at current speed
+	 * @return the distance required for the given agent to stop. Allows one extra cycle of movement at current speed
 	 */
 	public int getConservativeStoppingDistance(UUID agent) {
 		double speed = getAgentSpeed(agent);

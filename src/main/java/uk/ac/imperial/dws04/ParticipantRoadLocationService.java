@@ -12,7 +12,6 @@ import java.util.UUID;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.participant.Participant;
-import uk.ac.imperial.presage2.util.location.Cell;
 import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 
@@ -122,6 +121,28 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		}
 			
 		
+	}
+
+	/**
+	 * 
+	 * @param locA
+	 * @param locB
+	 * @return the (straight-line) distance that must be travelled between A and B
+	 */
+	public int getDistanceBetween(RoadLocation locA, RoadLocation locB) {
+		// check locations aren't the same
+		if (locA.getOffset() == locB.getOffset()) {
+			return 0;
+		}
+		// check for simple case (no wrap)
+		else if (locB.getOffset() > locA.getOffset()) {
+			return (locB.getOffset() - locA.getOffset());
+		}
+		// check for wrap
+		else {
+			int distanceToEnd = (this.getAreaService().getSizeY()-1) - locA.getOffset();
+			return distanceToEnd + locB.getOffset();
+		}
 	}
 
 }
