@@ -100,7 +100,6 @@ public class RoadSimulation extends InjectedSimulation {
 		// Location plugin
 		// TODO need to modify the plugin
 		modules.add(new PluginModule().addPlugin(LocationStoragePlugin.class));
-	 
 		return modules;
 	}
 	
