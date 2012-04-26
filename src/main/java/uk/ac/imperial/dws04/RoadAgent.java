@@ -108,8 +108,10 @@ public class RoadAgent extends AbstractParticipant {
 		if (target!=null) {
 			// get agent in front's stopping distance
 			int targetStopDist = speedService.getConservativeStoppingDistance(target);
+			// add the distance between you and their current location
+			int reqStopDist = targetStopDist + (locationService.getDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)));
 			// work out what speed you can be at to stop in time
-			int stoppingSpeed = speedService.getSpeedToStopInDistance(targetStopDist);
+			int stoppingSpeed = speedService.getSpeedToStopInDistance(reqStopDist);
 			// if this is more than your preferred speed, aim to go at your preferred speed instead
 			if (stoppingSpeed > goals.getSpeed()) {
 				newSpeed = goals.getSpeed();
@@ -125,8 +127,6 @@ public class RoadAgent extends AbstractParticipant {
 			newSpeed = goals.getSpeed();
 			logger.debug("Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
 		}
-		// if newSpeed is negative then it's not possible for you to move at a safe speed, so move out of lane
-		// TODO 
 		// get the difference between it and your current speed
 		int speedDelta = mySpeed-newSpeed;
 		// if there isn't a difference, chill
@@ -136,30 +136,50 @@ public class RoadAgent extends AbstractParticipant {
 		}
 		// if it's greater than your current speed, accelerate
 		else if (speedDelta < 0) {
-			// work out if you can change to that speed now
-			if (speedDelta < speedService.getMaxAccel()) {
-				// if you can, do so
-				logger.debug("Agent " + getName() + " attempting to accelerate by " + Math.abs(speedDelta));
-				return driver.accelerate(Math.abs(speedDelta));
+			// if you're at maxSpeed, don't try and speed up...
+			// FIXME also need to stop them accelerating past maxSpeed if maxAcc > 1
+			if (mySpeed == speedService.getMaxSpeed()) {
+				// work out if you can change to that speed now
+				if (speedDelta < speedService.getMaxAccel()) {
+					// if you can, do so
+					logger.debug("Agent " + getName() + " attempting to accelerate by " + Math.abs(speedDelta));
+					return driver.accelerate(Math.abs(speedDelta));
+				}
+				else {
+					// if not, just accel as much as you can, and you'll make it up
+					logger.debug("Agent " + getName() + " attempting to accelerate as much as possible to meet speedDelta of " + Math.abs(speedDelta));
+					return driver.accelerateMax();
+				}
 			}
 			else {
-				// if not, just accel as much as you can, and you'll make it up
-				logger.debug("Agent " + getName() + " attempting to accelerate as much as possible to meet speedDelta of " + Math.abs(speedDelta));
-				return driver.accelerateMax();
+				return driver.constantSpeed();
 			}
 		}
 		// if it's less than your current speed, decelerate
 		else {
-			// work out if you can change to that speed now
-			if (speedDelta < speedService.getMaxDecel()) {
-				// if you can, do so
-				logger.debug("Agent " + getName() + " attempting to decelerate by " + Math.abs(speedDelta));
-				return driver.decelerate(Math.abs(speedDelta));
+			// if your current speed is 0, then don't even try attempting to decelerate...
+			// FIXME also need to stop them decelerating past 0 if maxDec > 1
+			if (mySpeed == 0) {
+				return driver.constantSpeed();
 			}
 			else {
-				// if not, PANIC ! (just decel max and hope for the best ? maybe change lanes...)
-				logger.debug("Agent " + getName() + " attempting to decelerate as much as possible to meet speedDelta of " + Math.abs(speedDelta));
-				return driver.decelerateMax();
+				// work out if you can change to that speed now
+				if (speedDelta < speedService.getMaxDecel()) {
+					// if you can, do so
+					logger.debug("Agent " + getName() + " attempting to decelerate by " + Math.abs(speedDelta));
+					return driver.decelerate(Math.abs(speedDelta));
+				}
+				else {
+					// if not, PANIC ! (just decel max and hope for the best ? maybe change lanes...)
+					logger.debug("Agent " + getName() + " attempting to decelerate as much as possible to meet speedDelta of " + Math.abs(speedDelta));
+					// TODO change lanes...
+					// find out what lanes there are beside you
+					// check them in some order (overtake first?) to find out which is free
+					// get distance to next agent in lane to your right
+					// get required stopping speed 
+					
+					return driver.decelerateMax();
+				}
 			}
 		}
 		
