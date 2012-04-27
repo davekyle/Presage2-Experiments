@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
+import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.util.location.CellMove;
@@ -14,6 +15,7 @@ import uk.ac.imperial.presage2.util.location.CellMove;
  * @author Sam MacBeth, dws04
  *
  */
+@ServiceDependencies( {ParticipantRoadLocationService.class, ParticipantSpeedService.class} )
 public class Driver {
 
 	private ParticipantRoadLocationService locationService;
@@ -69,38 +71,76 @@ public class Driver {
 		return this.speedService.getMaxDecel();
 	}
 
+	/**
+	 * Accelerate by n, maintaining current lane
+	 * @param n amount to accelerate by
+	 * @return
+	 */
 	public CellMove accelerate(int n) {
 		return new CellMove(0, getSpeed()+n);
 	}
 	
+	/**
+	 * Accelerate as much as you physically can, maintaining current lane
+	 * @return
+	 */
 	public CellMove accelerateMax() {
 		return new CellMove(0, getSpeed()+getMaxAccel());
 	}
 	
+	/**
+	 * Accelerate by one, maintaining current lane
+	 * @return
+	 */
 	public CellMove accelerate() {
 		return new CellMove(0, getSpeed()+1);
 	}
 
+	/**
+	 * Decelerate by n, maintaining current lane
+	 * @param n the amount to decelerate by
+	 * @return
+	 */
 	public CellMove decelerate(int n) {
 		return new CellMove(0, getSpeed()-n);
 	}
 	
+	/**
+	 * Decelerate as much as you physically can, maintaining current lane
+	 * @return
+	 */
 	public CellMove decelerateMax() {
 		return new CellMove(0, getSpeed()-getMaxDecel());
 	}
 
+	/**
+	 * Decelerate by one, maintaining current lane
+	 * @return
+	 */
 	public CellMove decelerate() {
 		return new CellMove(0, getSpeed()-1);
 	}
 	
+	/**
+	 * Move one lane to the left, maintaining current speed
+	 * @return
+	 */
 	public CellMove changeLaneLeft() {
 		return new CellMove(-1, getSpeed());
 	}
-
+	
+	/**
+	 * Move one lane to the right, maintaining current speed
+	 * @return
+	 */
 	public CellMove changeLaneRight() {
 		return new CellMove(1, getSpeed());
 	}
 
+	/**
+	 * Maintain current lane and speed
+	 * @return
+	 */
 	public CellMove constantSpeed() {
 		return new CellMove(0, getSpeed());
 	}
@@ -123,6 +163,7 @@ public class Driver {
 	 * @return
 	 */
 	public CellMove randomValid() {
+		logger.warn("CellMove.randomValid() not implemented yet; returning possibly invalid random move");
 		int lane = Random.randomInt(2);
 		int speed = Random.randomInt(2);
 		return new CellMove(lane, speed);

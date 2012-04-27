@@ -93,7 +93,6 @@ public class RoadSimulation extends InjectedSimulation {
 			.addActionHandler(LaneMoveHandler.class)
 			.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 			.addParticipantEnvironmentService(ParticipantSpeedService.class)
-			//.addGlobalEnvironmentService(SpeedService.class)
 			.addGlobalEnvironmentService(RoadEnvironmentService.class));
 		// No network
 		modules.add(NetworkModule.noNetworkModule());

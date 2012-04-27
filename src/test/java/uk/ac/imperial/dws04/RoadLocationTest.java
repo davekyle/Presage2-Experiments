@@ -64,6 +64,7 @@ public class RoadLocationTest {
 		logger.info("Checking vector constructor with lane=" + x + ", offset=" + y);
 		RoadLocation current = new RoadLocation(vect);
 		assertEquals(((Double)vect.getX()).intValue(), x.intValue());
+		assertEquals(((Double)vect.getX()).intValue(), x.intValue());
 		assertEquals(((Double)vect.getY()).intValue(), y.intValue());
 		assertEquals(((Double)vect.getX()).intValue(), current.getLane());
 		assertEquals(((Double)vect.getY()).intValue(), current.getOffset());

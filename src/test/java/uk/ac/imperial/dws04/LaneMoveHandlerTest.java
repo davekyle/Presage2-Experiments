@@ -45,12 +45,12 @@ public class LaneMoveHandlerTest {
 	@Before
 	public void setUp() throws Exception {
 		injector = Guice.createInjector(
-				new AbstractEnvironmentModule().addActionHandler(
-						LaneMoveHandler.class)
-						.addParticipantEnvironmentService(ParticipantLocationService.class)
-						.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
-						.addParticipantEnvironmentService(ParticipantSpeedService.class)
-						.addGlobalEnvironmentService(RoadEnvironmentService.class),
+				new AbstractEnvironmentModule()
+					.addActionHandler(LaneMoveHandler.class)
+					.addParticipantEnvironmentService(ParticipantLocationService.class)
+					.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
+					.addParticipantEnvironmentService(ParticipantSpeedService.class)
+					.addGlobalEnvironmentService(RoadEnvironmentService.class),
 				Area.Bind.area2D(lanes, length).addEdgeHander(Edge.Y_MAX,
 						WrapEdgeHandler.class), new EventBusModule(),
 				new AbstractModule() {
