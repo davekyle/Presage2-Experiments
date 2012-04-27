@@ -30,7 +30,7 @@ import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 public class SpeedService extends EnvironmentService {
 	
 	EnvironmentServiceProvider serviceProvider;
-	private RoadEnvironmentService roadEnvironmentService;
+	//private RoadEnvironmentService roadEnvironmentService;
 
 	@Inject
 	public SpeedService(EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider) {
@@ -38,7 +38,7 @@ public class SpeedService extends EnvironmentService {
 		this.serviceProvider = serviceProvider;
 	}
 	
-	protected RoadEnvironmentService getRoadEnvironmentService(){
+	/*protected RoadEnvironmentService getRoadEnvironmentService(){
 		if (roadEnvironmentService == null) {
 			try {
 				roadEnvironmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);
@@ -47,9 +47,9 @@ public class SpeedService extends EnvironmentService {
 			}
 		}
 		return roadEnvironmentService;
-	}
+	}*/
 	
-	public int getMaxSpeed() {
+	/*public int getMaxSpeed() {
 		return (Integer) this.getRoadEnvironmentService().getMaxSpeed();
 	}
 	
@@ -59,6 +59,18 @@ public class SpeedService extends EnvironmentService {
 	
 	public int getMaxAccel() {
 		return (Integer) this.getRoadEnvironmentService().getMaxAccel();
+	}*/
+	
+	public int getMaxSpeed() {
+		return (Integer) this.sharedState.getGlobal("maxSpeed");
+	}
+	
+	public int getMaxDecel() {
+		return (Integer) this.sharedState.getGlobal("maxDecel");
+	}
+	
+	public int getMaxAccel() {
+		return (Integer) this.sharedState.getGlobal("maxAccel");
 	}
 
 	/**
