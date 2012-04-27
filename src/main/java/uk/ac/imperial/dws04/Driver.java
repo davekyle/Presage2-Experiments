@@ -163,7 +163,7 @@ public class Driver {
 	 * @return
 	 */
 	public CellMove randomValid() {
-		logger.warn("CellMove.randomValid() not implemented yet; returning possibly invalid random move");
+		logger.warn("CellMove.randomValid() not implemented yet; returning (possibly invalid) random move");
 		int lane = Random.randomInt(2);
 		int speed = Random.randomInt(2);
 		return new CellMove(lane, speed);
