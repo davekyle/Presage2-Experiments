@@ -56,8 +56,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		if (myLoc.distanceTo(theirLoc) <= this.perceptionRange) {
 			return theirLoc;
 		} else {
-			return null;
-			//FIXME throw new CannotSeeAgent(this.myID, participantID);
+			throw new CannotSeeAgent(this.myID, participantID);
 		}
 	}
 
