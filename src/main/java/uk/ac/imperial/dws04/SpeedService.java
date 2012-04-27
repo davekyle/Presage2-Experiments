@@ -11,7 +11,7 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
-import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
+//import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 
 /**
  * An {@link EnvironmentService} to provide information on the speeds of
@@ -22,6 +22,8 @@ import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
  * <p>
  * Add as a global environment service in the environment
  * <p>
+ * 
+ * The ServiceDependency on the RoadEnvironmentService ensures that the global shared states have been added
  * 
  * @author dws04
  * 
