@@ -24,6 +24,10 @@ public class RoadLocation extends Cell {
 		super(((Double)(loc.getX())).intValue(), ((Double)(loc.getY())).intValue());
 	}
 
+	/**
+	 * NOTE: Use the 3-argument constructor for Vector3D, or you might not be making what you expect...
+	 * @param v
+	 */
 	public RoadLocation(Vector3D v) {
 		this((int)v.getX(), (int)v.getY());
 	}
