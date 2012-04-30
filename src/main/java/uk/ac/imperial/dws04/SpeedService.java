@@ -87,7 +87,7 @@ public class SpeedService extends EnvironmentService {
 	}
 
 	/**
-	 * Update this agent's speed to s.
+	 * Update this agent's speed to s for the next cycle.
 	 * 
 	 * 
 	 * @param participantID
@@ -116,5 +116,29 @@ public class SpeedService extends EnvironmentService {
 		double mD = (Integer)getMaxDecel();
 		double n = (speed / mD);
 		return (int) (((((n+1)*n)/2)*mD));
+	}
+	
+	/**
+	 * 
+	 * @param dist distance in which you want to stop
+	 * @return the speed you need to be travelling at, or any negative if it is not possible
+	 */
+	public int getSpeedToStopInDistance(int dist) {
+		double mD = (Integer)getMaxDecel();
+		double n;
+		/*
+		 * equation is :
+		 *  sum-to-n * mD = dist
+		 *  (((n+1)n)/2)*mD = dist
+		 *  n^2+n = (2*(dist/mD))
+		 *  n^2 + n - (2*(dist/mD)) = 0
+		 *  use x = ( -b +/- sqrt(b^2-4ac)) / 2a
+		 *  n = ( -1 +/- sqrt(1+(8*(dist/mD))) ) / 2
+		 *  we want the -'ve because we use a +ve mD not a -ve one...
+		 */
+		n = ( -1 - Math.sqrt(1+(8*(((double)dist)/mD))) ) / 2;
+		// We need to invert the value because we're taking the -ve root above... :P
+		// -1 for correct result - you have to be travelling LESS THAN the result...
+		return (0-((Double)(n*mD)).intValue())-1;
 	}
 }
