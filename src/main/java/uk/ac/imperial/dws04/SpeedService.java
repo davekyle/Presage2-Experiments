@@ -102,10 +102,27 @@ public class SpeedService extends EnvironmentService {
 	 * @return the distance required to stop at the given speed. Allows one extra cycle of movement at current speed
 	 */
 	public int getConservativeStoppingDistance(int speed) {
-		double mD = (Integer)getMaxDecel();
+/*		double mD = (Integer)getMaxDecel();
 		double n = (((double)speed) / mD);
 		return (int) (((((n+1)*n)/2)*mD) + ((double)speed));
+	}*/
+		double mD = (Integer)getMaxDecel();
+		// a is what is left over if speed-nmD is not 0
+		double a = ((double)speed) % mD;
+		double n = ((((double)speed)-a) / mD);
+		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a + ((double)speed));
 	}
+	
+	/**
+	 * @param speed
+	 * @return the distance required for the given agent to stop.
+	 *//*
+	public int getStoppingDistanceOld(UUID agent) {
+		double speed = getAgentSpeed(agent);
+		double mD = (Integer)getMaxDecel();
+		double n = (speed / mD);
+		return (int) (((((n+1)*n)/2)*mD));
+	}*/
 	
 	/**
 	 * @param speed
@@ -114,8 +131,21 @@ public class SpeedService extends EnvironmentService {
 	public int getStoppingDistance(UUID agent) {
 		double speed = getAgentSpeed(agent);
 		double mD = (Integer)getMaxDecel();
-		double n = (speed / mD);
-		return (int) (((((n+1)*n)/2)*mD));
+		// a is what is left over if speed-nmD is not 0
+		double a = speed % mD;
+		double n = ((speed-a) / mD);
+		/*if (a!=0) {
+			n = Math.floor(n);
+		}*/
+		//double temp;
+		// need to add a if a is not 0 to account for the last cycle
+		//System.out.println("speed=" + speed + " mD=" + mD + " a=" + a + " n=" + n);
+		//System.out.println("Old=" + getStoppingDistanceOld(agent));
+		/*temp = ((n/2)*( 2*a + ((n+1)*mD) ));
+		if (a!=0) {
+			temp = temp+a;
+		}*/
+		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a);
 	}
 	
 	/**
@@ -125,20 +155,25 @@ public class SpeedService extends EnvironmentService {
 	 */
 	public int getSpeedToStopInDistance(int dist) {
 		double mD = (Integer)getMaxDecel();
-		double n;
-		/*
-		 * equation is :
-		 *  sum-to-n * mD = dist
-		 *  (((n+1)n)/2)*mD = dist
-		 *  n^2+n = (2*(dist/mD))
-		 *  n^2 + n - (2*(dist/mD)) = 0
-		 *  use x = ( -b +/- sqrt(b^2-4ac)) / 2a
-		 *  n = ( -1 +/- sqrt(1+(8*(dist/mD))) ) / 2
-		 *  we want the -'ve because we use a +ve mD not a -ve one...
-		 */
-		n = ( -1 - Math.sqrt(1+(8*(((double)dist)/mD))) ) / 2;
-		// We need to invert the value because we're taking the -ve root above... :P
-		// -1 for correct result - you have to be travelling LESS THAN the result...
-		return (0-((Double)(n*mD)).intValue())-1;
+		if (dist<=mD) {
+			return dist;
+		}
+		else {
+			double n;
+			/*
+			 * equation is :
+			 *  sum-to-n * mD = dist
+			 *  (((n+1)n)/2)*mD = dist
+			 *  n^2+n = (2*(dist/mD))
+			 *  n^2 + n - (2*(dist/mD)) = 0
+			 *  use x = ( -b +/- sqrt(b^2-4ac)) / 2a
+			 *  n = ( -1 +/- sqrt(1+(8*(dist/mD))) ) / 2
+			 *  we want the -'ve because we use a +ve mD not a -ve one...
+			 */
+			n = ( -1 - Math.sqrt(1+(8*(((double)dist)/mD))) ) / 2;
+			// We need to invert the value because we're taking the -ve root above... :P
+			// -mD for correct result - you have to be travelling LESS THAN the result...
+			return (0-((Double)(n*mD)).intValue())-((int)Math.floor(mD));
+		}
 	}
 }

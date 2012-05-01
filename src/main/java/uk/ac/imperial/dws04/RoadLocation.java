@@ -45,5 +45,14 @@ public class RoadLocation extends Cell {
 		return (int) this.getY();
 	}
 
+	/**
+	 * Don't use this as it doesn't take wrapping into account, use ParticipantRoadLocationService.getOffsetDistanceBetween instead
+	 */
+	@Override
+	@Deprecated
+	public double distanceTo(Location l) {
+		return distanceTo((RoadLocation)l);
+	}
+
 
 }

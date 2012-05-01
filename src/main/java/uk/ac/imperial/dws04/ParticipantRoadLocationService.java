@@ -40,20 +40,22 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	private double calculatePerceptionRange(EnvironmentSharedStateAccess sharedState) {
 		double mD = ((Integer)sharedState.getGlobal("maxDecel"));
 		double mS = ((Integer)sharedState.getGlobal("maxSpeed"));
-		double n = (mS / mD);
-		return ((((n+1)*n)/2)*mD) + mS;
+		double a = mS % mD;
+		double n = ((mS-a) / mD);
+		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a);
 	}
 	
 	/**
 	 * Overriding this because we don't have a range provider...
-	 * 
+	 * ASSUMES that you can see all lanes at a given distance
 	 */
 	@Override
 	public Location getAgentLocation(UUID participantID) {
 		final Location theirLoc = super.getAgentLocation(participantID);
 		final Location myLoc = super.getAgentLocation(myID);
 
-		if (myLoc.distanceTo(theirLoc) <= this.perceptionRange) {
+		if ( (getOffsetDistanceBetween((RoadLocation)myLoc, (RoadLocation)theirLoc) <= this.perceptionRange) ||
+			 (getOffsetDistanceBetween((RoadLocation)theirLoc, (RoadLocation)myLoc) <= this.perceptionRange) )	{
 			return theirLoc;
 		} else {
 			throw new CannotSeeAgent(this.myID, participantID);
@@ -82,6 +84,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 				for (int y = Math.max(0, (int) (myLoc.getY() - range)); y < Math.min(
 						getAreaService().getSizeY(), (int) (myLoc.getY() + range)); y++) {
 					RoadLocation c = new RoadLocation(x, y);
+					//System.err.println(c);
 					for (UUID a : getAreaService().getCell(x, y, 0)) {
 						agents.put(a, c);
 					}
@@ -89,24 +92,38 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 			}
 			/*
 			 *  Need to wrap perception.
-			 *   myLoc.getY()+range > getAreaService().getSizeY()
-			 *   getAreaService().getMaxY() - myLoc.getY() > range
-			 *   { diff = getAreaService().getSizeY() - myLoc.getY(); if (diff>range) then also check...
-			 *   for (int y = 0; y < diff; y++) 
+			 *   check for wrapped behind you first, then wrapped infront of you
 			 */
-			int diff = (int) (getAreaService().getSizeY() - myLoc.getY());
-			if (diff > range) {
+			//System.err.println("-");
+			int diffBack = (int) (range - myLoc.getY());
+			//System.out.println(diffBack);
+			if (diffBack > 0) {
 				for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
 						.getSizeX(), (int) (myLoc.getX() + range)); x++) {
-					for (int y = 0; y < diff; y++) {
+					for (int y = getAreaService().getSizeY() - diffBack; y < getAreaService().getSizeY(); y++) {
 						RoadLocation c = new RoadLocation(x, y);
+						//System.err.println(c);
 						for (UUID a : getAreaService().getCell(x, y, 0)) {
 							agents.put(a, c);
 						}
 					}
 				}
 			}
-			
+			//System.err.println("-");
+			int diffFront = (int) (range - getAreaService().getSizeY() - myLoc.getY());
+			//System.out.println(diffFront);
+			if (diffFront > 0) {
+				for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
+						.getSizeX(), (int) (myLoc.getX() + range)); x++) {
+					for (int y = 0; y < diffFront; y++) {
+						RoadLocation c = new RoadLocation(x, y);
+						//System.err.println(c);
+						for (UUID a : getAreaService().getCell(x, y, 0)) {
+							agents.put(a, c);
+						}
+					}
+				}
+			}
 			
 			agents.remove(this.myID);
 			return agents;

@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,6 +25,7 @@ import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironment;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
+import uk.ac.imperial.presage2.util.location.CannotSeeAgent;
 import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
@@ -47,14 +49,14 @@ public class SpeedServiceTest {
 	//RoadEnvironmentService roadEnvironmentService;
 	SpeedService globalSpeedService;
 	
-	private final int lanes = 3;
-	private final int length = 10;
-	private final int maxSpeed = 10;
-	private final int maxAccel = 1;
-	private final int maxDecel = 1;
+	private int lanes = 3;
+	private int length = 10;
+	private int maxSpeed = 10;
+	private int maxAccel = 1;
+	private int maxDecel = 1;
 	private final int junctionCount = 0;
 
-	@Before
+	// can't use this globally anymore since we want to be able to alter the params
 	public void setUp() throws Exception {
 		injector = Guice.createInjector(
 				new AbstractEnvironmentModule()
@@ -163,7 +165,8 @@ public class SpeedServiceTest {
 	}
 	
 	@Test
-	public void testSpeedCheck() throws ActionHandlingException {
+	public void testSpeedCheck() throws Exception {
+		setUp();
 		int startSpeed = Random.randomInt(maxSpeed-1)+1;
 		int startLane = 2;
 		TestAgent a = createTestAgent("a", new RoadLocation(startLane, 0), startSpeed);
@@ -215,7 +218,8 @@ public class SpeedServiceTest {
 	}
 	
 	@Test
-	public void testStoppingDistance() throws ActionHandlingException {
+	public void testStoppingDistance() throws Exception {
+		setUp();
 		int startSpeed = 5;
 		int startLane = Random.randomInt(lanes);
 		TestAgent a = createTestAgent("a", new RoadLocation(startLane, 0), startSpeed);
@@ -242,10 +246,43 @@ public class SpeedServiceTest {
 	}
 	
 	@Test
-	public void testSpeedToStopIn() {
+	public void testStopDistAgain() throws Exception {
+		this.maxSpeed = 5;
+		this.maxAccel = 2;
+		this.maxDecel = 2;
+		this.testGetters();
+		
+		int startSpeed = 5;
+		int startLane = Random.randomInt(lanes);
+		TestAgent a = createTestAgent("a", new RoadLocation(startLane, 0), startSpeed);
+
+		env.incrementTime();
+		a.assertLocation(startLane, 0);
+		a.assertSpeed(5);
+		assertGlobalSpeed(startSpeed, a.getID());
+		assertTrue(this.maxDecel == 2);
+		
+		// check stopping distance is correct.
+		assertEquals(9, globalSpeedService.getStoppingDistance(a.getID()));
+		assertEquals(14, globalSpeedService.getConservativeStoppingDistance(5));
+		
+		// slow down so we can check it with another value
+		a.performAction(a.driver.decelerate());
+		env.incrementTime();
+		a.performAction(a.driver.decelerate());
+		env.incrementTime();
+		a.assertSpeed(3);
+		assertGlobalSpeed(3, a.getID());
+		assertEquals(4, globalSpeedService.getStoppingDistance(a.getID()));
+		assertEquals(7, globalSpeedService.getConservativeStoppingDistance(3));
+	}
+	
+	@Test
+	public void testSpeedToStopIn() throws Exception {
+		setUp();
 		/*
 		 * Distance:	|0|9|8|7|6|5|4|3|2|1|0|
-		 * Markers:		  4         3    2  1 0
+		 * Markers:		  4       3     2   1 0
 		 * Speed:		|4|3|3|3|3|2|2|2|1|1|0|
 		 */
 		assertEquals(0,globalSpeedService.getSpeedToStopInDistance(0));
@@ -263,7 +300,33 @@ public class SpeedServiceTest {
 	}
 	
 	@Test
-	public void testGetters() throws ActionHandlingException {
+	public void testSpeedToStopInAgain() throws Exception {
+		this.maxAccel = 2;
+		this.maxDecel = 2;
+		this.testGetters();
+		setUp();
+		/*
+		 * Distance:	|0|9|8|7|6|5|4|3|2|1|0|
+		 * Markers:		    5     4   3   2 1 0
+		 * Speed:		|4|3|3|3|3|2|2|2|2|1|0|
+		 */
+		assertEquals(0,globalSpeedService.getSpeedToStopInDistance(0));
+		assertEquals(1,globalSpeedService.getSpeedToStopInDistance(1));
+		assertEquals(2,globalSpeedService.getSpeedToStopInDistance(2));
+		assertEquals(2,globalSpeedService.getSpeedToStopInDistance(3));
+		assertEquals(3,globalSpeedService.getSpeedToStopInDistance(4));
+		assertEquals(3,globalSpeedService.getSpeedToStopInDistance(5));
+		assertEquals(4,globalSpeedService.getSpeedToStopInDistance(6));
+		assertEquals(4,globalSpeedService.getSpeedToStopInDistance(7));
+		assertEquals(4,globalSpeedService.getSpeedToStopInDistance(8));
+		assertEquals(5,globalSpeedService.getSpeedToStopInDistance(9));
+		assertEquals(5,globalSpeedService.getSpeedToStopInDistance(10));
+		assertEquals(5,globalSpeedService.getSpeedToStopInDistance(11));
+	}
+	
+	@Test
+	public void testGetters() throws Exception {
+		setUp();
 		int startSpeed = Random.randomInt(maxSpeed);
 		int startLane = Random.randomInt(lanes);
 		RoadLocation startLocation = new RoadLocation(startLane, 0);
@@ -280,9 +343,82 @@ public class SpeedServiceTest {
 		assertEquals(maxSpeed, globalSpeedService.getMaxSpeed());
 		assertEquals(maxAccel, globalSpeedService.getMaxAccel());
 		assertEquals(maxDecel, globalSpeedService.getMaxDecel());
+		System.out.println("Maxspeed:" + maxSpeed);
 		assertEquals(maxSpeed, a.speedService.getMaxSpeed());
 		assertEquals(maxAccel, a.speedService.getMaxAccel());
 		assertEquals(maxDecel, a.speedService.getMaxDecel());
+	}
+	
+	@Test
+	public void testLocationAwareParticipantFunctions() throws Exception {
+		length = 50;
+		maxSpeed = 5;
+		maxDecel = 1;
+		// perception range is 15
+		setUp();
+		
+		TestAgent a = createTestAgent("a", new RoadLocation(0, 0), 1);
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 0), 2);
+		TestAgent c = createTestAgent("c", new RoadLocation(2, 14), 3);
+		TestAgent d = createTestAgent("d", new RoadLocation(0, 20), 4);
+		TestAgent e = createTestAgent("e", new RoadLocation(0, 49), 5);
+		
+		env.incrementTime();
+		// check it's all correct
+		a.assertLocation(0, 0);
+		a.assertSpeed(1);
+		b.assertLocation(1, 0);
+		b.assertSpeed(2);
+		c.assertLocation(2, 14);
+		c.assertSpeed(3);
+		d.assertLocation(0, 20);
+		d.assertSpeed(4);
+		e.assertLocation(0, 49);
+		e.assertSpeed(5);
+		
+		// check they can see people they're supposed to
+		assertEquals(2, a.speedService.getAgentSpeed(b.getID()));
+		assertEquals(3, a.speedService.getAgentSpeed(c.getID()));
+		// (it should wrap)
+		assertEquals(5, a.speedService.getAgentSpeed(e.getID()));
+		assertEquals(1, b.speedService.getAgentSpeed(a.getID()));
+		assertEquals(3, b.speedService.getAgentSpeed(c.getID()));
+		assertEquals(1, c.speedService.getAgentSpeed(a.getID()));
+		assertEquals(2, c.speedService.getAgentSpeed(b.getID()));
+		assertEquals(4, c.speedService.getAgentSpeed(d.getID()));
+		assertEquals(3, d.speedService.getAgentSpeed(c.getID()));
+		assertEquals(1, e.speedService.getAgentSpeed(a.getID()));
+		
+		try {
+			// try to get someone you can't see
+			a.speedService.getAgentSpeed(d.getID());
+			fail();
+		} catch (CannotSeeAgent ex) {
+		}
+		try {
+			// should be reflexive
+			d.speedService.getAgentSpeed(a.getID());
+			fail();
+		} catch (CannotSeeAgent ex) {
+		}
+		
+		assertEquals(1, b.speedService.getStoppingDistance(a.getID()));
+		try {
+			// can't see
+			a.speedService.getStoppingDistance(d.getID());
+			fail();
+		} catch (CannotSeeAgent ex) {
+		}
+		
+		Map<UUID, Integer> aMap = a.speedService.getNearbyAgentSpeeds();
+		assertTrue(aMap.get(b.getID()).equals(2));
+		assertTrue(aMap.get(c.getID()).equals(3));
+		// wraps
+		assertTrue(aMap.get(e.getID()).equals(5));
+		// can't see too far
+		assertTrue((!aMap.containsKey(d.getID())));
+		
 		
 	}
+	
 }
