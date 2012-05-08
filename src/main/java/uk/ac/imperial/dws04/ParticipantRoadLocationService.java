@@ -42,6 +42,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		double mS = ((Integer)sharedState.getGlobal("maxSpeed"));
 		double a = mS % mD;
 		double n = ((mS-a) / mD);
+		
 		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a);
 	}
 	
@@ -100,7 +101,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 			if (diffBack > 0) {
 				for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
 						.getSizeX(), (int) (myLoc.getX() + range)); x++) {
-					for (int y = getAreaService().getSizeY() - diffBack; y < getAreaService().getSizeY(); y++) {
+					for (int y = Math.max(0, getAreaService().getSizeY() - diffBack); y < getAreaService().getSizeY(); y++) {
 						RoadLocation c = new RoadLocation(x, y);
 						//System.err.println(c);
 						for (UUID a : getAreaService().getCell(x, y, 0)) {
@@ -115,7 +116,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 			if (diffFront > 0) {
 				for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
 						.getSizeX(), (int) (myLoc.getX() + range)); x++) {
-					for (int y = 0; y < diffFront; y++) {
+					for (int y = 0; y < Math.min(getAreaService().getSizeY(), diffFront); y++) {
 						RoadLocation c = new RoadLocation(x, y);
 						//System.err.println(c);
 						for (UUID a : getAreaService().getCell(x, y, 0)) {
@@ -132,26 +133,26 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		}
 	}
 	
-	/**
+	/** 
 	 * @param lane to check 
-	 * @return UUID of closest agent to front, or null if there wasn't one
+	 * @return UUID of closest agent to front (or agent alongside), or null if there wasn't one
 	 */
 	public UUID getAgentToFront(int lane){
-		Entry <UUID,Location> result = null;
-		for (Entry<UUID, Location> entry : getNearbyAgents().entrySet()) {
-			if (((RoadLocation)(entry.getValue())).getLane() == lane) {
-				if ((result==null) || ((((RoadLocation)(entry.getValue())).getOffset()) < (((RoadLocation)(result.getValue())).getOffset())) ) {
-					result = entry;
+		UUID result = null;
+		int startLoc = ((RoadLocation) super.getAgentLocation(myID)).getOffset();
+		for (int i = 0; i <= this.perceptionRange; i++) {
+			if ( !getAreaService().getCell(lane, ((startLoc+i)%this.getAreaService().getSizeY()), 0).isEmpty() ) {
+				for (UUID a : getAreaService().getCell(lane, ((startLoc+i)%this.getAreaService().getSizeY()), 0)) {
+					if (a!=myID) {
+						result = a; // should only be one
+					}
+				}
+				if (result!=null) {
+					break;
 				}
 			}
 		}
-		if (result!=null) {
-			return result.getKey();
-		}
-		else {
-			return null;
-		}
-			
+		return result;
 		
 	}
 
@@ -172,7 +173,7 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		}
 		// check for wrap
 		else {
-			int distanceToEnd = (this.getAreaService().getSizeY()-1) - locA.getOffset();
+			int distanceToEnd = (this.getAreaService().getSizeY()) - locA.getOffset();
 			return distanceToEnd + locB.getOffset();
 		}
 	}

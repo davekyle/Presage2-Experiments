@@ -92,7 +92,7 @@ public class SpeedServiceTest {
 
 		RoadLocation startLoc;
 		int startSpeed;
-		ParticipantLocationService locationService;
+		ParticipantRoadLocationService locationService;
 		ParticipantSpeedService speedService;
 		Driver driver;
 
@@ -105,7 +105,7 @@ public class SpeedServiceTest {
 		@Override
 		protected Set<ParticipantSharedState> getSharedState() {
 			Set<ParticipantSharedState> ss = super.getSharedState();
-			ss.add(ParticipantLocationService.createSharedState(getID(),startLoc));
+			ss.add(ParticipantRoadLocationService.createSharedState(getID(),startLoc));
 			ss.add(ParticipantSpeedService.createSharedState(getID(), startSpeed));
 			return ss;
 		}
@@ -114,7 +114,7 @@ public class SpeedServiceTest {
 		public void initialise() {
 			super.initialise();
 			try {
-				this.locationService = getEnvironmentService(ParticipantLocationService.class);
+				this.locationService = getEnvironmentService(ParticipantRoadLocationService.class);
 			} catch (UnavailableServiceException e) {
 				logger.warn(e);
 			}
