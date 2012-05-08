@@ -52,10 +52,11 @@ public class RoadEnvironmentService extends EnvironmentService {
 		ArrayList<Integer> result = new ArrayList<Integer>();
 		if (junctionCount!=0){
 			// length*(i/(junctionCount+1) -> (length/(junctionCount+1))*i to avoid Integer rounding
-			for (int i = 1; i<=junctionCount; i++) {
+			for (int i = 0; i<junctionCount; i++) {
 				//Integer temp = length*(i/(junctionCount+1));
-				result.add((length/(junctionCount+1))*i);
-				logger.trace("Added a junction at " + (length/(junctionCount+1))*i);
+				result.add((i*length)/junctionCount);
+				//result.add((length/(junctionCount+1))*i);
+				logger.trace("Added a junction at " + (i*length)/junctionCount);
 			}
 		}
 		return result;
@@ -79,6 +80,13 @@ public class RoadEnvironmentService extends EnvironmentService {
 	
 	public int getLanes() {
 		return (Integer) this.sharedState.getGlobal("lanes");
+	}
+
+	/**
+	 * @return the junctionLocations
+	 */
+	public ArrayList<Integer> getJunctionLocations() {
+		return junctionLocations;
 	}
 	
 }
