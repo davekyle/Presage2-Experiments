@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Inject;
 
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
@@ -63,6 +64,7 @@ public class RoadSimulation extends InjectedSimulation {
 	
 	HashMap<UUID,RoadLocation> agentLocations;
 
+	EnvironmentServiceProvider serviceProvider;
 	
 	/**
 	 * @param modules
@@ -72,16 +74,34 @@ public class RoadSimulation extends InjectedSimulation {
 		agentLocations = new HashMap<UUID, RoadLocation>();
 	}
 	
+	@Inject
+	void setEnvironmentServiceProvider(EnvironmentServiceProvider serviceProvider) {
+		this.serviceProvider = serviceProvider;
+	}
+	
 	LocationService getLocationService() {
-		return getInjector().getInstance(ParticipantRoadLocationService.class);
+		try {
+			return this.serviceProvider.getEnvironmentService(LocationService.class);
+		} catch (UnavailableServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 	/**
 	 * @param serviceProvider
 	 * @return
+	 * @throws UnavailableServiceException 
 	 */
 	private EnvironmentMembersService getMembersService() {
-		return getInjector().getInstance(EnvironmentMembersService.class);
+		try {
+			return this.serviceProvider.getEnvironmentService(EnvironmentMembersService.class);
+		} catch (UnavailableServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
 	}
 
 	/* (non-Javadoc)
