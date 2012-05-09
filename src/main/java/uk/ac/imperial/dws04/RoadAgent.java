@@ -98,27 +98,31 @@ public class RoadAgent extends AbstractParticipant {
 		submitMove(move);
 	}
 	
+	@SuppressWarnings("unused")
 	private CellMove createMove(){
 		CellMove result = null;
-		ArrayList<Integer> list = new ArrayList<Integer>();
-		list.add(myLoc.getLane());
-		list.add(myLoc.getLane()+1);
-		list.add(myLoc.getLane()-1);
+		ArrayList<Integer> availableLanes = new ArrayList<Integer>();
+		availableLanes.add(myLoc.getLane());
+		availableLanes.add(myLoc.getLane()+1);
+		availableLanes.add(myLoc.getLane()-1);
 		Level lvl = logger.getLevel();
-		logger.setLevel(Level.TRACE);
-		logger.trace("list of lanes is: " + list);
-		logger.setLevel(lvl);
+		//logger.setLevel(Level.TRACE);
+		logger.trace("list of lanes is: " + availableLanes);
+		//logger.setLevel(lvl);
 		
-		for (int i = 0; i <=list.size()-1; i++) {
-			if (locationService.isValidLane(list.get(i))) {
-				result = createMove(list.get(i));
+		for (int i = 0; i <=availableLanes.size()-1; i++) {
+			if (locationService.isValidLane(availableLanes.get(i))) {
+				result = createMove(availableLanes.get(i));
 				if (result!=null) {
-					logger.debug("Agent " + getName() + " found a safe move in lane " + list.get(i)); 
+					logger.debug("Agent " + getName() + " found a safe move in lane " + availableLanes.get(i)); 
 					// at this point you have the right speed, but not the right lane
-					return new CellMove((list.get(i)-myLoc.getLane()), (int)result.getY());
+					if (availableLanes.get(i)!=myLoc.getLane()) {
+						logger.warn("Agent is going to change lanes ! :D ");
+					}
+					return new CellMove((availableLanes.get(i)-myLoc.getLane()), (int)result.getY());
 				}
 				else {
-					logger.debug("Agent " + getName() + " couldn't find a safe move in lane " + list.get(i)); 
+					logger.debug("Agent " + getName() + " couldn't find a safe move in lane " + availableLanes.get(i)); 
 				}
 			}
 			else {
@@ -129,7 +133,7 @@ public class RoadAgent extends AbstractParticipant {
 			logger.warn("Agent " + getName() + " doesn't think there is a safe move to make !");
 			return driver.decelerateMax();
 		}
-		logger.error("You should never get here, so let's pass out a null to throw some exceptions later :D");
+		logger.error("You should never get here (deadcode), but Eclipse is insisting on a return here, so let's pass out a null to throw some exceptions later :D");
 		return null;
 	}
 	
@@ -138,6 +142,9 @@ public class RoadAgent extends AbstractParticipant {
 	 */
 	private CellMove createMove(int lane) {
 		int newSpeed;
+		// this doesn't really show if something isn't safe, but it does show if something is safe
+		// (ie, only true if you know you can go at your preferred speed instead of one for safety's sake.
+		boolean safe = false;
 		
 		logger.debug("Agent " + getName() + " is checking lane " + lane + " for a valid move");
 		// get agent in front
@@ -148,14 +155,14 @@ public class RoadAgent extends AbstractParticipant {
 			logger.debug("Agent " + getName() + " saw agent " + target + " at " + (RoadLocation)locationService.getAgentLocation(target));
 			int targetStopDist = speedService.getStoppingDistance(target);
 			logger.debug("Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
-			// add the distance between you and their current location
-			int reqStopDist = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)));
+			// add the distance between you and their current location (then minus 1 to make sure you can stop BEFORE them)
+			int reqStopDist = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)))-1;
 			logger.debug("Agent " + getName() + " got a reqStopDist of " + reqStopDist
 					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(target) +")= " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target))) + ") ");
 			// work out what speed you can be at to stop in time
 			int stoppingSpeed = speedService.getSpeedToStopInDistance(reqStopDist);
 			logger.debug("Agent " + getName() + " thinks they need to travel at " + stoppingSpeed + " to stop in " + reqStopDist);
-			if (stoppingSpeed <0) {
+			if ( (stoppingSpeed <0) || ( (mySpeed>stoppingSpeed) && (mySpeed-speedService.getMaxDecel() > stoppingSpeed) ) ) {
 				logger.debug("Agent " + getName() + " doesn't think they can stop in time in lane " + lane);
 				return null;
 			}
@@ -163,6 +170,7 @@ public class RoadAgent extends AbstractParticipant {
 			if (stoppingSpeed > goals.getSpeed()) {
 				newSpeed = goals.getSpeed();
 				logger.debug("Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
+				safe = true;
 			}// otherwise, aim to go at that speed
 			else {
 				newSpeed = stoppingSpeed; 
@@ -173,6 +181,7 @@ public class RoadAgent extends AbstractParticipant {
 		else {
 			newSpeed = goals.getSpeed();
 			logger.debug("Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
+			safe = true;
 		}
 		// get the difference between it and your current speed
 		int speedDelta = mySpeed-newSpeed;
@@ -191,7 +200,7 @@ public class RoadAgent extends AbstractParticipant {
 			}
 			else {
 				// work out if you can change to that speed now
-				if (speedDelta < speedService.getMaxAccel()) {
+				if (speedDelta <= speedService.getMaxAccel()) {
 					// if you can, do so
 					if (mySpeed+speedDelta > speedService.getMaxSpeed()) {
 						logger.debug("Agent " + getName() + " adjusted acceleration from " + speedDelta + " to move at maxSpeed.");
@@ -220,14 +229,13 @@ public class RoadAgent extends AbstractParticipant {
 			// you know which you're in, so now abs() it...
 			speedDelta = Math.abs(speedDelta);
 			// if your current speed is 0, then don't even try attempting to decelerate...
-			// FIXME also need to stop them decelerating past 0 if maxDec > 1
 			if (mySpeed == 0) {
 				logger.debug("Agent " + getName() + " is at zero already...");
 				return driver.constantSpeed();
 			}
 			else {
 				// work out if you can change to that speed now
-				if (speedDelta < speedService.getMaxDecel()) {
+				if (speedDelta <= speedService.getMaxDecel()) {
 					// if you can, do so (checking to make sure it won't take you below 0)
 					int temp = mySpeed-speedDelta;
 					if (temp<=0) {
@@ -247,14 +255,16 @@ public class RoadAgent extends AbstractParticipant {
 						return driver.moveAt(0);
 					}
 					else {
-						logger.debug("Agent " + getName() + " attempting to decelerate as much as possible to meet speedDelta of " + speedDelta);
-						// TODO change lanes...
-						// find out what lanes there are beside you
-						// check them in some order (overtake first?) to find out which is free
-						// get distance to next agent in lane to your right
-						// get required stopping speed 
-						
-						return driver.decelerateMax();
+						// If you *know* you're safe, then chill.
+						if (!safe) {
+							logger.debug("Agent " + getName() + " doesn't think they can meet speedDelta of " + speedDelta);
+							// change lanes...
+							return null;
+						}
+						else {
+							logger.debug("Agent " + getName() + " doesn't think they can meet speedDelta of " + speedDelta + " so decellerating as much as they can");
+							return driver.decelerateMax();
+						}
 					}
 				}
 			}
@@ -320,7 +330,7 @@ public class RoadAgent extends AbstractParticipant {
 	@Override
 	protected void processInput(Input arg0) {
 		// TODO Auto-generated method stub
-		logger.info("Agent " + this.getName() + " processing input: " + arg0.toString());
+		logger.info("Agent " + this.getName() + " not processing input: " + arg0.toString());
 	}
 
 }

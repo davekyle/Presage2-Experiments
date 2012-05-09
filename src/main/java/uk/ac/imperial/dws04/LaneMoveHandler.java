@@ -1,5 +1,8 @@
 package uk.ac.imperial.dws04;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -234,7 +237,7 @@ public class LaneMoveHandler extends MoveHandler {
 						myOffset += areaLength;
 					if (hisOffset < myOffset) {
 						logger.warn("Collision Occured: Agent "
-								+ agentsOnCurrentCell + " went through " + a);
+								+ agentsOnCurrentCell + " went through " + a + " on cell " + finishAt);
 						collisionsOccured++;
 					}
 				}
@@ -242,8 +245,33 @@ public class LaneMoveHandler extends MoveHandler {
 						&& finishAt.getLane() == candidateLocs.get(a).getLane()
 						&& current.getOffset() <= finishAt.getOffset()) {
 					logger.warn("Collision Occured: Agent "
-							+ agentsOnCurrentCell + " crossed paths with " + a);
+							+ agentsOnCurrentCell + " crossed paths with " + a + " between cells " + finishAt);
 					collisionsOccured++;
+				}
+			}
+			if (collisionsOccured>0) {
+				try {
+					throw new Exception(collisionsOccured + " collisions occurred in this cycle.");
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.err.println();
+					System.err.println();
+					System.err.println("Do you want to exit? y/n:");
+					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+					String in = null;
+					try {
+						in = br.readLine();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					if (in.equals("y")||in.equals("Y")) {
+						System.err.println("Exiting.");
+						System.exit(1);
+					}
+					else {
+						System.err.println("Continuing...");
+					}
 				}
 			}
 			return collisionsOccured;

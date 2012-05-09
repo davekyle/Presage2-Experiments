@@ -2,6 +2,8 @@ package uk.ac.imperial.dws04;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,6 +41,9 @@ public class LaneMoveHandlerTest {
 	LaneMoveHandler handler;
 	RoadEnvironmentService roadEnvironmentService;
 	
+	InputStream testInput;
+	InputStream old = System.in;
+	
 	private final int lanes = 3;
 	private final int length = 10;
 
@@ -69,10 +74,25 @@ public class LaneMoveHandlerTest {
 		env = injector.getInstance(AbstractEnvironment.class);
 		handler = injector.getInstance(LaneMoveHandler.class);
 		roadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
+		
+		// Replace stdin for the exceptions.
+		String data = "n";
+		testInput = new ByteArrayInputStream( data.getBytes("UTF-8") );
+		System.setIn(testInput);
 	}
 
 	@After
 	public void tearDown() throws Exception {
+		// put stdin back
+		System.setIn(old);
+	}
+	
+	public void assertCollisions(int n) {
+		try {
+			assertEquals(n, handler.checkForCollisions(null));
+		} catch (Exception e) {
+			System.out.println("Caught an exception");
+		}
 	}
 	
 	class TestAgent extends AbstractParticipant {
@@ -148,38 +168,38 @@ public class LaneMoveHandlerTest {
 
 		a.assertLocation(1, 0);
 		a.assertSpeed(2);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		// perform a series of valid moves.		
 		a.performAction(new CellMove(0, 2));
 		env.incrementTime();
 		a.assertLocation(1, 2);
 		a.assertSpeed(2);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		a.performAction(new CellMove(0, 3));
 		env.incrementTime();
 		a.assertLocation(1, 5);
 		a.assertSpeed(3);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		a.performAction(new CellMove(1, 3));
 		env.incrementTime();
 		a.assertLocation(2, 8);
 		a.assertSpeed(3);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		a.performAction(new CellMove(0, 3));
 		env.incrementTime();
 		a.assertLocation(2, 1);
 		a.assertSpeed(3);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		a.performAction(new CellMove(-1, 2));
 		env.incrementTime();
 		a.assertLocation(1, 3);
 		a.assertSpeed(2);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 		
 		//Testing max accel
 		int tempSpeed = 2+roadEnvironmentService.getMaxAccel();
@@ -188,7 +208,7 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(0, tempLocation);
 		a.assertSpeed(tempSpeed);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 		
 		//Testing max decel
 		tempSpeed = tempSpeed - roadEnvironmentService.getMaxDecel();
@@ -196,7 +216,7 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(0, (tempLocation+tempSpeed));
 		a.assertSpeed(tempSpeed);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 		
 		// This won't pass the speed check
 		/*
@@ -204,7 +224,7 @@ public class LaneMoveHandlerTest {
 		 * a.performAction(new CellMove(0, (roadEnvironmentService.getMaxSpeed()-1) ));
 		 * env.incrementTime();
 		 * a.assertLocation(1, ((3+(roadEnvironmentService.getMaxSpeed()-1))%roadEnvironmentService.getLength()) );
-		 * assertEquals(0, handler.checkForCollisions(null));
+		 * assertCollisions(0);
 		 */
 		
 		
@@ -219,14 +239,14 @@ public class LaneMoveHandlerTest {
 
 		a.assertLocation(1, 0);
 		b.assertLocation(1, 5);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		a.performAction(new CellMove(1, 1));
 		b.performAction(new CellMove(-1,1));
 		env.incrementTime();
 		a.assertLocation(2, 1);
 		b.assertLocation(0, 6);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		try {
 			// move to non existent lane
@@ -262,7 +282,7 @@ public class LaneMoveHandlerTest {
 
 		a.assertLocation(2, 0);
 		b.assertLocation(1, 0);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		a.performAction(new CellMove(0, 1));
 		b.performAction(new CellMove(0,maxSpeed));
@@ -271,7 +291,7 @@ public class LaneMoveHandlerTest {
 		b.assertLocation(1, (length%maxSpeed));
 		a.assertSpeed(1);
 		b.assertSpeed(maxSpeed);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 		
 		try {
 			// accelerate too fast.
@@ -300,12 +320,12 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 
 		a.assertLocation(1, 0);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		a.performAction(new CellMove(1, 1));
 		env.incrementTime();
 		a.assertLocation(2, 1);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 
 		try {
 			// move backwards.
@@ -331,7 +351,8 @@ public class LaneMoveHandlerTest {
 		b.performAction(new CellMove(0, 0));
 		env.incrementTime();
 		// two collisions counted as both agents detect double occupied cell.
-		assertEquals(2, handler.checkForCollisions(null));
+		//assertEquals(2, handler.checkForCollisions(null));
+		assertCollisions(2);
 		// note their locations have still be updated.
 		a.assertLocation(1, 3);
 		b.assertLocation(1, 3);
@@ -347,7 +368,8 @@ public class LaneMoveHandlerTest {
 		a.performAction(new CellMove(0, 1));
 		b.performAction(new CellMove(0, 2));
 		env.incrementTime();
-		assertEquals(2, handler.checkForCollisions(null));
+		//assertEquals(2, handler.checkForCollisions(null));
+		assertCollisions(2);
 		a.assertLocation(1, 6);
 		b.assertLocation(1, 6);
 	}
@@ -382,7 +404,7 @@ public class LaneMoveHandlerTest {
 		a.performAction(new CellMove(0, 4));
 		b.performAction(new CellMove(0, 4));
 		env.incrementTime();
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 		a.assertLocation(1, 9);
 		b.assertLocation(1, 8);
 
@@ -390,7 +412,8 @@ public class LaneMoveHandlerTest {
 		a.performAction(new CellMove(0, 3));
 		b.performAction(new CellMove(0, 5));
 		env.incrementTime();
-		assertEquals(1, handler.checkForCollisions(null));
+		//assertEquals(1, handler.checkForCollisions(null));
+		assertCollisions(1);
 		a.assertLocation(1, 2);
 		b.assertLocation(1, 3);
 
@@ -417,7 +440,8 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(2, 3);
 		b.assertLocation(2, 2);
-		assertEquals(1, handler.checkForCollisions(null));
+		//assertEquals(1, handler.checkForCollisions(null));
+		assertCollisions(1);
 	}
 	
 	@Test
@@ -439,7 +463,8 @@ public class LaneMoveHandlerTest {
 		a.performAction(new CellMove(1, 3));
 		b.performAction(new CellMove(-1, 1));
 		env.incrementTime();
-		assertEquals(1, handler.checkForCollisions(null));
+		//assertEquals(1, handler.checkForCollisions(null));
+		assertCollisions(1);
 		b.assertLocation(1, 2);
 		a.assertLocation(2, 3);
 	}
@@ -465,7 +490,7 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(2, 1);
 		b.assertLocation(1, 2);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 	}
 
 	@Test
@@ -489,7 +514,8 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(1, 3);
 		b.assertLocation(1, 2);
-		assertEquals(1, handler.checkForCollisions(null));
+		//assertEquals(1, handler.checkForCollisions(null));
+		assertCollisions(1);
 	}
 
 	@Test
@@ -513,7 +539,7 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(2, 1);
 		b.assertLocation(2, 2);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 	}
 
 	@Test
@@ -537,7 +563,8 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(2, 1);
 		b.assertLocation(1, 1);
-		assertEquals(2, handler.checkForCollisions(null));
+		//assertEquals(2, handler.checkForCollisions(null));
+		assertCollisions(2);
 	}
 
 	@Test
@@ -565,7 +592,7 @@ public class LaneMoveHandlerTest {
 		b.assertLocation(2, 1);
 		c.assertLocation(2, 2);
 		d.assertLocation(2, 3);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
 	}
 
 	@Test
@@ -589,6 +616,78 @@ public class LaneMoveHandlerTest {
 		env.incrementTime();
 		a.assertLocation(2, 1);
 		b.assertLocation(1, 1);
-		assertEquals(0, handler.checkForCollisions(null));
+		assertCollisions(0);
+	}
+	
+	@Test
+	public void testDomino1() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 1);
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 1), 1);
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(1, 1);
+		
+		/*   | | | |      | | | |
+		 *   | | | |      | |b| |
+		 *   | |b| | -->  | |a| |
+		 *   | |a| |      | | | |
+		 *   Collision: no
+		 */
+		
+		a.performAction(new CellMove(0, 1));
+		b.performAction(new CellMove(0, 1));
+		env.incrementTime();
+		a.assertLocation(1, 1);
+		b.assertLocation(1, 2);
+		assertCollisions(0);
+	}
+	
+	@Test
+	public void testDomino2() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 4);
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 4), 5);
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(1, 4);
+		
+		/*   | |b| |      | |a| |
+		 *   | |.| |      | | | |
+		 *   | |.| | -->  | | | |
+		 *   | |a| |      | | | |
+		 *   Collision: no
+		 */
+		
+		a.performAction(new CellMove(0, 4));
+		b.performAction(new CellMove(0, 5));
+		env.incrementTime();
+		a.assertLocation(1, 4);
+		b.assertLocation(1, 9);
+		assertCollisions(0);
+	}
+	
+	@Test
+	public void testDomino3() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 2);
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 9), 1);
+
+		env.incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(1, 9);
+		
+		/*   | |b| |      | | | |
+		 *   | | | |      | |a| |
+		 *   | | | | -->  | | | |
+		 *   | |a| |      | |b| |
+		 *   Collision: no
+		 */
+		
+		a.performAction(new CellMove(0, 2));
+		b.performAction(new CellMove(0, 1));
+		env.incrementTime();
+		a.assertLocation(1, 2);
+		b.assertLocation(1, 0);
+		assertCollisions(0);
 	}
 }

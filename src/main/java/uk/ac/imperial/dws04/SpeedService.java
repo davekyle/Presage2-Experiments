@@ -149,6 +149,30 @@ public class SpeedService extends EnvironmentService {
 	}
 	
 	/**
+	 * @param speed
+	 * @return the distance required for the given agent to stop TAKING INTO ACCOUNT THEY CAN CHANGE SPEED BEFORE DOING WHAT YOU CALCULATE.
+	 */
+	public int getAdjustedStoppingDistance(UUID agent) {
+		double mD = (Integer)getMaxDecel();
+		double speed = getAgentSpeed(agent)-mD;
+		// a is what is left over if speed-nmD is not 0
+		double a = speed % mD;
+		double n = ((speed-a) / mD);
+		/*if (a!=0) {
+			n = Math.floor(n);
+		}*/
+		//double temp;
+		// need to add a if a is not 0 to account for the last cycle
+		//System.out.println("speed=" + speed + " mD=" + mD + " a=" + a + " n=" + n);
+		//System.out.println("Old=" + getStoppingDistanceOld(agent));
+		/*temp = ((n/2)*( 2*a + ((n+1)*mD) ));
+		if (a!=0) {
+			temp = temp+a;
+		}*/
+		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a);
+	}
+	
+	/**
 	 * 
 	 * @param dist distance in which you want to stop
 	 * @return the speed you need to be travelling at, or any negative if it is not possible

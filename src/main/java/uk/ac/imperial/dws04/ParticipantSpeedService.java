@@ -120,7 +120,12 @@ public class ParticipantSpeedService extends SpeedService {
 		} catch (CannotSeeAgent e) {
 			throw e;
 		}
-		return super.getStoppingDistance(participantID);
+		if (participantID.equals(myID)) {
+			return super.getStoppingDistance(participantID);
+		}
+		else {
+			return super.getAdjustedStoppingDistance(participantID);
+		}
 		// }
 	}
 

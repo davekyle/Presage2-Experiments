@@ -13,7 +13,6 @@ import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.util.random.Random;
-import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.plugin.PluginModule;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
@@ -55,6 +54,8 @@ public class RoadSimulation extends InjectedSimulation {
 	 
 	@Parameter(name="junctionCount")
 	public int junctionCount;
+
+	private LaneMoveHandler handler;
 	
 	/**
 	 * @param modules
