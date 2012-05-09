@@ -3,8 +3,10 @@
  */
 package uk.ac.imperial.dws04;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import com.google.inject.AbstractModule;
 
@@ -13,9 +15,13 @@ import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.util.random.Random;
+import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
+import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.plugin.PluginModule;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
+import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
+import uk.ac.imperial.presage2.util.location.LocationService;
 import uk.ac.imperial.presage2.util.location.LocationStoragePlugin;
 import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
@@ -54,14 +60,28 @@ public class RoadSimulation extends InjectedSimulation {
 	 
 	@Parameter(name="junctionCount")
 	public int junctionCount;
+	
+	HashMap<UUID,RoadLocation> agentLocations;
 
-	private LaneMoveHandler handler;
 	
 	/**
 	 * @param modules
 	 */
 	public RoadSimulation(Set<AbstractModule> modules) {
 		super(modules);
+		agentLocations = new HashMap<UUID, RoadLocation>();
+	}
+	
+	LocationService getLocationService() {
+		return getInjector().getInstance(ParticipantRoadLocationService.class);
+	}
+	
+	/**
+	 * @param serviceProvider
+	 * @return
+	 */
+	private EnvironmentMembersService getMembersService() {
+		return getInjector().getInstance(EnvironmentMembersService.class);
 	}
 
 	/* (non-Javadoc)
@@ -72,11 +92,21 @@ public class RoadSimulation extends InjectedSimulation {
 		for (int i = 0; i < initialAgents; i++) {
 			int initialX = Random.randomInt(lanes);
 			int initialY = Random.randomInt(length);
+			UUID uuid = Random.randomUUID();
 			RoadLocation startLoc = new RoadLocation(initialX, initialY);
+			while (agentLocations.containsValue(startLoc)) {
+				// keep making random numbers until you have a free spot
+				initialX = Random.randomInt(lanes);
+				initialY = Random.randomInt(length);
+				startLoc = new RoadLocation(initialX, initialY);
+				logger.debug("Looping...");
+			}
 			// don't want speeds to be 0
 			int startSpeed = Random.randomInt(maxSpeed)+1;
 			RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed)+1), 0, 1);
-			s.addParticipant(new RoadAgent(Random.randomUUID(), "agent"+ i, startLoc, startSpeed, goals));
+			s.addParticipant(new RoadAgent(uuid, "agent"+ i, startLoc, startSpeed, goals));
+			agentLocations.put(uuid, startLoc);
+			
 		}
 	}
 
@@ -115,6 +145,15 @@ public class RoadSimulation extends InjectedSimulation {
 			this.scenario.addParticipant(new RoadAgent(null, null, null, 0, null));
 		}
 		return 0;
+	}
+	
+	@EventListener
+	public void updateAgentLocations(EndOfTimeCycle e) {
+		for (UUID a : getMembersService().getParticipants()) {
+			this.agentLocations.remove(a);
+			logger.trace("Updating location of agent " + a + " from " + this.agentLocations.get(a) + " to " + (RoadLocation) getLocationService().getAgentLocation(a));
+			this.agentLocations.put(a, (RoadLocation) getLocationService().getAgentLocation(a));
+		}
 	}
 
 }
