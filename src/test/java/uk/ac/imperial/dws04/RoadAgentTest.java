@@ -5,20 +5,19 @@ package uk.ac.imperial.dws04;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import uk.ac.imperial.dws04.DriverTest.TestAgent;
-import uk.ac.imperial.dws04.RoadAgent.MoveType;
+
+import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
+import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironment;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
-import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
@@ -47,6 +46,8 @@ public class RoadAgentTest {
 	private int maxAccel = 1;
 	private int maxDecel = 1;
 	private final int junctionCount = 0;
+	IntegerTime time = new IntegerTime(0);
+	SimTime sTime = new SimTime(time);
 
 	@Before
 	public void setUp() throws Exception {
@@ -74,6 +75,7 @@ public class RoadAgentTest {
 
 		env = injector.getInstance(AbstractEnvironment.class);
 		globalSpeedService = injector.getInstance(SpeedService.class);
+		
 	}
 	
 	
@@ -110,15 +112,20 @@ public class RoadAgentTest {
 		assertEquals(expected, a.mySpeed);
 	}
 	
+	public void incrementTime(){
+		time.increment();
+		env.incrementTime();
+	}
+	
 	@Test
 	public void test() throws ActionHandlingException {
-		int startSpeed = Random.randomInt();
+		int startSpeed = Random.randomInt(maxSpeed)+1;
 		int startLane = Random.randomInt(lanes);
 		int spacing = Random.randomInt(maxDecel);
 		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
 
-		env.incrementTime();
+		incrementTime();
 
 		assertLocation(a, startLane, 0);
 		assertSpeed(a, startSpeed);
