@@ -230,11 +230,12 @@ public class LaneMoveHandler extends MoveHandler {
 				if (current.getLane() == finishAt.getLane()) {
 					// same lane, if he is behind us then it is a collision
 					int hisOffset = current.getOffset();
-					if (hisOffset < candidateLocs.get(a).getOffset())
-						hisOffset += areaLength;
 					int myOffset = finishAt.getOffset();
-					if (myOffset < startFrom.getOffset())
-						myOffset += areaLength;
+					boolean heWrapped = hisOffset < candidateLocs.get(a).getOffset();
+					boolean iWrapped = myOffset < startFrom.getOffset();
+					if(!iWrapped && heWrapped) {
+						hisOffset += areaLength;
+					}
 					if (hisOffset < myOffset) {
 						logger.warn("Collision Occured: Agent "
 								+ agentsOnCurrentCell + " went through " + a + " on cell " + finishAt);

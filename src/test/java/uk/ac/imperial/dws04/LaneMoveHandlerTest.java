@@ -690,4 +690,28 @@ public class LaneMoveHandlerTest {
 		b.assertLocation(1, 0);
 		assertCollisions(0);
 	}
+
+	@Test
+	public void testDomino4() throws ActionHandlingException {
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 8), 2);
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 9), 1);
+
+		env.incrementTime();
+		a.assertLocation(1, 8);
+		b.assertLocation(1, 9);
+
+		/*   | |b| |      | |a| |
+		 *   | |a| |      | | | |
+		 *   | | | | -->  | | | |
+		 *   | | | |      | |b| |
+		 *   Collision: no
+		 */
+
+		a.performAction(new CellMove(0, 1));
+		b.performAction(new CellMove(0, 1));
+		env.incrementTime();
+		a.assertLocation(1, 9);
+		b.assertLocation(1, 0);
+		assertCollisions(0);
+	}
 }
