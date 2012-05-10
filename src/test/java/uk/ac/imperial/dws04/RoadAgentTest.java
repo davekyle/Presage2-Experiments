@@ -373,4 +373,41 @@ public class RoadAgentTest {
 		assertSpeed(c, 0);
 	}
 	
+	@Test
+	public void testLaneChangeChoice() throws ActionHandlingException {
+		int aSpeed = 4; int aStart = 0;
+		int bSpeed = 3; int bStart = 2;
+		int cSpeed = 3; int cStart = 3;
+		int aLane = 0;
+		int spacing = Random.randomInt(maxDecel);
+		RoadAgentGoals goals = new RoadAgentGoals(aSpeed, 0, spacing);
+		RoadAgent a = createAgent("a", new RoadLocation(aLane, aStart), aSpeed, goals);
+		RoadAgent b = createAgent("b", new RoadLocation(aLane, bStart), bSpeed, new RoadAgentGoals(0, 0, 0));
+		RoadAgent c = createAgent("c", new RoadLocation(aLane+1, cStart), cSpeed, new RoadAgentGoals(0, 0, 0));
+
+		incrementTime();
+
+		assertLocation(a, aLane, aStart);
+		assertSpeed(a, aSpeed);
+		assertLocation(b, aLane, bStart);
+		assertSpeed(b, bSpeed);
+		assertLocation(c, aLane+1, cStart);
+		assertSpeed(c, cSpeed);
+		
+		a.execute();
+		b.execute();
+		c.execute();
+		incrementTime();
+		
+		//assertLocation(a, aLane, (aStart+aSpeed-1)%length);
+		//assertSpeed(a, aSpeed-1);
+		assertLocation(b, aLane, (bStart+bSpeed-1)%length);
+		assertSpeed(b, bSpeed-1);
+		assertLocation(c, aLane+1, (cStart+cSpeed-1)%length);
+		assertSpeed(c, cSpeed-1);
+		// a can't slow in time, can't undertake, but c is better than b so will "overtake" with hope of something better in future
+		assertLocation(a, aLane+1, (aStart+aSpeed-1)%length);
+		assertSpeed(a, aSpeed-1);
+	}
+	
 }

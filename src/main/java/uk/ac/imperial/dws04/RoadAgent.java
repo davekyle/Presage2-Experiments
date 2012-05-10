@@ -89,7 +89,7 @@ public class RoadAgent extends AbstractParticipant {
 		myLoc = (RoadLocation) locationService.getAgentLocation(getID());
 		mySpeed = speedService.getAgentSpeed(getID());
 	 
-		logger.info("My location is: "+ this.myLoc + " and my speed is " + this.mySpeed);
+		logger.info("My location is: "+ this.myLoc + ", my speed is " + this.mySpeed + ", and my goalSpeed is " + this.goals.getSpeed());
 		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		saveDataToDB();
 	 
@@ -101,7 +101,7 @@ public class RoadAgent extends AbstractParticipant {
 	@SuppressWarnings("unused")
 	private CellMove createMove(){
 		CellMove result = null;
-		ArrayList<Integer> availableLanes = new ArrayList<Integer>();
+		ArrayList<Integer> availableLanes = new ArrayList<Integer>(3);
 		availableLanes.add(myLoc.getLane());
 		availableLanes.add(myLoc.getLane()+1);
 		availableLanes.add(myLoc.getLane()-1);
@@ -130,7 +130,7 @@ public class RoadAgent extends AbstractParticipant {
 			}
 		}
 		if (result==null) {
-			logger.warn("Agent " + getName() + " doesn't think there is a safe move to make !");
+			logger.warn("Agent " + getName() + " doesn't think there is a safe move to make ! Decelerating as much as possible...");
 			return driver.decelerateMax();
 		}
 		logger.error("You should never get here (deadcode), but Eclipse is insisting on a return here, so let's pass out a null to throw some exceptions later :D");
