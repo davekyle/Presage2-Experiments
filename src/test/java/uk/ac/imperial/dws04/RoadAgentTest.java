@@ -96,20 +96,21 @@ public class RoadAgentTest {
 		assertEquals(expected.getOffset(), ((RoadLocation) a.locationService.getAgentLocation(a.getID())).getOffset());
 		assertEquals(expected.getLane(), a.myLoc.getLane());
 		assertEquals(expected.getOffset(), a.myLoc.getOffset());
-		assertEquals(expected, ((RoadLocation) a.locationService.getAgentLocation(a.getID())) );
-		assertEquals(expected, a.myLoc);
+		// the agent only updates at the start of an execute() cycle.
+		//assertEquals(expected, ((RoadLocation) a.locationService.getAgentLocation(a.getID())) );
+		//assertEquals(expected, a.myLoc);
 	}
 	
 	public static void assertLocation(RoadAgent a, int expectedLane, int expectedOffset) {
 		assertEquals(expectedLane, ((RoadLocation) a.locationService.getAgentLocation(a.getID())).getLane());
 		assertEquals(expectedOffset, ((RoadLocation) a.locationService.getAgentLocation(a.getID())).getOffset());
-		assertEquals(expectedLane, a.myLoc.getLane());
-		assertEquals(expectedOffset, a.myLoc.getOffset());
+		//assertEquals(expectedLane, a.myLoc.getLane());
+		//assertEquals(expectedOffset, a.myLoc.getOffset());
 	}
 	
 	public static void assertSpeed(RoadAgent a, int expected){
 		assertEquals(expected, a.speedService.getAgentSpeed(a.getID()));
-		assertEquals(expected, a.mySpeed);
+		//assertEquals(expected, a.mySpeed);
 	}
 	
 	public void incrementTime(){
@@ -118,7 +119,7 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void test() throws ActionHandlingException {
+	public void testSingleVehicle() throws ActionHandlingException {
 		int startSpeed = Random.randomInt(maxSpeed)+1;
 		int startLane = Random.randomInt(lanes);
 		int spacing = Random.randomInt(maxDecel);
@@ -131,8 +132,245 @@ public class RoadAgentTest {
 		assertSpeed(a, startSpeed);
 		
 		a.execute();
+		incrementTime();
 		
+		assertLocation(a,startLane, startSpeed%length);
+		assertSpeed(a, startSpeed);
 		
+		a.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, (startSpeed*2)%length);
+		assertSpeed(a, startSpeed);
+		
+	}
+	
+	@Test
+	public void testSlowing() throws ActionHandlingException {
+		int startSpeed = 3;
+		int startLane = 1;
+		int spacing = Random.randomInt(maxDecel);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 5), 0, new RoadAgentGoals(0, 0, 0));
+
+		incrementTime();
+
+		assertLocation(a, startLane, 0);
+		assertSpeed(a, startSpeed);
+		assertLocation(b, startLane, 5);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 2);
+		assertSpeed(a, 2);
+		assertLocation(b, startLane, 5);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 3);
+		assertSpeed(a, 1);
+		assertLocation(b, startLane, 5);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 4);
+		assertSpeed(a, 1);
+		assertLocation(b, startLane, 5);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 4);
+		assertSpeed(a, 0);
+		assertLocation(b, startLane, 5);
+		assertSpeed(b, 0);
+		
+	}
+	
+	@Test
+	public void testLaneChangeUp() throws ActionHandlingException {
+		int startSpeed = 3;
+		int startLane = 1;
+		int spacing = Random.randomInt(maxDecel);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 2), 0, new RoadAgentGoals(0, 0, 0));
+
+		incrementTime();
+
+		assertLocation(a, startLane, 0);
+		assertSpeed(a, startSpeed);
+		assertLocation(b, startLane, 2);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		// a can't slow in time so will "overtake"
+		assertLocation(a, 2, 3);
+		assertSpeed(a, 3);
+		assertLocation(b, startLane, 2);
+		assertSpeed(b, 0);
+	}
+	
+	@Test
+	public void testLaneChangeDown() throws ActionHandlingException {
+		int startSpeed = 3;
+		int startLane = 1;
+		int spacing = Random.randomInt(maxDecel);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 2), 0, new RoadAgentGoals(0, 0, 0));
+		RoadAgent c = createAgent("c", new RoadLocation(startLane+1, 2), 0, new RoadAgentGoals(0, 0, 0));
+
+		incrementTime();
+
+		assertLocation(a, startLane, 0);
+		assertSpeed(a, startSpeed);
+		assertLocation(b, startLane, 2);
+		assertSpeed(b, 0);
+		assertLocation(c, startLane+1, 2);
+		assertSpeed(c, 0);
+		
+		a.execute();
+		b.execute();
+		c.execute();
+		incrementTime();
+		
+		// a can't slow in time and c prevents "overtaking" so will "undertake"
+		assertLocation(a, 0, 3);
+		assertSpeed(a, 3);
+		assertLocation(b, startLane, 2);
+		assertSpeed(b, 0);
+		assertLocation(c, startLane+1, 2);
+		assertSpeed(c, 0);
+	}
+	
+	@Test
+	public void testSlowingWrap() throws ActionHandlingException {
+		int startSpeed = 3;
+		int startLane = 1;
+		int spacing = Random.randomInt(maxDecel);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgent a = createAgent("a", new RoadLocation(startLane, 5), startSpeed, goals);
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
+
+		incrementTime();
+
+		assertLocation(a, startLane, 5);
+		assertSpeed(a, startSpeed);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 7);
+		assertSpeed(a, 2);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 8);
+		assertSpeed(a, 1);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 9);
+		assertSpeed(a, 1);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 9);
+		assertSpeed(a, 0);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+		
+	}
+	
+	@Test
+	public void testLaneChangeUpWrap() throws ActionHandlingException {
+		int startSpeed = 3;
+		int startLane = 1;
+		int spacing = Random.randomInt(maxDecel);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgent a = createAgent("a", new RoadLocation(startLane, 9), startSpeed, goals);
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
+
+		incrementTime();
+
+		assertLocation(a, startLane, 9);
+		assertSpeed(a, startSpeed);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		b.execute();
+		incrementTime();
+		
+		// a can't slow in time so will "overtake"
+		assertLocation(a, 2, 2);
+		assertSpeed(a, 3);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+	}
+	
+	@Test
+	public void testLaneChangeDownWrap() throws ActionHandlingException {
+		int startSpeed = 3;
+		int startLane = 1;
+		int spacing = Random.randomInt(maxDecel);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgent a = createAgent("a", new RoadLocation(startLane, 9), startSpeed, goals);
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
+		RoadAgent c = createAgent("c", new RoadLocation(startLane+1, 0), 0, new RoadAgentGoals(0, 0, 0));
+
+		incrementTime();
+
+		assertLocation(a, startLane, 9);
+		assertSpeed(a, startSpeed);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+		assertLocation(c, startLane+1, 0);
+		assertSpeed(c, 0);
+		
+		a.execute();
+		b.execute();
+		c.execute();
+		incrementTime();
+		
+		// a can't slow in time and cannot "overtake" so will "undertake"
+		assertLocation(a, startLane-1, 2);
+		assertSpeed(a, 3);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
+		assertLocation(c, startLane+1, 0);
+		assertSpeed(c, 0);
 	}
 	
 }

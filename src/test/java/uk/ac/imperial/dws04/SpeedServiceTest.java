@@ -178,7 +178,7 @@ public class SpeedServiceTest {
 		a.assertSpeed(startSpeed);
 		assertGlobalSpeed(startSpeed, a.getID());
 		
-		System.out.println("Speed:" + startSpeed + " / move:" + a.driver.accelerate());
+		//System.out.println("Speed:" + startSpeed + " / move:" + a.driver.accelerate());
 		a.performAction(a.driver.accelerate());
 		env.incrementTime();
 		a.assertSpeed(startSpeed+1);
@@ -343,7 +343,7 @@ public class SpeedServiceTest {
 		assertEquals(maxSpeed, globalSpeedService.getMaxSpeed());
 		assertEquals(maxAccel, globalSpeedService.getMaxAccel());
 		assertEquals(maxDecel, globalSpeedService.getMaxDecel());
-		System.out.println("Maxspeed:" + maxSpeed);
+		//System.out.println("Maxspeed:" + maxSpeed);
 		assertEquals(maxSpeed, a.speedService.getMaxSpeed());
 		assertEquals(maxAccel, a.speedService.getMaxAccel());
 		assertEquals(maxDecel, a.speedService.getMaxDecel());
