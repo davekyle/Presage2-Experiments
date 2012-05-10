@@ -130,7 +130,7 @@ public class RoadAgentTest {
 	public void testSingleVehicle() throws ActionHandlingException {
 		int startSpeed = Random.randomInt(maxSpeed)+1;
 		int startLane = Random.randomInt(lanes);
-		int spacing = Random.randomInt(maxDecel);
+		int spacing = 0;
 		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
 
@@ -157,7 +157,7 @@ public class RoadAgentTest {
 	public void testSlowing() throws ActionHandlingException {
 		int startSpeed = 3;
 		int startLane = 1;
-		int spacing = Random.randomInt(maxDecel);
+		int spacing = 0;
 		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
 		RoadAgent b = createAgent("b", new RoadLocation(startLane, 5), 0, new RoadAgentGoals(0, 0, 0));
@@ -211,7 +211,7 @@ public class RoadAgentTest {
 	public void testLaneChangeUp() throws ActionHandlingException {
 		int startSpeed = 3;
 		int startLane = 1;
-		int spacing = Random.randomInt(maxDecel);
+		int spacing = 0;
 		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
 		RoadAgent b = createAgent("b", new RoadLocation(startLane, 2), 0, new RoadAgentGoals(0, 0, 0));
@@ -238,7 +238,7 @@ public class RoadAgentTest {
 	public void testLaneChangeDown() throws ActionHandlingException {
 		int startSpeed = 3;
 		int startLane = 1;
-		int spacing = Random.randomInt(maxDecel);
+		int spacing = 0;
 		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
 		RoadAgent b = createAgent("b", new RoadLocation(startLane, 2), 0, new RoadAgentGoals(0, 0, 0));
@@ -271,7 +271,7 @@ public class RoadAgentTest {
 	public void testSlowingWrap() throws ActionHandlingException {
 		int startSpeed = 3;
 		int startLane = 1;
-		int spacing = Random.randomInt(maxDecel);
+		int spacing = 0;
 		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 5), startSpeed, goals);
 		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
@@ -325,7 +325,7 @@ public class RoadAgentTest {
 	public void testLaneChangeUpWrap() throws ActionHandlingException {
 		int startSpeed = 3;
 		int startLane = 1;
-		int spacing = Random.randomInt(maxDecel);
+		int spacing = 0;
 		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 9), startSpeed, goals);
 		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
@@ -352,7 +352,7 @@ public class RoadAgentTest {
 	public void testLaneChangeDownWrap() throws ActionHandlingException {
 		int startSpeed = 3;
 		int startLane = 1;
-		int spacing = Random.randomInt(maxDecel);
+		int spacing = 0;
 		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 9), startSpeed, goals);
 		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
@@ -387,7 +387,7 @@ public class RoadAgentTest {
 		int bSpeed = 3; int bStart = 2;
 		int cSpeed = 3; int cStart = 3;
 		int aLane = 0;
-		int spacing = Random.randomInt(maxDecel);
+		int spacing = 0;
 		RoadAgentGoals goals = new RoadAgentGoals(aSpeed, 0, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(aLane, aStart), aSpeed, goals);
 		RoadAgent b = createAgent("b", new RoadLocation(aLane, bStart), bSpeed, new RoadAgentGoals(0, 0, 0));
