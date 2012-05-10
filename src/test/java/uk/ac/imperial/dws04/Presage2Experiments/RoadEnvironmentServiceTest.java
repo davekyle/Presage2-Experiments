@@ -48,7 +48,7 @@ public class RoadEnvironmentServiceTest {
 	private int maxSpeed = 10;
 	private int maxAccel = 1;
 	private int maxDecel = 1;
-	private int junctionCount = 2;
+	private int junctionCount = 0;
 	
 	public void setUp() throws Exception {
 		injector = Guice.createInjector(
