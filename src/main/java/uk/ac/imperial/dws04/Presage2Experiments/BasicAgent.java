@@ -1,7 +1,7 @@
 /**
  * See http://www.presage2.info/ for more details on Presage2
  */
-package uk.ac.imperial.dws04;
+package uk.ac.imperial.dws04.Presage2Experiments;
 
 import java.util.Set;
 import java.util.UUID;

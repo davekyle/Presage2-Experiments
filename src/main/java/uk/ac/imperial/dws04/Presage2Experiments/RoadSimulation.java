@@ -1,7 +1,7 @@
 /**
  * See http://www.presage2.info/ for more details on Presage2
  */
-package uk.ac.imperial.dws04;
+package uk.ac.imperial.dws04.Presage2Experiments;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,8 +30,8 @@ import uk.ac.imperial.presage2.util.location.area.Area.Edge;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
 
 /**
- * run with uk.ac.imperial.dws04.RoadSimulation finishTime=10 length=10 lanes=4 initialAgents=2 maxSpeed=3 maxAccel=1 maxDecel=1 junctionCount=0
- * CLI add -classname uk.ac.imperial.dws04.RoadSimulation -finish 10 -name RoadSim  -P length=10 -P lanes=4 -P initialAgents=2 -P maxSpeed=3 -P maxAccel=1 -P maxDecel=1 -P junctionCount=0
+ * run with uk.ac.imperial.dws04.Presage2Experiments.Presage2Experiments.RoadSimulation finishTime=10 length=10 lanes=4 initialAgents=2 maxSpeed=3 maxAccel=1 maxDecel=1 junctionCount=0
+ * CLI add -classname uk.ac.imperial.dws04.Presage2Experiments.Presage2Experiments.RoadSimulation -finish 10 -name RoadSim  -P length=10 -P lanes=4 -P initialAgents=2 -P maxSpeed=3 -P maxAccel=1 -P maxDecel=1 -P junctionCount=0
  * 
  * @author dws04
  *

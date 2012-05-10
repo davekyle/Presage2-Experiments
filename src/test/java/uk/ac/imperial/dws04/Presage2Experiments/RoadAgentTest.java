@@ -1,7 +1,7 @@
 /**
  * See http://www.presage2.info/ for more details on Presage2
  */
-package uk.ac.imperial.dws04;
+package uk.ac.imperial.dws04.Presage2Experiments;
 
 import static org.junit.Assert.assertEquals;
 
@@ -11,6 +11,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 
+import uk.ac.imperial.dws04.Presage2Experiments.LaneMoveHandler;
+import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationService;
+import uk.ac.imperial.dws04.Presage2Experiments.ParticipantSpeedService;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
+import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.event.EventBusModule;

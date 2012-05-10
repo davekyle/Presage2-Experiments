@@ -1,7 +1,7 @@
 /**
  * See http://www.presage2.info/ for more details on Presage2
  */
-package uk.ac.imperial.dws04;
+package uk.ac.imperial.dws04.Presage2Experiments;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -14,7 +14,13 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Test;
 
-import uk.ac.imperial.dws04.SpeedServiceTest.TestAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.Driver;
+import uk.ac.imperial.dws04.Presage2Experiments.LaneMoveHandler;
+import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationService;
+import uk.ac.imperial.dws04.Presage2Experiments.ParticipantSpeedService;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
+import uk.ac.imperial.dws04.Presage2Experiments.SpeedServiceTest.TestAgent;
 import uk.ac.imperial.presage2.core.Action;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
