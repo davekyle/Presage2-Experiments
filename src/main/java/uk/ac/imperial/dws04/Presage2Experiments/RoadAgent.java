@@ -4,11 +4,15 @@
 package uk.ac.imperial.dws04.Presage2Experiments;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
 
+import uk.ac.imperial.dws04.utils.record.Pair;
+import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
@@ -100,8 +104,10 @@ public class RoadAgent extends AbstractParticipant {
 	
 	@SuppressWarnings("unused")
 	private CellMove createMove(){
-		CellMove result = null;
+		Pair<CellMove, Integer> result = null;
+		Pair<CellMove, Integer> temp = null;
 		ArrayList<Integer> availableLanes = new ArrayList<Integer>(3);
+		LinkedList<Pair<CellMove,Integer>> actions = new LinkedList<Pair<CellMove,Integer>>();
 		availableLanes.add(myLoc.getLane());
 		availableLanes.add(myLoc.getLane()+1);
 		availableLanes.add(myLoc.getLane()-1);
@@ -112,39 +118,50 @@ public class RoadAgent extends AbstractParticipant {
 		
 		for (int i = 0; i <=availableLanes.size()-1; i++) {
 			if (locationService.isValidLane(availableLanes.get(i))) {
-				result = createMove(availableLanes.get(i));
-				if (result!=null) {
+				temp = createMove(availableLanes.get(i));
+				if (temp.getB().equals(Integer.MAX_VALUE)) {
 					logger.debug("Agent " + getName() + " found a safe move in lane " + availableLanes.get(i)); 
-					// at this point you have the right speed, but not the right lane
-					if (availableLanes.get(i)!=myLoc.getLane()) {
-						logger.warn("Agent is going to change lanes ! :D ");
-					}
-					return new CellMove((availableLanes.get(i)-myLoc.getLane()), (int)result.getY());
 				}
 				else {
-					logger.debug("Agent " + getName() + " couldn't find a safe move in lane " + availableLanes.get(i)); 
+					logger.debug("Agent " + getName() + " couldn't find a safe move in lane " + availableLanes.get(i));
 				}
+				actions.add(new Pair<CellMove,Integer>(new CellMove((availableLanes.get(i)-myLoc.getLane()), (int)temp.getA().getY()), temp.getB()));
 			}
 			else {
 				// skip, not a valid lane
 			}
 		}
-		if (result==null) {
-			logger.warn("Agent " + getName() + " doesn't think there is a safe move to make ! Decelerating as much as possible...");
-			return driver.decelerateMax();
+//		if (temp==null) {
+//			logger.warn("Agent " + getName() + " doesn't think there is a safe move to make ! Decelerating as much as possible...");
+//			return driver.decelerateMax();
+//		}
+//		logger.error("You should never get here (deadcode), but Eclipse is insisting on a return here, so let's pass out a null to throw some exceptions later :D");
+		Collections.sort(actions, new PairBDescComparator<Integer>());
+		result = actions.getFirst();
+		if (result.getB().equals(Integer.MAX_VALUE)) {
+			logger.debug("Agent " + getName() + " attempting safe move: " + result.getA());
+			if (result.getA().getX()!=myLoc.getLane()) {
+				logger.debug("Agent is going to change lanes.");
+			}
 		}
-		logger.error("You should never get here (deadcode), but Eclipse is insisting on a return here, so let's pass out a null to throw some exceptions later :D");
-		return null;
+		else {
+			logger.warn("Agent " + getName() + " doesn't think there is a safe move to make ! Decelerating as much as possible...");
+			if (result.getA().getX()!=myLoc.getLane()) {
+				logger.debug("Agent is going to change lanes.");
+			}
+		}
+		return result.getA();
 	}
 	
 	/**
-	 * @return a reasoned move
+	 * @return a reasoned move/viability pair. Viability is Integer.Max_VALUE if the move is safe, or not if otherwise.
 	 */
-	private CellMove createMove(int lane) {
+	private Pair<CellMove,Integer> createMove(int lane) {
 		int newSpeed;
 		// this doesn't really show if something isn't safe, but it does show if something is safe
 		// (ie, only true if you know you can go at your preferred speed instead of one for safety's sake.
 		boolean safe = false;
+		Integer reqStopDist = null; // init to null incase we get to needing it and it hasnt been assigned..
 		
 		logger.debug("Agent " + getName() + " is checking lane " + lane + " for a valid move");
 		// get agent in front
@@ -156,7 +173,7 @@ public class RoadAgent extends AbstractParticipant {
 			int targetStopDist = speedService.getStoppingDistance(target);
 			logger.debug("Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
 			// add the distance between you and their current location (then minus 1 to make sure you can stop BEFORE them)
-			int reqStopDist = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)))-1;
+			reqStopDist = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target)))-1;
 			logger.debug("Agent " + getName() + " got a reqStopDist of " + reqStopDist
 					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(target) +")= " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(target))) + ") ");
 			// work out what speed you can be at to stop in time
@@ -164,7 +181,7 @@ public class RoadAgent extends AbstractParticipant {
 			logger.debug("Agent " + getName() + " thinks they need to travel at " + stoppingSpeed + " to stop in " + reqStopDist);
 			if ( (stoppingSpeed <0) || ( (mySpeed>stoppingSpeed) && (mySpeed-speedService.getMaxDecel() > stoppingSpeed) ) ) {
 				logger.debug("Agent " + getName() + " doesn't think they can stop in time in lane " + lane);
-				return null;
+				return new Pair<CellMove,Integer>(driver.decelerateMax(), reqStopDist);
 			}
 			// if this is more than your preferred speed, aim to go at your preferred speed instead
 			if (stoppingSpeed > goals.getSpeed()) {
@@ -188,7 +205,7 @@ public class RoadAgent extends AbstractParticipant {
 		// if there isn't a difference, chill
 		if (speedDelta == 0) {
 			logger.debug("Agent " + getName() + " attempting move at constant speed of " + newSpeed);
-			return driver.constantSpeed();
+			return new Pair<CellMove,Integer>(driver.constantSpeed(), Integer.MAX_VALUE);
 		}
 		// if it's greater than your current speed, accelerate
 		else if (speedDelta < 0) {
@@ -196,7 +213,7 @@ public class RoadAgent extends AbstractParticipant {
 			speedDelta = Math.abs(speedDelta);
 			// if you're at maxSpeed, don't try and speed up...
 			if (mySpeed == speedService.getMaxSpeed()) {
-				return driver.constantSpeed();
+				return new Pair<CellMove,Integer>(driver.constantSpeed(), Integer.MAX_VALUE);
 			}
 			else {
 				// work out if you can change to that speed now
@@ -204,22 +221,22 @@ public class RoadAgent extends AbstractParticipant {
 					// if you can, do so
 					if (mySpeed+speedDelta > speedService.getMaxSpeed()) {
 						logger.debug("Agent " + getName() + " adjusted acceleration from " + speedDelta + " to move at maxSpeed.");
-						return driver.moveAt(speedService.getMaxSpeed());
+						return new Pair<CellMove,Integer>(driver.moveAt(speedService.getMaxSpeed()), Integer.MAX_VALUE);
 					}
 					else {
 						logger.debug("Agent " + getName() + " attempting to accelerate by " + speedDelta);
-						return driver.accelerate(speedDelta);
+						return new Pair<CellMove,Integer>(driver.accelerate(speedDelta), Integer.MAX_VALUE);
 					}
 				}
 				else {
 					// if not, just accel as much as you can, and you'll make it up
 					if (mySpeed+speedService.getMaxAccel() > speedService.getMaxSpeed()) {
 						logger.debug("Agent " + getName() + " adjusted acceleration from maxAccel to move at maxSpeed.");
-						return driver.moveAt(speedService.getMaxSpeed());
+						return new Pair<CellMove,Integer>(driver.moveAt(speedService.getMaxSpeed()), Integer.MAX_VALUE);
 					}
 					else {
 						logger.debug("Agent " + getName() + " attempting to accelerate as much as possible to meet speedDelta of " + speedDelta);
-						return driver.accelerateMax();
+						return new Pair<CellMove,Integer>(driver.accelerateMax(), Integer.MAX_VALUE);
 					}
 				}
 			}
@@ -231,7 +248,7 @@ public class RoadAgent extends AbstractParticipant {
 			// if your current speed is 0, then don't even try attempting to decelerate...
 			if (mySpeed == 0) {
 				logger.debug("Agent " + getName() + " is at zero already...");
-				return driver.constantSpeed();
+				return new Pair<CellMove,Integer>(driver.constantSpeed(), Integer.MAX_VALUE);
 			}
 			else {
 				// work out if you can change to that speed now
@@ -241,29 +258,29 @@ public class RoadAgent extends AbstractParticipant {
 					if (temp<=0) {
 						// if you're going to go below 0, then set your decel to hit 0
 						logger.debug("Agent " + getName() + " adjusting decel from " + speedDelta + " to move at zero.");
-						return driver.moveAt(0);
+						return new Pair<CellMove,Integer>(driver.moveAt(0), Integer.MAX_VALUE);
 					}
 					else {
 						logger.debug("Agent " + getName() + " attempting to decelerate by " + speedDelta);
-						return driver.decelerate(speedDelta);
+						return new Pair<CellMove,Integer>(driver.decelerate(speedDelta), Integer.MAX_VALUE);
 					}
 				}
 				else {
 					// if not, PANIC ! (just decel max and hope for the best ? maybe change lanes...)
 					if (mySpeed-speedService.getMaxDecel() < 0){
 						logger.debug("Agent " + getName() + " would decelMAx but adjusted to move at zero.");
-						return driver.moveAt(0);
+						return new Pair<CellMove,Integer>(driver.moveAt(0), Integer.MAX_VALUE);
 					}
 					else {
 						// If you *know* you're safe, then chill.
 						if (!safe) {
 							logger.debug("Agent " + getName() + " doesn't think they can meet speedDelta of " + speedDelta);
-							// change lanes...
-							return null;
+							// not convince we'll get here...
+							return new Pair<CellMove,Integer>(driver.decelerateMax(), reqStopDist);
 						}
 						else {
 							logger.debug("Agent " + getName() + " doesn't think they can meet speedDelta of " + speedDelta + " so decellerating as much as they can");
-							return driver.decelerateMax();
+							return new Pair<CellMove,Integer>(driver.decelerateMax(), Integer.MAX_VALUE);
 						}
 					}
 				}
