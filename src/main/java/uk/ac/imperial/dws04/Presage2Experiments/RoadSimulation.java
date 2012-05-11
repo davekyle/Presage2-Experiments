@@ -244,6 +244,7 @@ public class RoadSimulation extends InjectedSimulation {
 		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals);
 		this.scenario.addParticipant(p);
 		p.initialise();
+		logger.info("Inserting " + name + " [" + uuid + "] at " + startLoc);
 		agentNames.put(uuid, name);
 		this.agentLocations.put(uuid, startLoc);
 	}

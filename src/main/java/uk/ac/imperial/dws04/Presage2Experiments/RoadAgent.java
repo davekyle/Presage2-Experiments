@@ -90,13 +90,10 @@ public class RoadAgent extends AbstractParticipant {
 	
 	@Override
 	public void execute() {
-		if (locationService == null){
-			logger.debug("bla");
-		}
 		myLoc = (RoadLocation) locationService.getAgentLocation(getID());
 		mySpeed = speedService.getAgentSpeed(getID());
 	 
-		logger.info("My location is: "+ this.myLoc + ", my speed is " + this.mySpeed + ", and my goalSpeed is " + this.goals.getSpeed());
+		logger.info("[" + getID() + "] My location is: "+ this.myLoc + ", my speed is " + this.mySpeed + ", and my goalSpeed is " + this.goals.getSpeed());
 		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		saveDataToDB();
 	 
