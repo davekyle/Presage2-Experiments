@@ -247,11 +247,11 @@ public class ParticipantRoadLocationServiceTest {
 		c.assertLocation(2, 14);
 		d.assertLocation(0, 20);
 		e.assertLocation(0, 49);
-		Map<UUID, Location> aMap = a.locationService.getNearbyAgents();
-		assertLocEq((RoadLocation)aMap.get(b.getID()), 1, 0);
-		assertLocEq((RoadLocation)aMap.get(c.getID()), 2, 14);
+		Map<UUID, RoadLocation> aMap = a.locationService.getNearbyAgents();
+		assertLocEq(aMap.get(b.getID()), 1, 0);
+		assertLocEq(aMap.get(c.getID()), 2, 14);
 		// wraps
-		assertLocEq((RoadLocation)aMap.get(e.getID()), 0, 49);
+		assertLocEq(aMap.get(e.getID()), 0, 49);
 		// can't see too far
 		assertTrue((!aMap.containsKey(d.getID())));
 	}

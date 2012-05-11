@@ -44,7 +44,7 @@ public class Driver {
 		/*this.environmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);*/
 	}
 	
-	private ParticipantRoadLocationService getLocationService() {
+	private RoadLocationService getLocationService() {
 		if (this.locationService == null) {
 			try {
 				locationService = serviceProvider.getEnvironmentService(ParticipantRoadLocationService.class);

@@ -8,42 +8,55 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
+
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
+import uk.ac.imperial.presage2.core.environment.SharedStateAccessException;
+import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.participant.Participant;
+import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
 import uk.ac.imperial.presage2.util.location.CannotSeeAgent;
 import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
+import uk.ac.imperial.presage2.util.participant.HasPerceptionRange;
 
 /**
  * @author dws04
  *
  */
-public class ParticipantRoadLocationService extends ParticipantLocationService {
+public class ParticipantRoadLocationService extends RoadLocationService {
 
-	private final double perceptionRange;
+	private final Logger logger = Logger.getLogger(ParticipantLocationService.class);
+
+	protected final UUID myID;
+
+	protected final EnvironmentMembersService membersService;
 	
 	public ParticipantRoadLocationService(
 			Participant p,
 			EnvironmentSharedStateAccess sharedState,
 			EnvironmentServiceProvider serviceProvider) {
-		super(p, sharedState, serviceProvider);
-		this.perceptionRange = calculatePerceptionRange(sharedState);
+		super(sharedState, serviceProvider);
+		this.myID = p.getID();
+		this.membersService = getMembersService(serviceProvider);
 	}
 	
 	/**
-	 * Perception range should be stopping distance at maxSpeed.
-	 * @param sharedState
+	 * @param serviceProvider
 	 * @return
 	 */
-	private double calculatePerceptionRange(EnvironmentSharedStateAccess sharedState) {
-		double mD = ((Integer)sharedState.getGlobal("maxDecel"));
-		double mS = ((Integer)sharedState.getGlobal("maxSpeed"));
-		double a = mS % mD;
-		double n = ((mS-a) / mD);
-		
-		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a);
+	private EnvironmentMembersService getMembersService(
+			EnvironmentServiceProvider serviceProvider) {
+		try {
+			return serviceProvider
+					.getEnvironmentService(EnvironmentMembersService.class);
+		} catch (UnavailableServiceException e) {
+			logger.warn("Could not retrieve EnvironmentMembersService; functionality limited.");
+			return null;
+		}
 	}
 	
 	/**
@@ -51,9 +64,9 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	 * ASSUMES that you can see all lanes at a given distance
 	 */
 	@Override
-	public Location getAgentLocation(UUID participantID) {
-		final Location theirLoc = super.getAgentLocation(participantID);
-		final Location myLoc = super.getAgentLocation(myID);
+	public RoadLocation getAgentLocation(UUID participantID) {
+		final RoadLocation theirLoc = super.getAgentLocation(participantID);
+		final RoadLocation myLoc = super.getAgentLocation(myID);
 
 		if ( (getOffsetDistanceBetween((RoadLocation)myLoc, (RoadLocation)theirLoc) <= this.perceptionRange) ||
 			 (getOffsetDistanceBetween((RoadLocation)theirLoc, (RoadLocation)myLoc) <= this.perceptionRange) )	{
@@ -71,12 +84,11 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 	 * 
 	 * @return {@link HashMap} of agent's {@link UUID} to {@link Location}
 	 */
-	@Override
-	public Map<UUID, Location> getNearbyAgents() {
+	public Map<UUID, RoadLocation> getNearbyAgents() {
 		if (this.membersService == null) {
 			throw new UnsupportedOperationException();
 		} else if (this.getAreaService() != null && this.getAreaService().isCellArea())  {
-			final Map<UUID, Location> agents = new HashMap<UUID, Location>();
+			final HashMap<UUID, RoadLocation> agents = new HashMap<UUID, RoadLocation>();
 			RoadLocation myLoc = (RoadLocation) super.getAgentLocation(myID);
 			double range = this.perceptionRange;
 
@@ -156,34 +168,23 @@ public class ParticipantRoadLocationService extends ParticipantLocationService {
 		
 	}
 
-	/**
-	 * 
-	 * @param locA
-	 * @param locB
-	 * @return the distance that must be travelled between A.offset and B.offset (ie, it ignores difference in lanes)
-	 */
-	public int getOffsetDistanceBetween(RoadLocation locA, RoadLocation locB) {
-		// check locations aren't the same
-		if (locA.getOffset() == locB.getOffset()) {
-			return 0;
-		}
-		// check for simple case (no wrap)
-		else if (locB.getOffset() > locA.getOffset()) {
-			return (locB.getOffset() - locA.getOffset());
-		}
-		// check for wrap
-		else {
-			int distanceToEnd = (this.getAreaService().getSizeY()) - locA.getOffset();
-			return distanceToEnd + locB.getOffset();
-		}
+	public static ParticipantSharedState createSharedState(UUID id, RoadLocation myLoc) {
+		return new ParticipantSharedState("util.location", myLoc, id);
 	}
 	
-	public int getLanes() {
-		return this.getAreaService().getSizeX()-1;
+	@Override
+	public void setAgentLocation(final UUID participantID, final RoadLocation l){
+		throw new SharedStateAccessException("setAgentLocation not accessible to agents !");
 	}
 	
-	public boolean isValidLane(int lane) {
-		return (lane>=0 && lane<=getLanes());
+	@Override
+	public void setAgentLocation(final UUID participantID, final Location l){
+		throw new SharedStateAccessException("setAgentLocation not accessible to agents !");
+	}
+	
+	@Override
+	public UUID getLocationContents(final RoadLocation l) {
+		throw new SharedStateAccessException("getLocationContents not accessible to agents !");
 	}
 
 }
