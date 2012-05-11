@@ -29,7 +29,7 @@ import uk.ac.imperial.presage2.util.participant.HasPerceptionRange;
  */
 public class ParticipantRoadLocationService extends RoadLocationService {
 
-	private final Logger logger = Logger.getLogger(ParticipantLocationService.class);
+	private final Logger logger = Logger.getLogger(ParticipantRoadLocationService.class);
 
 	protected final UUID myID;
 
@@ -184,6 +184,11 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 	
 	@Override
 	public UUID getLocationContents(final RoadLocation l) {
+		throw new SharedStateAccessException("getLocationContents not accessible to agents !");
+	}
+	
+	@Override
+	public UUID getLocationContents(final int lane, final int offset) {
 		throw new SharedStateAccessException("getLocationContents not accessible to agents !");
 	}
 

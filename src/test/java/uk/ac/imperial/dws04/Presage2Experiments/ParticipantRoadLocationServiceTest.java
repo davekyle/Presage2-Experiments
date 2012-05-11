@@ -4,6 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -50,6 +51,7 @@ import com.google.inject.name.Names;
 public class ParticipantRoadLocationServiceTest {
 	Injector injector;
 	AbstractEnvironment env;
+	RoadLocationService globalLocationService;
 	//RoadEnvironmentService roadEnvironmentService;
 	
 	private int lanes = 3;
@@ -84,6 +86,7 @@ public class ParticipantRoadLocationServiceTest {
 				});
 
 		env = injector.getInstance(AbstractEnvironment.class);
+		globalLocationService = injector.getInstance(RoadLocationService.class);
 	}
 
 	@After
@@ -203,6 +206,15 @@ public class ParticipantRoadLocationServiceTest {
 		assertLocEq((RoadLocation)c.locationService.getAgentLocation(d.getID()), 0, 20);
 		assertLocEq((RoadLocation)d.locationService.getAgentLocation(c.getID()), 2, 14);
 		assertLocEq((RoadLocation)e.locationService.getAgentLocation(a.getID()), 0, 0);
+		
+		// check global location contents getters
+		assertTrue(globalLocationService.getLocationContents(new RoadLocation(1,0)).equals(b.getID()));
+		assertTrue(globalLocationService.getLocationContents(1,0).equals(b.getID()));
+		assertNull(globalLocationService.getLocationContents(new RoadLocation(2,0)));
+		assertNull(globalLocationService.getLocationContents(2,0));
+		// try to get contents of non-existent cell
+		assertNull(globalLocationService.getLocationContents(new RoadLocation(-1,0)));
+		assertNull(globalLocationService.getLocationContents(-1,0));
 		
 		try {
 			// try to get someone you can't see

@@ -6,11 +6,16 @@ package uk.ac.imperial.dws04.Presage2Experiments;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
+
+import com.google.inject.Inject;
+
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
 import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.LocationService;
+import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.AreaService;
 
 /**
@@ -20,8 +25,10 @@ import uk.ac.imperial.presage2.util.location.area.AreaService;
 @ServiceDependencies({ AreaService.class })
 public class RoadLocationService extends LocationService {
 
+	private final Logger logger = Logger.getLogger(RoadLocationService.class);
 	protected double perceptionRange;
 	
+	@Inject
 	public RoadLocationService(EnvironmentSharedStateAccess sharedState,
 			EnvironmentServiceProvider serviceProvider) {
 		super(sharedState, serviceProvider);
@@ -58,12 +65,39 @@ public class RoadLocationService extends LocationService {
 	 * @return the agent at that location, or null if no one is there. If there has been a collision and mutliple agents are at the location, it returns one of them
 	 */
 	public UUID getLocationContents(final RoadLocation l) {
-		Set<UUID> set = this.getAreaService().getCell(l.getLane(), l.getOffset(), 0);
-		if (set.isEmpty()) {
+		Set<UUID> set;
+		try {
+			set = this.getAreaService().getCell(l.getLane(), l.getOffset(), 0);
+			if (set.isEmpty()) {
+				return null;
+			}
+			else {
+				return set.iterator().next();
+			}
+		} catch (RuntimeException e){
+			logger.warn(e);
 			return null;
 		}
-		else {
-			return set.iterator().next();
+	}
+	/**
+	 * 
+	 * @param lane
+	 * @param offset
+	 * @return the agent at that location, or null if no one is there. If there has been a collision and mutliple agents are at the location, it returns one of them
+	 */
+	public UUID getLocationContents(final int lane, final int offset) {
+		Set<UUID> set;
+		try {
+			set = this.getAreaService().getCell(lane, offset, 0);
+			if (set.isEmpty()) {
+				return null;
+			}
+			else {
+				return set.iterator().next();
+			}
+		} catch (RuntimeException e){
+			logger.warn(e);
+			return null;
 		}
 	}
 	
