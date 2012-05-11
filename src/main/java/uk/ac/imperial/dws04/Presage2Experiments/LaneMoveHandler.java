@@ -45,7 +45,7 @@ import com.google.inject.Singleton;
  * @author Sam Macbeth
  * 
  */
-@ServiceDependencies({ AreaService.class, LocationService.class, SpeedService.class })
+@ServiceDependencies({ AreaService.class, RoadLocationService.class, SpeedService.class, LocationService.class })
 @Singleton
 public class LaneMoveHandler extends MoveHandler {
 

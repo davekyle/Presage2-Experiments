@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
+import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.core.plugin.PluginModule;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
@@ -67,7 +69,6 @@ public class RoadSimulation extends InjectedSimulation {
 	
 	HashMap<UUID, String> agentNames;
 	HashMap<UUID,RoadLocation> agentLocations;
-	int perceptionRange;
 
 	EnvironmentServiceProvider serviceProvider;
 	
@@ -78,7 +79,6 @@ public class RoadSimulation extends InjectedSimulation {
 		super(modules);
 		agentLocations = new HashMap<UUID, RoadLocation>();
 		agentNames = new HashMap<UUID, String>();
-		perceptionRange = calculatePerceptionRange();
 	}
 	
 	@Inject
@@ -86,9 +86,18 @@ public class RoadSimulation extends InjectedSimulation {
 		this.serviceProvider = serviceProvider;
 	}
 	
-	LocationService getLocationService() {
+	RoadLocationService getLocationService() {
 		try {
-			return this.serviceProvider.getEnvironmentService(LocationService.class);
+			return this.serviceProvider.getEnvironmentService(RoadLocationService.class);
+		} catch (UnavailableServiceException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	SpeedService getSpeedService() {
+		try {
+			return this.serviceProvider.getEnvironmentService(SpeedService.class);
 		} catch (UnavailableServiceException e) {
 			e.printStackTrace();
 			return null;
@@ -117,13 +126,6 @@ public class RoadSimulation extends InjectedSimulation {
 			e.printStackTrace();
 			return null;
 		}
-	}
-	
-	private int calculatePerceptionRange() {
-		double a = (double)maxSpeed % (double)maxDecel;
-		double n = (((double)maxSpeed-a) / (double)maxDecel);
-		
-		return (int)(((n/2)*( 2*a + ((n+1)*(double)maxDecel) )) + a);
 	}
 
 	/* (non-Javadoc)
@@ -168,6 +170,7 @@ public class RoadSimulation extends InjectedSimulation {
 			.addActionHandler(LaneMoveHandler.class)
 			.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 			.addParticipantEnvironmentService(ParticipantSpeedService.class)
+			//.addGlobalEnvironmentService(RoadLocationService.class)
 			.addGlobalEnvironmentService(RoadEnvironmentService.class));
 		// No network
 		modules.add(NetworkModule.noNetworkModule());
@@ -185,28 +188,64 @@ public class RoadSimulation extends InjectedSimulation {
 	 */
 	@EventListener
 	public int makeNewAgent(EndOfTimeCycle e) {
-		if (false) {
+		logger.debug("Detected an EndOfTimeCycle event so seeing if we should insert an agent");
+		if (Random.randomInt()%2!=0) {
 			ArrayList<Integer> junctions = getEnvironmentService().getJunctionLocations();
 			Collections.shuffle(junctions);
-			int startOffset = junctions.get(0);
-			for (int i = startOffset; i>startOffset-perceptionRange; i--) {
-				// look back from the insertion point to see if you find an agent
-				if (agentLocations.containsValue(new RoadLocation(0,i))){
-					// need to make a way to get occupant of cell.
+			Iterator<Integer> it = junctions.iterator();
+			boolean notAdded = true;
+			// go through the junctions in a random order
+			while (it.hasNext() && notAdded) {
+				int startOffset = it.next();
+				int offset;
+				UUID targetUUID = null;
+				logger.debug("Starting check for agents backwards from " + startOffset + " to a distance of " + this.getLocationService().getPerceptionRange());
+				for (int i = 0; i<this.getLocationService().getPerceptionRange(); i++) {
+					// look back from the insertion point to see if you find an agent
+					logger.debug("offset is " + startOffset + " - " + i + " % " + length + " = " + (startOffset-i) + " % " + length + " = " + ((startOffset-i)%length) + " / corrected:" + ((((startOffset-i)%length)+length)%length));
+					// to do negative modulo... ffs
+					offset = ((((startOffset-i)%length)+length)%length);
+					targetUUID = this.getLocationService().getLocationContents(0, offset);
+					logger.debug("Checked location [0,"+offset+"] and found " + targetUUID);
+					if (targetUUID!=null) {
+						// found someone
+						break;
+					}
+				}
+				if (targetUUID==null) {
+					logger.debug("No agents detected within max stopping distance");
+					createNextAgent(0, startOffset);
+					notAdded = false;
+				}
+				else if (this.getLocationService().getAgentLocation(targetUUID).getOffset() + this.getSpeedService().getStoppingDistance(targetUUID) < startOffset) {
+					logger.debug("Agent " + targetUUID + " was detected at location " + this.getLocationService().getAgentLocation(targetUUID) + " but should stop in time.");
+					createNextAgent(0, startOffset);
+					notAdded = false;
+				}
+				else {
+					logger.debug("Agent " + targetUUID + " was detected at location " + this.getLocationService().getAgentLocation(targetUUID) + " but is unable to stop in time.");
 				}
 			}
-			
-			
-			UUID uuid = Random.randomUUID();
-			String name = "agent"+ agentNames.size();
-			RoadLocation startLoc = new RoadLocation(0, startOffset);
-			int startSpeed = 0;
-			RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed)+1), 0, 0);
-			this.scenario.addParticipant(new RoadAgent(uuid, name, startLoc, startSpeed, goals));
-			agentNames.put(uuid, name);
-			this.agentLocations.put(uuid, startLoc);
 		}
 		return 0;
+	}
+
+	/**
+	 * Creates the next (in naming) agent at the location specified with speed 0 and random goals
+	 * @param lane
+	 * @param startOffset
+	 */
+	private void createNextAgent(int lane, int startOffset) {
+		UUID uuid = Random.randomUUID();
+		String name = "agent"+ agentNames.size();
+		RoadLocation startLoc = new RoadLocation(lane, startOffset);
+		int startSpeed = 0;
+		RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed)+1), 0, 0);
+		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals);
+		this.scenario.addParticipant(p);
+		p.initialise();
+		agentNames.put(uuid, name);
+		this.agentLocations.put(uuid, startLoc);
 	}
 	
 	@EventListener

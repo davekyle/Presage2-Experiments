@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
@@ -22,17 +23,18 @@ import uk.ac.imperial.presage2.util.location.area.AreaService;
  * @author dws04
  *
  */
-@ServiceDependencies({ AreaService.class })
+@Singleton
+@ServiceDependencies({ AreaService.class, RoadEnvironmentService.class, LocationService.class })
 public class RoadLocationService extends LocationService {
 
 	private final Logger logger = Logger.getLogger(RoadLocationService.class);
-	protected double perceptionRange;
+	private Double perceptionRange;
 	
 	@Inject
 	public RoadLocationService(EnvironmentSharedStateAccess sharedState,
 			EnvironmentServiceProvider serviceProvider) {
 		super(sharedState, serviceProvider);
-		this.perceptionRange = calculatePerceptionRange(sharedState);
+		this.perceptionRange = null;
 	}
 	
 	/**
@@ -49,6 +51,16 @@ public class RoadLocationService extends LocationService {
 		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a);
 	}
 	
+	/**
+	 * @return the perceptionRange
+	 */
+	protected double getPerceptionRange() {
+		if (perceptionRange==null) {
+			perceptionRange = calculatePerceptionRange(sharedState);
+		}
+		return perceptionRange;
+	}
+
 	@Override
 	public RoadLocation getAgentLocation(UUID participantID){
 		return (RoadLocation)super.getAgentLocation(participantID);

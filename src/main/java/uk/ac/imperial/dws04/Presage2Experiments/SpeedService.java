@@ -150,7 +150,8 @@ public class SpeedService extends EnvironmentService {
 	
 	/**
 	 * @param speed
-	 * @return the distance required for the given agent to stop TAKING INTO ACCOUNT THEY CAN CHANGE SPEED BEFORE DOING WHAT YOU CALCULATE.
+	 * @return the distance required for the given agent to stop TAKING INTO ACCOUNT THEY CAN DECEL BEFORE DOING WHAT YOU CALCULATE.
+	 * FIXME what if they accel ?
 	 */
 	public int getAdjustedStoppingDistance(UUID agent) {
 		double mD = (Integer)getMaxDecel();

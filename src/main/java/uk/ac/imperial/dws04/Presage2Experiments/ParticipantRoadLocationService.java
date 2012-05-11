@@ -68,8 +68,8 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 		final RoadLocation theirLoc = super.getAgentLocation(participantID);
 		final RoadLocation myLoc = super.getAgentLocation(myID);
 
-		if ( (getOffsetDistanceBetween((RoadLocation)myLoc, (RoadLocation)theirLoc) <= this.perceptionRange) ||
-			 (getOffsetDistanceBetween((RoadLocation)theirLoc, (RoadLocation)myLoc) <= this.perceptionRange) )	{
+		if ( (getOffsetDistanceBetween((RoadLocation)myLoc, (RoadLocation)theirLoc) <= this.getPerceptionRange()) ||
+			 (getOffsetDistanceBetween((RoadLocation)theirLoc, (RoadLocation)myLoc) <= this.getPerceptionRange()) )	{
 			return theirLoc;
 		} else {
 			throw new CannotSeeAgent(this.myID, participantID);
@@ -90,7 +90,7 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 		} else if (this.getAreaService() != null && this.getAreaService().isCellArea())  {
 			final HashMap<UUID, RoadLocation> agents = new HashMap<UUID, RoadLocation>();
 			RoadLocation myLoc = (RoadLocation) super.getAgentLocation(myID);
-			double range = this.perceptionRange;
+			double range = this.getPerceptionRange();
 
 			for (int x = Math.max(0, (int) (myLoc.getX() - range)); x < Math.min(getAreaService()
 					.getSizeX(), (int) (myLoc.getX() + range)); x++) {
@@ -152,7 +152,7 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 	public UUID getAgentToFront(int lane){
 		UUID result = null;
 		int startLoc = ((RoadLocation) super.getAgentLocation(myID)).getOffset();
-		for (int i = 0; i <= this.perceptionRange; i++) {
+		for (int i = 0; i <= this.getPerceptionRange(); i++) {
 			if ( !getAreaService().getCell(lane, ((startLoc+i)%this.getAreaService().getSizeY()), 0).isEmpty() ) {
 				for (UUID a : getAreaService().getCell(lane, ((startLoc+i)%this.getAreaService().getSizeY()), 0)) {
 					if (a!=myID) {

@@ -90,6 +90,9 @@ public class RoadAgent extends AbstractParticipant {
 	
 	@Override
 	public void execute() {
+		if (locationService == null){
+			logger.debug("bla");
+		}
 		myLoc = (RoadLocation) locationService.getAgentLocation(getID());
 		mySpeed = speedService.getAgentSpeed(getID());
 	 
