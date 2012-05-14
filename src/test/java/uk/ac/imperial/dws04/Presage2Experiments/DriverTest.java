@@ -55,7 +55,7 @@ public class DriverTest {
 	private final int maxSpeed = 10;
 	private final int maxAccel = 1;
 	private final int maxDecel = 1;
-	private final int junctionCount = 0;
+	private final int junctionCount = 2;
 
 	@Before
 	public void setUp() throws Exception {
@@ -296,6 +296,37 @@ public class DriverTest {
 		assertEquals(startSpeed, a.driver.getSpeed());
 		assertEquals(maxAccel, a.driver.getMaxAccel());
 		assertEquals(maxDecel, a.driver.getMaxDecel());
+	}
+	
+	@Test
+	public void testTurnOff() throws ActionHandlingException {
+		int startSpeed = Random.randomInt();
+		int startLane = Random.randomInt(lanes);
+		int startLoc = 4;
+		CellMove move;
+		RoadLocation startLocation = new RoadLocation(startLane, startLoc);
+		TestAgent a = createTestAgent("a", startLocation, startSpeed);
+		TestAgent b = createTestAgent("b", new RoadLocation(0,6), startSpeed);
+		TestAgent c = createTestAgent("c", new RoadLocation(0,0), startSpeed);
 		
+
+		env.incrementTime();
+
+		// Check that everything returns the same results
+		a.assertLocation(startLane, startLoc);
+		a.assertSpeed(startSpeed);
+		//check that junctions are where we expect
+		assertTrue(this.roadEnvironmentService.getJunctionLocations().contains(0));
+		assertTrue(this.roadEnvironmentService.getJunctionLocations().contains(5));
+		
+		// turn off moves
+		move = a.driver.turnOff();
+		assertMoveEquals((0-(startLane+1)), 1, move);
+		move = b.driver.turnOff();
+		// wraps correctly and doesn't look backwards
+		assertMoveEquals(-1, 4, move);
+		// won't try to turn off with no forward motion
+		move = c.driver.turnOff();
+		assertMoveEquals(-1, 5, move);
 	}
 }

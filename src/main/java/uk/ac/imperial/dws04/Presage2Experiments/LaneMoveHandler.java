@@ -27,6 +27,7 @@ import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
+import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.location.LocationService;
 import uk.ac.imperial.presage2.util.location.Move;
@@ -55,6 +56,7 @@ public class LaneMoveHandler extends MoveHandler {
 	private PersistentEnvironment persist = null;
 	private RoadEnvironmentService roadEnvironmentService;
 	private SpeedService speedService;
+	private EventBus eventBus;
 
 	@Inject
 	public LaneMoveHandler(HasArea environment,
@@ -62,6 +64,7 @@ public class LaneMoveHandler extends MoveHandler {
 			EnvironmentSharedStateAccess sharedState, EventBus eb)
 			throws UnavailableServiceException {
 		super(environment, serviceProvider, sharedState);
+		this.eventBus = eb;
 		eb.subscribe(this);
 		this.roadEnvironmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);
 		this.speedService = serviceProvider.getEnvironmentService(SpeedService.class);
@@ -163,6 +166,8 @@ public class LaneMoveHandler extends MoveHandler {
 			if (roadEnvironmentService.isJunctionOffset(target.getOffset())) {
 				// do stuff
 				logger.info("Agent " + actor + " left the road at " + target.getOffset());
+				eventBus.publish(new AgentLeftScenario(actor,target.getOffset(), SimTime.get()));
+				return null;
 			}
 			else {
 				try {

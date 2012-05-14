@@ -4,6 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -52,14 +53,14 @@ public class ParticipantRoadLocationServiceTest {
 	Injector injector;
 	AbstractEnvironment env;
 	RoadLocationService globalLocationService;
-	//RoadEnvironmentService roadEnvironmentService;
+	RoadEnvironmentService globalRoadEnvironmentService;
 	
 	private int lanes = 3;
 	private int length = 10;
 	private int maxSpeed = 10;
 	private int maxAccel = 1;
 	private int maxDecel = 1;
-	private final int junctionCount = 0;
+	private int junctionCount = 0;
 
 	// can't use this globally anymore since we want to be able to alter the params
 	public void setUp() throws Exception {
@@ -87,6 +88,7 @@ public class ParticipantRoadLocationServiceTest {
 
 		env = injector.getInstance(AbstractEnvironment.class);
 		globalLocationService = injector.getInstance(RoadLocationService.class);
+		globalRoadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
 	}
 
 	@After
@@ -385,5 +387,63 @@ public class ParticipantRoadLocationServiceTest {
 		assertEquals(a.locationService.getOffsetDistanceBetween(eLoc, aLoc), 1);
 		assertEquals(a.locationService.getOffsetDistanceBetween(cLoc, aLoc), 36);
 		
+	}
+	
+	@Test
+	public void testJunctions() throws Exception {
+		length = 10;
+		junctionCount = 2;
+		/*
+		 * |0|1|2|3|4|5|6|7|8|9|
+		 * |j| | | | |j| | | | |
+		 * |a|b| | |c|d|e| | |f|
+		 */
+		setUp();
+		TestAgent a = createTestAgent("a", new RoadLocation(0, 0), 1);
+		TestAgent b = createTestAgent("b", new RoadLocation(0, 1), 1);
+		TestAgent c = createTestAgent("c", new RoadLocation(0, 4), 1);
+		TestAgent d = createTestAgent("d", new RoadLocation(0, 5), 1);
+		TestAgent e = createTestAgent("e", new RoadLocation(0, 6), 1);
+		TestAgent f = createTestAgent("f", new RoadLocation(0, 9), 1);
+		
+		env.incrementTime();
+		// check it's all correct
+		assertTrue(this.globalRoadEnvironmentService.getJunctionLocations().contains(0));
+		assertTrue(this.globalRoadEnvironmentService.getJunctionLocations().contains(5));
+		assertFalse(this.globalRoadEnvironmentService.getJunctionLocations().contains(8));
+		a.assertLocation(0, 0);
+		b.assertLocation(0, 1);
+		c.assertLocation(0, 4);
+		d.assertLocation(0, 5);
+		e.assertLocation(0, 6);
+		f.assertLocation(0, 9);
+
+		assertEquals((int)a.locationService.getNextJunctionOffset(),5);
+		assertEquals((int)b.locationService.getNextJunctionOffset(),5);
+		assertEquals((int)c.locationService.getNextJunctionOffset(),5);
+		assertEquals((int)d.locationService.getNextJunctionOffset(),0);
+		assertEquals((int)e.locationService.getNextJunctionOffset(),0);
+		assertEquals((int)f.locationService.getNextJunctionOffset(),0);
+		
+		assertEquals((int)a.locationService.getDistanceToNextJunction(),5);
+		assertEquals((int)b.locationService.getDistanceToNextJunction(),4);
+		assertEquals((int)c.locationService.getDistanceToNextJunction(),1);
+		assertEquals((int)d.locationService.getDistanceToNextJunction(),5);
+		assertEquals((int)e.locationService.getDistanceToNextJunction(),4);
+		assertEquals((int)f.locationService.getDistanceToNextJunction(),1);
+	}
+	
+	@Test
+	public void testJunctionFails() throws Exception {
+		length = 10;
+		junctionCount = 0;
+		setUp();
+		TestAgent a = createTestAgent("a", new RoadLocation(0, 0), 1);
+		
+		env.incrementTime();
+		// check there's no junctions
+		assertTrue(this.globalRoadEnvironmentService.getJunctionLocations().isEmpty());
+		assertNull(a.locationService.getNextJunctionOffset());
+		assertNull(a.locationService.getDistanceToNextJunction());
 	}
 }

@@ -117,6 +117,7 @@ public class RoadEnvironmentService extends EnvironmentService {
 		return junctionLocations;
 	}
 	
+	// TODO make this wrap ?
 	public boolean isJunctionOffset(int offset){
 		return getJunctionLocations().contains(offset);
 	}

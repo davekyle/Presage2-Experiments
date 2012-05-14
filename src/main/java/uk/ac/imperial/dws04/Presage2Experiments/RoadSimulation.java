@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.environment.StateTransformer;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.participant.Participant;
@@ -73,6 +75,8 @@ public class RoadSimulation extends InjectedSimulation {
 	HashMap<UUID,RoadLocation> agentLocations;
 
 	EnvironmentServiceProvider serviceProvider;
+
+	private EnvironmentSharedStateAccess sharedState;
 	
 	/**
 	 * @param modules
@@ -86,6 +90,11 @@ public class RoadSimulation extends InjectedSimulation {
 	@Inject
 	void setEnvironmentServiceProvider(EnvironmentServiceProvider serviceProvider) {
 		this.serviceProvider = serviceProvider;
+	}
+	
+	@Inject
+	void setEnvironmentSharedStateAccess(EnvironmentSharedStateAccess sharedState) {
+		this.sharedState = sharedState;
 	}
 	
 	RoadLocationService getLocationService() {
@@ -225,6 +234,30 @@ public class RoadSimulation extends InjectedSimulation {
 			logger.trace("Updating location of agent " + a + " from " + this.agentLocations.get(a) + " to " + (RoadLocation) getLocationService().getAgentLocation(a));
 			this.agentLocations.put(a, (RoadLocation) getLocationService().getAgentLocation(a));
 		}
+	}
+	
+	@EventListener
+	public void removeAgent(AgentLeftScenario e) {
+		final UUID uuid = e.getAgentID();
+		this.agentLocations.remove(uuid);
+		// remove all the shared state associated with the agent
+		// members service
+		this.sharedState.changeGlobal("participants", new StateTransformer() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public Serializable transform(Serializable state) {
+				HashSet<UUID> ids = (HashSet<UUID>) state;
+				ids.remove(uuid);
+				return ids;
+			}
+		});
+		// location
+		this.sharedState.delete("util.location", uuid);
+		// speed
+		this.sharedState.delete("util.speed", uuid);
+		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
+		this.scenario.removeParticipant(uuid);
+		//TODO put this in the persistentdb somehow ?
 	}
 
 }

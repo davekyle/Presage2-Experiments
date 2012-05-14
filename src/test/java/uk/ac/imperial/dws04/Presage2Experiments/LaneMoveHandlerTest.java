@@ -1,5 +1,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -16,6 +18,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationService;
 import uk.ac.imperial.dws04.Presage2Experiments.ParticipantSpeedService;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
+import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationServiceTest.TestAgent;
 import uk.ac.imperial.presage2.core.Action;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
@@ -48,9 +51,9 @@ public class LaneMoveHandlerTest {
 	InputStream old = System.in;
 	
 	private final int lanes = 3;
-	private final int length = 10;
+	private int length = 10;
+	private int junctionCount = 0;
 
-	@Before
 	public void setUp() throws Exception {
 		injector = Guice.createInjector(
 				new AbstractEnvironmentModule()
@@ -68,7 +71,7 @@ public class LaneMoveHandlerTest {
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxSpeed")).toInstance(10);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxAccel")).toInstance(1);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxDecel")).toInstance(1);
-						bind(Integer.TYPE).annotatedWith(Names.named("params.junctionCount")).toInstance(0);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.junctionCount")).toInstance(junctionCount);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
 					}
@@ -163,8 +166,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testValidMoves() throws ActionHandlingException {
-
+	public void testValidMoves() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 2);
 
 		env.incrementTime();
@@ -234,7 +237,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testInvalidLocationMove() throws ActionHandlingException {
+	public void testInvalidLocationMove() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 0);
 		TestAgent b = createTestAgent("b", new RoadLocation(1, 5), 0);
 
@@ -272,7 +276,8 @@ public class LaneMoveHandlerTest {
 	}
 	
 	@Test
-	public void testInvalidSpeedMove() throws ActionHandlingException {
+	public void testInvalidSpeedMove() throws Exception {
+		setUp();
 		int maxSpeed = roadEnvironmentService.getMaxSpeed();
 		TestAgent a = createTestAgent("a", new RoadLocation(2,0), 1);
 		TestAgent b = createTestAgent("b", new RoadLocation(1,0), maxSpeed);
@@ -317,7 +322,8 @@ public class LaneMoveHandlerTest {
 	}
 	
 	@Test
-	public void testReverseMove() throws ActionHandlingException {
+	public void testReverseMove() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 0);
 
 		env.incrementTime();
@@ -339,8 +345,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testMoveToSameCellOnSameLaneCollisions()
-			throws ActionHandlingException {
+	public void testMoveToSameCellOnSameLaneCollisions() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 3);
 		TestAgent b = createTestAgent("b", new RoadLocation(1, 3), 0);
 
@@ -378,7 +384,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testSameLaneCollision() throws ActionHandlingException {
+	public void testSameLaneCollision() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 5);
 		TestAgent b = createTestAgent("b", new RoadLocation(1, 1), 3);
 
@@ -423,7 +430,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testMultiLaneCollision1() throws ActionHandlingException {
+	public void testMultiLaneCollision1() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 3);
 		TestAgent b = createTestAgent("b", new RoadLocation(2, 1), 1);
 
@@ -448,7 +456,8 @@ public class LaneMoveHandlerTest {
 	}
 	
 	@Test
-	public void testMultiLaneCollision2() throws ActionHandlingException {
+	public void testMultiLaneCollision2() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 3);
 		TestAgent b = createTestAgent("b", new RoadLocation(2, 1), 1);
 
@@ -473,7 +482,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testMultiLaneCollision3() throws ActionHandlingException {
+	public void testMultiLaneCollision3() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 0);
 		TestAgent b = createTestAgent("b", new RoadLocation(2, 1), 0);
 
@@ -497,7 +507,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testMultiLaneCollision4() throws ActionHandlingException {
+	public void testMultiLaneCollision4() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 3);
 		TestAgent b = createTestAgent("b", new RoadLocation(2, 1), 1);
 
@@ -522,7 +533,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testMultiLaneCollision5() throws ActionHandlingException {
+	public void testMultiLaneCollision5() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 0);
 		TestAgent b = createTestAgent("b", new RoadLocation(3, 1), 0);
 
@@ -546,7 +558,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testMultiLaneCollision6() throws ActionHandlingException {
+	public void testMultiLaneCollision6() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 0);
 		TestAgent b = createTestAgent("b", new RoadLocation(2, 0), 0);
 
@@ -571,7 +584,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testMultiLaneCollision7() throws ActionHandlingException {
+	public void testMultiLaneCollision7() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 2);
 		TestAgent b = createTestAgent("b", new RoadLocation(2, 0), 1);
 		TestAgent c = createTestAgent("a", new RoadLocation(3, 1), 1);
@@ -599,7 +613,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testMultiLaneCollision8() throws ActionHandlingException {
+	public void testMultiLaneCollision8() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 0);
 		TestAgent b = createTestAgent("b", new RoadLocation(1, 1), 0);
 
@@ -623,7 +638,8 @@ public class LaneMoveHandlerTest {
 	}
 	
 	@Test
-	public void testDomino1() throws ActionHandlingException {
+	public void testDomino1() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 1);
 		TestAgent b = createTestAgent("b", new RoadLocation(1, 1), 1);
 
@@ -647,7 +663,8 @@ public class LaneMoveHandlerTest {
 	}
 	
 	@Test
-	public void testDomino2() throws ActionHandlingException {
+	public void testDomino2() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 4);
 		TestAgent b = createTestAgent("b", new RoadLocation(1, 4), 5);
 
@@ -671,7 +688,8 @@ public class LaneMoveHandlerTest {
 	}
 	
 	@Test
-	public void testDomino3() throws ActionHandlingException {
+	public void testDomino3() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 2);
 		TestAgent b = createTestAgent("b", new RoadLocation(1, 9), 1);
 
@@ -695,7 +713,8 @@ public class LaneMoveHandlerTest {
 	}
 
 	@Test
-	public void testDomino4() throws ActionHandlingException {
+	public void testDomino4() throws Exception {
+		setUp();
 		TestAgent a = createTestAgent("a", new RoadLocation(1, 8), 2);
 		TestAgent b = createTestAgent("b", new RoadLocation(1, 9), 1);
 
@@ -717,4 +736,71 @@ public class LaneMoveHandlerTest {
 		b.assertLocation(1, 0);
 		assertCollisions(0);
 	}
-}
+	
+	@Test
+	public void testJunctions() throws Exception {
+		length = 10;
+		junctionCount = 3;
+		setUp();
+		/*
+		 * |0|1|2|3|4|5|6|7|8|9|
+		 * |j| | |j| | |j| | | |
+		 * |a|b| | |c|d|g| | |e|
+		 * | | | | | | | | | |f|
+		 */
+		assertTrue(this.roadEnvironmentService.getJunctionLocations().contains(0));
+		assertTrue(this.roadEnvironmentService.getJunctionLocations().contains(3));
+		assertTrue(this.roadEnvironmentService.getJunctionLocations().contains(6));
+		assertFalse(this.roadEnvironmentService.getJunctionLocations().contains(8));
+
+		TestAgent a = createTestAgent("a", new RoadLocation(0, 0), 1);
+		TestAgent b = createTestAgent("b", new RoadLocation(0, 1), 1);
+		TestAgent c = createTestAgent("c", new RoadLocation(0, 4), 1);
+		TestAgent d = createTestAgent("d", new RoadLocation(0, 5), 1);
+		TestAgent e = createTestAgent("e", new RoadLocation(0, 9), 1);
+		TestAgent f = createTestAgent("f", new RoadLocation(1, 9), 1);
+		TestAgent g = createTestAgent("g", new RoadLocation(0, 6), 0);
+		
+		env.incrementTime();
+		// check it's all correct
+		a.assertLocation(0, 0);
+		b.assertLocation(0, 1);
+		c.assertLocation(0, 4);
+		d.assertLocation(0, 5);
+		e.assertLocation(0, 9);
+		f.assertLocation(1, 9);
+		
+		//try some valid moves
+		b.performAction(new CellMove(-1,2));
+		d.performAction(new CellMove(-1,1));
+		e.performAction(new CellMove(-1,1));
+		
+		// invalid moves
+		//a tries to turn off at 0 (0 speed)
+		try {
+			a.performAction(new CellMove(-1,0));
+			fail();
+		} catch (ActionHandlingException ex) {
+		}
+		try {
+			//c tries to turn off at 3 (backwards)
+			c.performAction(new CellMove(-1,-1));
+			fail();
+		} catch (ActionHandlingException ex) {
+		}
+		try {
+			//f tries to turn off at all (too many lanes)
+			f.performAction(new CellMove(-2,1));
+			fail();
+		} catch (ActionHandlingException ex) {
+		}
+		try {
+			//g tries to turn off at 0 (too far)
+			g.performAction(new CellMove(-1,-4));
+			fail();
+		} catch (ActionHandlingException ex) {
+		}
+		
+	}
+}	
+

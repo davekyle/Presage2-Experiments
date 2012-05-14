@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
@@ -167,6 +168,17 @@ public class Driver {
 		int lane = Random.randomInt(2);
 		int speed = Random.randomInt(2);
 		return new CellMove(lane, speed);
+	}
+	
+	public CellMove turnOff() {
+		Integer junctionDistance = this.locationService.getDistanceToNextJunction();
+		if (junctionDistance!= null){
+			return new CellMove((0-(this.getLocation().getLane()+1)), junctionDistance);
+		}
+		else {
+			logger.warn("Agent " + myId + " tried to turn off, but there aren't any junctions !");
+			return this.decelerateMax();
+		}
 	}
 
 }

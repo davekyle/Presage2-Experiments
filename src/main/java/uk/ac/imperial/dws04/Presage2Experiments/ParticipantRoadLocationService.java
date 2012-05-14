@@ -3,7 +3,11 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -11,6 +15,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 
+import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
@@ -48,11 +53,9 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 	 * @param serviceProvider
 	 * @return
 	 */
-	private EnvironmentMembersService getMembersService(
-			EnvironmentServiceProvider serviceProvider) {
+	private EnvironmentMembersService getMembersService(EnvironmentServiceProvider serviceProvider) {
 		try {
-			return serviceProvider
-					.getEnvironmentService(EnvironmentMembersService.class);
+			return serviceProvider.getEnvironmentService(EnvironmentMembersService.class);
 		} catch (UnavailableServiceException e) {
 			logger.warn("Could not retrieve EnvironmentMembersService; functionality limited.");
 			return null;
@@ -167,6 +170,42 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 		return result;
 		
 	}
+	
+	/**
+	 * Won't return a junction next to the agent
+	 * @return the next junction offset. Should wrap and return the first one if there are no more. Returns null if there are no junctions.
+	 */
+	public Integer getNextJunctionOffset() {
+		int myOffset = MathsUtils.mod((this.getAgentLocation(myID).getOffset()+1),this.getRoadEnvironmentService().getLength());
+		ArrayList<Integer> junctions = this.getRoadEnvironmentService().getJunctionLocations();
+		Integer result;
+		if ( (junctions==null) || (junctions.isEmpty())) {
+			return null;
+		}
+		else {
+			result = junctions.get(0);
+			for (int i=0; i<junctions.size(); i++) {
+				if ( junctions.get(i) >= myOffset){
+					result = junctions.get(i);
+					break;
+				}
+			}
+			return result;
+		}
+	}
+	
+	public Integer getDistanceToNextJunction(){
+		Integer junctionOffset = getNextJunctionOffset();
+		if (junctionOffset==null) {
+			return null;
+		}
+		else {
+			int myOffset = this.getAgentLocation(myID).getOffset();
+			int length = this.getRoadEnvironmentService().getLength();
+			return MathsUtils.mod((junctionOffset-myOffset ), length );
+		}
+	}
+
 
 	public static ParticipantSharedState createSharedState(UUID id, RoadLocation myLoc) {
 		return new ParticipantSharedState("util.location", myLoc, id);

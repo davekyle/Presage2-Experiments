@@ -14,6 +14,8 @@ import com.google.inject.Singleton;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
+import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
+import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
 import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.LocationService;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
@@ -29,12 +31,14 @@ public class RoadLocationService extends LocationService {
 
 	private final Logger logger = Logger.getLogger(RoadLocationService.class);
 	private Double perceptionRange;
+	private final EnvironmentServiceProvider serviceProvider;
 	
 	@Inject
 	public RoadLocationService(EnvironmentSharedStateAccess sharedState,
 			EnvironmentServiceProvider serviceProvider) {
 		super(sharedState, serviceProvider);
 		this.perceptionRange = null;
+		this.serviceProvider = serviceProvider;
 	}
 	
 	/**
@@ -49,6 +53,19 @@ public class RoadLocationService extends LocationService {
 		double n = ((mS-a) / mD);
 		
 		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a);
+	}
+	
+	/**
+	 * @param serviceProvider
+	 * @return
+	 */
+	protected RoadEnvironmentService getRoadEnvironmentService() {
+		try {
+			return serviceProvider.getEnvironmentService(RoadEnvironmentService.class);
+		} catch (UnavailableServiceException e) {
+			logger.warn("Could not retrieve RoadEnvironmentService; functionality limited.");
+			return null;
+		}
 	}
 	
 	/**
