@@ -248,13 +248,14 @@ public class RoadSimulation extends InjectedSimulation {
 			public Serializable transform(Serializable state) {
 				HashSet<UUID> ids = (HashSet<UUID>) state;
 				ids.remove(uuid);
+				
 				return ids;
 			}
 		});
-		// location
-		this.sharedState.delete("util.location", uuid);
-		// speed
-		this.sharedState.delete("util.speed", uuid);
+		// also do location
+		sharedState.delete("util.location", uuid);
+		// and speed
+		sharedState.delete("util.speed", uuid);
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
 		//TODO put this in the persistentdb somehow ?

@@ -110,9 +110,6 @@ public class LaneMoveHandler extends MoveHandler {
 		int maxAccel = roadEnvironmentService.getMaxAccel();
 		int maxDecel = roadEnvironmentService.getMaxDecel();
 		
-
-		// TODO -  check agent only moving in/out of lane0 when off/on ramp is present 
-		
 		// check move direction is positive or 0
 		if (m.getY() < 0) {
 			throw new ActionHandlingException(
@@ -167,6 +164,7 @@ public class LaneMoveHandler extends MoveHandler {
 				// do stuff
 				logger.info("Agent " + actor + " left the road at " + target.getOffset());
 				eventBus.publish(new AgentLeftScenario(actor,target.getOffset(), SimTime.get()));
+				// turning off means avoiding the possibility of crashing... ohwells: sliproads are LOOOONG
 				return null;
 			}
 			else {

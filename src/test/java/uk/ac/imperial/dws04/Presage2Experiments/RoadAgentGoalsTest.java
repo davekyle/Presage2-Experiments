@@ -20,7 +20,7 @@ public class RoadAgentGoalsTest {
 	@Test
 	public void test() {
 		int speed = Random.randomInt();
-		int dest = Random.randomInt();
+		Integer dest = Random.randomInt();
 		int spacing = Random.randomInt();
 		RoadAgentGoals test = new RoadAgentGoals(speed, dest, spacing);
 		assertTrue(test instanceof RoadAgentGoals);

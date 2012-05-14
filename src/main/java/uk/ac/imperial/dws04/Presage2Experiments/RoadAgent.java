@@ -37,6 +37,7 @@ public class RoadAgent extends AbstractParticipant {
 	protected RoadLocation myLoc;
 	protected int mySpeed;
 	protected final RoadAgentGoals goals;
+	private Integer junctionsLeft;
 	
 	// Variable to store the location service.
 	ParticipantRoadLocationService locationService;
@@ -48,6 +49,12 @@ public class RoadAgent extends AbstractParticipant {
 		this.myLoc = myLoc;
 		this.mySpeed = mySpeed;
 		this.goals = goals;
+		if (this.goals.getDest()!=null) {
+			this.junctionsLeft = goals.getDest();
+		}
+		else {
+			this.junctionsLeft = null;
+		}
 		//this.driver = new Driver(id, locationService, speedService/*, environmentService*/);
 		
 	}
@@ -93,13 +100,25 @@ public class RoadAgent extends AbstractParticipant {
 		myLoc = (RoadLocation) locationService.getAgentLocation(getID());
 		mySpeed = speedService.getAgentSpeed(getID());
 	 
-		logger.info("[" + getID() + "] My location is: "+ this.myLoc + ", my speed is " + this.mySpeed + ", and my goalSpeed is " + this.goals.getSpeed());
+		logger.info("[" + getID() + "] My location is: " + this.myLoc + 
+										", my speed is " + this.mySpeed + 
+										", my goalSpeed is " + this.goals.getSpeed() + 
+										", and I have " + junctionsLeft + " junctions out of " + goals.getDest() + " left to pass.");
 		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		saveDataToDB();
-	 
+
 		CellMove move = createMove();
-	 
+		
+		if ((this.locationService.getDistanceToNextJunction()!=null) && (this.locationService.getDistanceToNextJunction() <= move.getYInt())) {
+			passJunction();
+		}
 		submitMove(move);
+	}
+	
+	private void passJunction(){
+		if (junctionsLeft!=null) {
+			junctionsLeft--;
+		}
 	}
 	
 	@SuppressWarnings("unused")

@@ -36,7 +36,7 @@ class RoadAgentGoals {
 	/**
 	 * @return the goal dest
 	 */
-	public int getDest() {
+	public Integer getDest() {
 		return dest;
 	}
 
