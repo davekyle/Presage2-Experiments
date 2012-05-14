@@ -813,6 +813,11 @@ public class LaneMoveHandlerTest {
 		}	
 	}
 	
+	/**
+	 * There is (~) no possibility of crashing when turning off, due to sliproads being long
+	 * (and the crash-detection code happening just after the agent-removal code :P)
+	 * @throws Exception
+	 */
 	@Test
 	public void testJunctionNoCrashes() throws Exception {
 		length = 10;
@@ -853,7 +858,7 @@ public class LaneMoveHandlerTest {
 		e.performAction(new CellMove(-1,1));
 		f.performAction(new CellMove(-1,1));
 		assertCollisions(0);
-		// check a can turn off if b doesn't
+		// check a can turn off if b doesn't (sliproads are LOOONG)
 		b.performAction(new CellMove(0,1));
 		a.performAction(new CellMove(-1,3));
 		assertCollisions(0);
