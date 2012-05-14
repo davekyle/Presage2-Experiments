@@ -45,7 +45,7 @@ import com.google.inject.Singleton;
  * @author Sam Macbeth
  * 
  */
-@ServiceDependencies({ AreaService.class, RoadLocationService.class, SpeedService.class, LocationService.class })
+@ServiceDependencies({ AreaService.class, RoadLocationService.class, SpeedService.class, LocationService.class, RoadEnvironmentService.class })
 @Singleton
 public class LaneMoveHandler extends MoveHandler {
 
@@ -159,11 +159,18 @@ public class LaneMoveHandler extends MoveHandler {
 		RoadLocation target = new RoadLocation(start.add(m));
 
 		if (!target.in(environment.getArea())) {
-			try {
-				final Move mNew = environment.getArea().getValidMove(start, m);
-				target = new RoadLocation(start.add(mNew));
-			} catch (EdgeException e) {
-				throw new ActionHandlingException(e);
+			// check if it's a junction location
+			if (roadEnvironmentService.isJunctionOffset(target.getOffset())) {
+				// do stuff
+				logger.info("Agent " + actor + " left the road at " + target.getOffset());
+			}
+			else {
+				try {
+					final Move mNew = environment.getArea().getValidMove(start, m);
+					target = new RoadLocation(start.add(mNew));
+				} catch (EdgeException e) {
+					throw new ActionHandlingException(e);
+				}
 			}
 		}
 		this.locationService.setAgentLocation(actor, target);

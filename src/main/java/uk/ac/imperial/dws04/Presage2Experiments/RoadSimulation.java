@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
@@ -41,6 +42,7 @@ import uk.ac.imperial.presage2.util.network.NetworkModule;
  * @author dws04
  *
  */
+@Singleton
 public class RoadSimulation extends InjectedSimulation {
 
 	@Parameter(name="length")
@@ -182,7 +184,6 @@ public class RoadSimulation extends InjectedSimulation {
 	
 	/**
 	 * Allows new agents to be inserted at the onramps at the end of a timecycle based on a function
-	 *  TODO 
 	 * @param e
 	 * @return
 	 */
@@ -190,41 +191,9 @@ public class RoadSimulation extends InjectedSimulation {
 	public int makeNewAgent(EndOfTimeCycle e) {
 		logger.debug("Detected an EndOfTimeCycle event so seeing if we should insert an agent");
 		if (Random.randomInt()%2!=0) {
-			ArrayList<Integer> junctions = getEnvironmentService().getJunctionLocations();
-			Collections.shuffle(junctions);
-			Iterator<Integer> it = junctions.iterator();
-			boolean notAdded = true;
-			// go through the junctions in a random order
-			while (it.hasNext() && notAdded) {
-				int startOffset = it.next();
-				int offset;
-				UUID targetUUID = null;
-				logger.debug("Starting check for agents backwards from " + startOffset + " to a distance of " + this.getLocationService().getPerceptionRange());
-				for (int i = 0; i<this.getLocationService().getPerceptionRange(); i++) {
-					// look back from the insertion point to see if you find an agent
-					logger.debug("offset is " + startOffset + " - " + i + " % " + length + " = " + (startOffset-i) + " % " + length + " = " + ((startOffset-i)%length) + " / corrected:" + ((((startOffset-i)%length)+length)%length));
-					// to do negative modulo... ffs
-					offset = ((((startOffset-i)%length)+length)%length);
-					targetUUID = this.getLocationService().getLocationContents(0, offset);
-					logger.debug("Checked location [0,"+offset+"] and found " + targetUUID);
-					if (targetUUID!=null) {
-						// found someone
-						break;
-					}
-				}
-				if (targetUUID==null) {
-					logger.debug("No agents detected within max stopping distance");
-					createNextAgent(0, startOffset);
-					notAdded = false;
-				}
-				else if (this.getLocationService().getAgentLocation(targetUUID).getOffset() + this.getSpeedService().getStoppingDistance(targetUUID) < startOffset) {
-					logger.debug("Agent " + targetUUID + " was detected at location " + this.getLocationService().getAgentLocation(targetUUID) + " but should stop in time.");
-					createNextAgent(0, startOffset);
-					notAdded = false;
-				}
-				else {
-					logger.debug("Agent " + targetUUID + " was detected at location " + this.getLocationService().getAgentLocation(targetUUID) + " but is unable to stop in time.");
-				}
+			Integer junctionOffset = this.getEnvironmentService().getNextInsertionJunction();
+			if (junctionOffset!=null) {
+				createNextAgent(0, junctionOffset);
 			}
 		}
 		return 0;

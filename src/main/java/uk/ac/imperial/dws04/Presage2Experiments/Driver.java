@@ -25,13 +25,13 @@ public class Driver {
 	private EnvironmentServiceProvider serviceProvider;
 	private final Logger logger = Logger.getLogger(Driver.class);
 
-	public Driver(UUID myId, ParticipantRoadLocationService locationService, ParticipantSpeedService speedService/*, RoadEnvironmentService environmentService*/) {
+	/*public Driver(UUID myId, ParticipantRoadLocationService locationService, ParticipantSpeedService speedService, RoadEnvironmentService environmentService) {
 		super();
 		this.myId = myId;
 		this.locationService = locationService;
 		this.speedService = speedService;
-		/*this.environmentService = environmentService;*/
-	}
+		this.environmentService = environmentService;
+	}*/
 
 	public Driver(UUID myId, EnvironmentServiceProvider serviceProvider)
 			throws UnavailableServiceException {
