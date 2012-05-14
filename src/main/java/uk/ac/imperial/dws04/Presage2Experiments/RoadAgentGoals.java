@@ -11,7 +11,7 @@ class RoadAgentGoals {
 	 */
 	private final int speed;
 	/**
-	 *  Goal destination - how many junctions to pass
+	 *  Goal destination - how many junctions to pass. Null if the agent should never leave
 	 */
 	private final int dest;
 	/**
@@ -34,7 +34,7 @@ class RoadAgentGoals {
 	}
 
 	/**
-	 * @return the goal dest
+	 * @return the goal dest. Is null if the agent will stay on the road forever
 	 */
 	public Integer getDest() {
 		return dest;

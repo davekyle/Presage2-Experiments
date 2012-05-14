@@ -107,12 +107,23 @@ public class RoadAgent extends AbstractParticipant {
 		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		saveDataToDB();
 
-		CellMove move = createMove();
+		Integer junctionDist = this.locationService.getDistanceToNextJunction();
 		
-		if ((this.locationService.getDistanceToNextJunction()!=null) && (this.locationService.getDistanceToNextJunction() <= move.getYInt())) {
-			passJunction();
+		// Check to see if nothing is null (and you want to turn off), then if you can end up at the junction in the next timecycle, do so
+		if (	(junctionsLeft!=null) && (junctionsLeft == 1) && (junctionDist!=null) && 
+				(myLoc.getLane()==0) && // FIXME TODO need to position yourself in lane0 the cycle before you end up in the position to turn off
+				(junctionDist>= Math.max((mySpeed-speedService.getMaxDecel()), 1)) &&
+				(junctionDist<= Math.min((mySpeed+speedService.getMaxAccel()), speedService.getMaxSpeed())) ) {
+			submitMove(driver.turnOff());
 		}
-		submitMove(move);
+		else {
+			CellMove move = createMove();
+
+			if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
+				passJunction();
+			}
+			submitMove(move);
+		}
 	}
 	
 	private void passJunction(){
