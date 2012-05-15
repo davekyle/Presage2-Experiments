@@ -159,7 +159,7 @@ public class RoadSimulation extends InjectedSimulation {
 			}
 			// don't want speeds to be 0
 			int startSpeed = Random.randomInt(maxSpeed)+1;
-			RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed)+1), 0, 0);
+			RoadAgentGoals goals = createNewAgentGoals();
 			s.addParticipant(new RoadAgent(uuid, name, startLoc, startSpeed, goals));
 			agentLocations.put(uuid, startLoc);
 			agentNames.put(uuid, name);
@@ -218,13 +218,17 @@ public class RoadSimulation extends InjectedSimulation {
 		String name = "agent"+ agentNames.size();
 		RoadLocation startLoc = new RoadLocation(lane, startOffset);
 		int startSpeed = 0;
-		RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed)+1), 0, 0);
+		RoadAgentGoals goals = createNewAgentGoals();
 		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals);
 		this.scenario.addParticipant(p);
 		p.initialise();
 		logger.info("Inserting " + name + " [" + uuid + "] at " + startLoc);
 		agentNames.put(uuid, name);
 		this.agentLocations.put(uuid, startLoc);
+	}
+	
+	private RoadAgentGoals createNewAgentGoals() {
+		return new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0);
 	}
 	
 	@EventListener
@@ -240,6 +244,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public void removeAgent(AgentLeftScenario e) {
 		final UUID uuid = e.getAgentID();
 		this.agentLocations.remove(uuid);
+		this.agentNames.remove(uuid);
 		// remove all the shared state associated with the agent
 		// members service
 		this.sharedState.changeGlobal("participants", new StateTransformer() {
@@ -252,10 +257,9 @@ public class RoadSimulation extends InjectedSimulation {
 				return ids;
 			}
 		});
-		// also do location
-		sharedState.delete("util.location", uuid);
-		// and speed
-		sharedState.delete("util.speed", uuid);
+		// also do location and speed
+		this.getLocationService().removeAgent(uuid);
+		this.getSpeedService().removeAgent(uuid);
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
 		//TODO put this in the persistentdb somehow ?

@@ -230,5 +230,10 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 	public UUID getLocationContents(final int lane, final int offset) {
 		throw new SharedStateAccessException("getLocationContents not accessible to agents !");
 	}
+	
+	@Override
+	public void removeAgent(UUID uuid) {
+		throw new SharedStateAccessException("removeAgent not accessible to agents !");
+	}
 
 }

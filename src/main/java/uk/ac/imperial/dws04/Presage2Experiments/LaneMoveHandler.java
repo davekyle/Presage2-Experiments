@@ -160,7 +160,7 @@ public class LaneMoveHandler extends MoveHandler {
 
 		if (!target.in(environment.getArea())) {
 			// check if it's a junction location
-			if (roadEnvironmentService.isJunctionOffset(target.getOffset())) {
+			if ( (target.getLane()==-1) && (roadEnvironmentService.isJunctionOffset(target.getOffset())) ) {
 				// do stuff
 				logger.info("Agent " + actor + " left the road at " + target.getOffset());
 				eventBus.publish(new AgentLeftScenario(actor,target.getOffset(), SimTime.get()));

@@ -151,7 +151,7 @@ public class SpeedService extends EnvironmentService {
 	/**
 	 * @param speed
 	 * @return the distance required for the given agent to stop TAKING INTO ACCOUNT THEY CAN DECEL BEFORE DOING WHAT YOU CALCULATE.
-	 * FIXME what if they accel ?
+	 * FIXME what if they accel ? (ie when you're looking for possible collisions behind you when changing lanes)
 	 */
 	public int getAdjustedStoppingDistance(UUID agent) {
 		double mD = (Integer)getMaxDecel();
@@ -200,5 +200,9 @@ public class SpeedService extends EnvironmentService {
 			// -mD for correct result - you have to be travelling LESS THAN the result...
 			return (0-((Double)(n*mD)).intValue())-((int)Math.floor(mD));
 		}
+	}
+
+	public void removeAgent(UUID uuid) {
+		sharedState.delete("util.speed", uuid);
 	}
 }

@@ -159,6 +159,12 @@ public class RoadLocationService extends LocationService {
 	public boolean isValidLane(int lane) {
 		return (lane>=0 && lane<=getLanes());
 	}
+
+	public void removeAgent(UUID uuid) {
+		RoadLocation loc = getAgentLocation(uuid);
+		this.getAreaService().removeFromCell((int)loc.getX(), (int)loc.getY(), (int)loc.getZ(), uuid);
+		sharedState.delete("util.location", uuid);
+	}
 	
 	
 

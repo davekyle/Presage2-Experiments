@@ -107,7 +107,7 @@ public class LaneMoveHandlerTest {
 		try {
 			assertEquals(n, handler.checkForCollisions(null));
 		} catch (Exception e) {
-			System.out.println("Caught an exception");
+			System.out.println("Caught an exception:" + e);
 		}
 	}
 	

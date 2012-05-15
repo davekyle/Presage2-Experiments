@@ -173,6 +173,7 @@ public class Driver {
 	public CellMove turnOff() {
 		Integer junctionDistance = this.locationService.getDistanceToNextJunction();
 		if (junctionDistance!= null){
+			logger.trace("Agent " + myId + " attempting to turn off");
 			return new CellMove((0-(this.getLocation().getLane()+1)), junctionDistance);
 		}
 		else {

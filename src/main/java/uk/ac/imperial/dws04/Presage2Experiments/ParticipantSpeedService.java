@@ -173,5 +173,10 @@ public class ParticipantSpeedService extends SpeedService {
 	public static ParticipantSharedState createSharedState(UUID pid, int s) {
 		return new ParticipantSharedState("util.speed", s, pid);
 	}
+	
+	@Override
+	public void removeAgent(UUID uuid) {
+		throw new SharedStateAccessException("removeAgent not accessible to agents !");
+	}
 
 }
