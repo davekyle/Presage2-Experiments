@@ -9,18 +9,18 @@ class RoadAgentGoals {
 	/**
 	 *  Preferred speed
 	 */
-	private final int speed;
+	private final Integer speed;
 	/**
 	 *  Goal destination - how many junctions to pass. Null if the agent should never leave
 	 */
-	private final int dest;
+	private final Integer dest;
 	/**
 	 * The preferred space left between this agent and the ones around it
 	 * when not in a cluster
 	 */
-	private final int spacing;
+	private final Integer spacing;
 	
-	RoadAgentGoals(int speed, int dest, int spacing) {
+	RoadAgentGoals(Integer speed, Integer dest, Integer spacing) {
 		this.speed = speed;
 		this.dest = dest;
 		this.spacing = spacing;
@@ -29,7 +29,7 @@ class RoadAgentGoals {
 	/**
 	 * @return the speed
 	 */
-	public int getSpeed() {
+	public Integer getSpeed() {
 		return speed;
 	}
 
@@ -43,7 +43,7 @@ class RoadAgentGoals {
 	/**
 	 * @return the spacing
 	 */
-	public int getSpacing() {
+	public Integer getSpacing() {
 		return spacing;
 	}
 }

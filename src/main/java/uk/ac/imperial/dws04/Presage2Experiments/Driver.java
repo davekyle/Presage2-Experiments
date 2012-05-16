@@ -182,4 +182,33 @@ public class Driver {
 		}
 	}
 
+	public CellMove moveIntoLaneAtSpeed(int lane, int speed) {
+		int laneDiff;
+		int myLane = this.getLocation().getLane();
+		if (myLane>lane) {
+			laneDiff = lane-myLane;
+		}
+		else if (myLane<lane) {
+			laneDiff = myLane+lane;
+		}
+		else {
+			// they're the same
+			laneDiff = 0;
+		}
+		return new CellMove(laneDiff, speed);
+	}
+	
+	/**
+	 * Decelerate as much as you physically can, to a limit of moving at 1, maintaining current lane
+	 * @return
+	 */
+	public CellMove decelerateToCrawl() {
+		if (getSpeed()-getMaxDecel()<=1) {
+			return new CellMove(0, 1);
+		}
+		else {
+			return new CellMove(0, getSpeed()-getMaxDecel());
+		}
+	}
+
 }

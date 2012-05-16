@@ -4,6 +4,9 @@
 package uk.ac.imperial.dws04.Presage2Experiments;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
 
 
 import org.junit.After;
@@ -47,13 +50,14 @@ public class RoadAgentTest {
 	AbstractEnvironment env;
 	//RoadEnvironmentService roadEnvironmentService;
 	SpeedService globalSpeedService;
+	RoadEnvironmentService globalRoadEnvironmentService;
 	
 	private int lanes = 3;
 	private int length = 10;
 	private int maxSpeed = 10;
 	private int maxAccel = 1;
 	private int maxDecel = 1;
-	private final int junctionCount = 0;
+	private int junctionCount = 0;
 	IntegerTime time = new IntegerTime(0);
 	SimTime sTime = new SimTime(time);
 
@@ -83,6 +87,7 @@ public class RoadAgentTest {
 
 		env = injector.getInstance(AbstractEnvironment.class);
 		globalSpeedService = injector.getInstance(SpeedService.class);
+		globalRoadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
 		
 	}
 	
@@ -127,7 +132,8 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void testSingleVehicle() throws ActionHandlingException {
+	public void testSingleVehicle() throws Exception {
+		setUp();
 		int startSpeed = Random.randomInt(maxSpeed)+1;
 		int startLane = Random.randomInt(lanes);
 		int spacing = 0;
@@ -154,7 +160,8 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void testSlowing() throws ActionHandlingException {
+	public void testSlowing() throws Exception {
+		setUp();
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
@@ -208,7 +215,8 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void testLaneChangeUp() throws ActionHandlingException {
+	public void testLaneChangeUp() throws Exception {
+		setUp();
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
@@ -235,7 +243,8 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void testLaneChangeDown() throws ActionHandlingException {
+	public void testLaneChangeDown() throws Exception {
+		setUp();
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
@@ -268,7 +277,8 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void testSlowingWrap() throws ActionHandlingException {
+	public void testSlowingWrap() throws Exception {
+		setUp();
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
@@ -322,7 +332,8 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void testLaneChangeUpWrap() throws ActionHandlingException {
+	public void testLaneChangeUpWrap() throws Exception {
+		setUp();
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
@@ -349,7 +360,8 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void testLaneChangeDownWrap() throws ActionHandlingException {
+	public void testLaneChangeDownWrap() throws Exception {
+		setUp();
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
@@ -382,7 +394,8 @@ public class RoadAgentTest {
 	}
 	
 	@Test
-	public void testLaneChangeChoice() throws ActionHandlingException {
+	public void testLaneChangeChoice() throws Exception {
+		setUp();
 		int aSpeed = 4; int aStart = 0;
 		int bSpeed = 3; int bStart = 2;
 		int cSpeed = 3; int cStart = 3;
@@ -416,6 +429,60 @@ public class RoadAgentTest {
 		// a can't slow in time, can't undertake, but c is better than b so will "overtake" with hope of something better in future
 		assertLocation(a, aLane+1, (aStart+aSpeed-1)%length);
 		assertSpeed(a, aSpeed-1);
+	}
+	
+	@Test
+	public void testJunctions() throws Exception {
+		maxDecel = 2;
+		length = 20;
+		junctionCount = 3;
+		setUp();
+		ArrayList<Integer> locations = globalRoadEnvironmentService.getJunctionLocations();
+		assertEquals(locations.size(), 3);
+		assertTrue(locations.contains(0));
+		assertTrue(locations.contains(6));
+		assertTrue(locations.contains(13));
+		
+		int aLane = 0; int aOffset = 0; int aSpeed = 5;
+		int bLane = 0; int bOffset = 14; int bSpeed = 5;
+		int cLane = 2; int cOffset = 5; int cSpeed = 5;
+		
+		RoadAgent a = createAgent("a", new RoadLocation(aLane, aOffset), aSpeed, new RoadAgentGoals(aSpeed, 3, 0));
+		RoadAgent b = createAgent("b", new RoadLocation(bLane, bOffset), bSpeed, new RoadAgentGoals(bSpeed, null, 0));
+		RoadAgent c = createAgent("c", new RoadLocation(cLane, cOffset), cSpeed, new RoadAgentGoals(cSpeed, 1, 0));
+		
+		incrementTime();
+
+		assertLocation(a, aLane, aOffset);
+		assertSpeed(a, aSpeed);
+		assertLocation(b, bLane, bOffset);
+		assertSpeed(b, bSpeed);
+		assertLocation(c, cLane, cOffset);
+		assertSpeed(c, cSpeed);
+		
+		a.execute();
+		b.execute();
+		c.execute();
+		incrementTime();
+		
+		assertLocation(a, aLane, 5);
+		assertSpeed(a, aSpeed);
+		assertLocation(b, bLane, 19);
+		assertSpeed(b, bSpeed);
+		assertLocation(c, 1, 8);
+		assertSpeed(c, cSpeed);
+		
+		a.execute();
+		b.execute();
+		c.execute();
+		incrementTime();
+		
+		assertLocation(a, aLane, 10);
+		assertSpeed(a, aSpeed);
+		assertLocation(b, bLane, 4);
+		assertSpeed(b, bSpeed);
+		assertLocation(c, 0, 13);
+		assertSpeed(c, 3);
 	}
 	
 }

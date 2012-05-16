@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Level;
 
+import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
@@ -71,7 +72,8 @@ public class RoadAgent extends AbstractParticipant {
 		this.mySpeed = mySpeed;
 		this.goals = goals;
 		if (this.goals.getDest()!=null) {
-			this.junctionsLeft = goals.getDest();
+			// you want to pass one fewer than your destination
+			this.junctionsLeft = goals.getDest()-1;
 		}
 		else {
 			this.junctionsLeft = null;
@@ -120,6 +122,9 @@ public class RoadAgent extends AbstractParticipant {
 				.addState("MOVE_TO_EXIT", StateType.ACTIVE)
 				.addTransition("IDLE_TO_MOVE", new EventTypeCondition(MoveToExitEvent.class), "IDLE", "MOVE_TO_EXIT", Action.NOOP);
 			fsm = new FSM(fsmDesc, null);
+			if ( (junctionsLeft!=null) && (junctionsLeft<=1) ){
+				fsm.applyEvent(new MoveToExitEvent());
+			}
 		} catch (FSMException e) {
 			logger.warn("You can't initialise the FSM like this:" + e);
 		}
@@ -133,7 +138,7 @@ public class RoadAgent extends AbstractParticipant {
 		logger.info("[" + getID() + "] My location is: " + this.myLoc + 
 										", my speed is " + this.mySpeed + 
 										", my goalSpeed is " + this.goals.getSpeed() + 
-										", and I have " + junctionsLeft + " junctions out of " + goals.getDest() + " left to pass" +
+										", and I have " + junctionsLeft + " junctions to pass before my goal of " + goals.getDest() +
 										", so I am in state " + fsm.getState());
 		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		saveDataToDB();
@@ -142,15 +147,14 @@ public class RoadAgent extends AbstractParticipant {
 		CellMove move;
 		// Check to see if you want to turn off, then if you can end up at the junction in the next timecycle, do so
 		if (	(fsm.getState().equals("MOVE_TO_EXIT")) && (junctionDist!=null) ) {
-			move = driver.turnOff();
-			createExitMove(junctionDist);
+			//move = driver.turnOff();
+			move = createExitMove(junctionDist);
 		}
 		else {
 			move = createMove();
-			if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
-				passJunction();
-			}
-			
+		}
+		if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
+			passJunction();
 		}
 		submitMove(move);
 	}
@@ -158,7 +162,7 @@ public class RoadAgent extends AbstractParticipant {
 	private void passJunction(){
 		if (junctionsLeft!=null) {
 			junctionsLeft--;
-			if (junctionsLeft==1) {
+			if ((junctionsLeft<=1)&& (!fsm.getState().equals("MOVE_TO_EXIT"))) {
 				try {
 					fsm.applyEvent(new MoveToExitEvent());
 					logger.info("[" + getID() + "] Agent " + getName() + " is now moving towards the exit");
@@ -174,7 +178,7 @@ public class RoadAgent extends AbstractParticipant {
 	 * @return
 	 */
 	private CellMove createExitMove(int nextJunctionDist) {
-		CellMove result;
+		CellMove result = null;
 		if (myLoc.getLane()==0) {
 			if (	(nextJunctionDist>= Math.max((mySpeed-speedService.getMaxDecel()), 1)) &&
 					(nextJunctionDist<= Math.min((mySpeed+speedService.getMaxAccel()), speedService.getMaxSpeed())) ) {
@@ -185,25 +189,54 @@ public class RoadAgent extends AbstractParticipant {
 				// FIXME TODO
 				// try to make it so you can end a cycle on the right cell
 				// find a safe move in this lane; this gives you the max safe speed you can move at
-				// check to see if nextJunctionDist is a multiple of this speed (mod(nJD,speed)==0)
-				// if it is, yay
-				// otherwise, check all the speeds between speed and speed-maxDecell for the same thing
-				// if none of them are good, then decelMax
-				result = null;
+				Pair<CellMove, Integer> maxSpeedMove = createMove(myLoc.getLane());
+				int maxSpeed = maxSpeedMove.getA().getYInt();
+				if (maxSpeedMove.getB().equals(Integer.MAX_VALUE)) {
+					// get a safe move to the exit in the lane
+					result = driver.moveIntoLaneAtSpeed(myLoc.getLane(), safeMoveSpeedToExit(nextJunctionDist, maxSpeed, myLoc.getLane()));
+				}
+				else {
+					logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()) + " to turn towards the exit, so checking the next lane.");
+					Pair<CellMove, Integer> maxSpeedMove2 = createMove(myLoc.getLane()+1);
+					int maxSpeed2 = maxSpeedMove2.getA().getYInt();
+					if ( (maxSpeedMove2.getB().equals(Integer.MAX_VALUE)) || (maxSpeedMove2.getB()>maxSpeedMove.getB())) {
+						// if you can change lanes right, do so.
+						logger.debug("[" + getID() + "] Agent " + getName() + " found a safe(r) move in lane " + (myLoc.getLane()+1) + " so is moving out in hope.");
+						result = driver.moveIntoLaneAtSpeed(myLoc.getLane()+1, safeMoveSpeedToExit(nextJunctionDist, maxSpeed2, myLoc.getLane()+1));
+					}
+					else {
+						// if not, slow down
+						logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()+1) + ", so is staying in lane and slowing down in hope.");
+						result = driver.decelerateMax();
+					}
+				}
 			}
 		}
 		else {
+			// you're not in lane0 (check validity anyway)
 			if (locationService.isValidLane(myLoc.getLane()-1)) {
-				Pair<CellMove, Integer> temp = createMove(myLoc.getLane()-1);
-				if (temp.getB().equals(Integer.MAX_VALUE)) {
+				Pair<CellMove, Integer> maxSpeedMove = createMove(myLoc.getLane()-1);
+				int maxSpeed = maxSpeedMove.getA().getYInt();
+				if (maxSpeedMove.getB().equals(Integer.MAX_VALUE)) {
 					// if you can change lanes left, do so.
 					logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + (myLoc.getLane()-1) + " so is moving towards the exit.");
-					result = new CellMove(-1,temp.getA().getYInt());
+					result = driver.moveIntoLaneAtSpeed(myLoc.getLane()-1, safeMoveSpeedToExit(nextJunctionDist, maxSpeed, myLoc.getLane()-1));
 				}
 				else {
-					// if not, slow down
-					logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()-1) + " to turn towards the exit, so is slowing down.");
-					result = driver.decelerateMax();
+					// if not, work out speed for current lane
+					logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()-1) + " to turn towards the exit, so is checking the current lane.");
+					Pair<CellMove, Integer> maxSpeedMove2 = createMove(myLoc.getLane());
+					int maxSpeed2 = maxSpeedMove2.getA().getYInt();
+					if (maxSpeedMove2.getB().equals(Integer.MAX_VALUE)) {
+						// if you canstay in current lane, do so.
+						logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + (myLoc.getLane()) + " so is moving to the exit.");
+						result = driver.moveIntoLaneAtSpeed(myLoc.getLane()+1, safeMoveSpeedToExit(nextJunctionDist, maxSpeed2, myLoc.getLane()));
+					}
+					else {
+						// if not, slow down
+						logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()) + ", so is slowing down in hope.");
+						result = driver.decelerateMax();
+					}
 				}
 			}
 			else {
@@ -212,7 +245,45 @@ public class RoadAgent extends AbstractParticipant {
 				result = null;
 			}
 		}
+		if (result==null){
+			logger.warn("Shouldn't get here.");
+			result = driver.decelerateMax();
+		}
 		return result;
+	}
+
+	/**
+	 * @param nextJunctionDist
+	 * @param result
+	 * @param temp
+	 * @return
+	 */
+	private int safeMoveSpeedToExit(int nextJunctionDist, int maxSpeed, int lane) {
+		 logger.debug("[" + getID() + "] Agent " + getName() + " the maximum safe speed in lane " + lane + " is " + maxSpeed);
+		// check to see if nextJunctionDist is a multiple of this speed (mod(nJD,speed)==0)
+		if (MathsUtils.mod(nextJunctionDist,maxSpeed)==0) {
+			// if it is, yay
+			return maxSpeed;
+		}
+		else {
+			// otherwise, check all the speeds between speed and speed-maxDecell for the same thing
+			for (int i = maxSpeed-1; i>=maxSpeed-speedService.getMaxDecel(); i--) {
+				if (MathsUtils.mod(nextJunctionDist,i)==0) {
+					// if it is, yay
+					logger.debug("[" + getID() + "] Agent " + getName() + " found a good move in lane " + lane + " at speed " + i);
+					return i;
+				}
+				else {
+					//Level lvl = logger.getLevel();
+					//logger.setLevel(Level.TRACE);
+					logger.trace("[" + getID() + "] Agent " + getName() + " checking speed " + i);
+					//logger.setLevel(lvl);
+				}
+			}
+			// if none of them are good, then decelMax
+			logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a good speed in lane " + lane + " so is decelerating");
+			return driver.decelerateToCrawl().getYInt();
+		}
 	}
 	
 	@SuppressWarnings("unused")
