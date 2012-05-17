@@ -453,11 +453,11 @@ public class RoadAgentTest {
 		
 		incrementTime();
 
-		assertLocation(a, aLane, aOffset);
+		assertLocation(a, aLane, aOffset); // a has 2 left to PASS, wants to leave at the 3rd
 		assertSpeed(a, aSpeed);
 		assertLocation(b, bLane, bOffset);
 		assertSpeed(b, bSpeed);
-		assertLocation(c, cLane, cOffset);
+		assertLocation(c, cLane, cOffset); // c has 0 left to pass, wants to turn off immediately (but can't)
 		assertSpeed(c, cSpeed);
 		
 		a.execute();
@@ -465,24 +465,48 @@ public class RoadAgentTest {
 		c.execute();
 		incrementTime();
 		
-		assertLocation(a, aLane, 5);
+		assertLocation(a, aLane, 5); // a has 2 left to PASS
 		assertSpeed(a, aSpeed);
 		assertLocation(b, bLane, 19);
 		assertSpeed(b, bSpeed);
-		assertLocation(c, 1, 8);
-		assertSpeed(c, cSpeed);
+		assertLocation(c, 1, 8); // c wants to turn off, so changed lanes and slowed
+		assertSpeed(c, 3);
 		
 		a.execute();
 		b.execute();
 		c.execute();
 		incrementTime();
 		
-		assertLocation(a, aLane, 10);
+		assertLocation(a, aLane, 10); // a has 1 left to pass
 		assertSpeed(a, aSpeed);
 		assertLocation(b, bLane, 4);
 		assertSpeed(b, bSpeed);
-		assertLocation(c, 0, 13);
-		assertSpeed(c, 3);
+		assertLocation(c, 0, 9); // c wants to turn off, so changed lanes and slowed
+		assertSpeed(c, 1);
+		
+		a.execute();
+		b.execute();
+		c.execute();
+		incrementTime();
+		
+		assertLocation(a, aLane, 15); // a has 0 left to pass, wants to turn off next 
+		assertSpeed(a, aSpeed);
+		assertLocation(b, bLane, 7); // b saw c moving slowly infront of it, so slowed down
+		assertSpeed(b, 3);
+		assertLocation(c, 0, 11); // c wants to turn off at 13 but can speed up a bit
+		assertSpeed(c, 2);
+		
+		a.execute();
+		b.execute();
+		c.execute();
+		incrementTime();
+		
+		assertLocation(a, 0, 15); // a has turned off, so it's location remains, because the simulation is the thing that removes the state
+		assertSpeed(a, aSpeed);
+		assertLocation(b, bLane, 9); // c is seen at 11 still, so is slowing
+		assertSpeed(b, 2);
+		assertLocation(c, 0, 11); // c has turned off, but it's location remains here because the removal of state isnt done
+		assertSpeed(c, 2);
 	}
 	
 }

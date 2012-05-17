@@ -162,10 +162,10 @@ public class RoadAgent extends AbstractParticipant {
 	private void passJunction(){
 		if (junctionsLeft!=null) {
 			junctionsLeft--;
-			if ((junctionsLeft<=1)&& (!fsm.getState().equals("MOVE_TO_EXIT"))) {
+			if ((junctionsLeft<1)&& (!fsm.getState().equals("MOVE_TO_EXIT"))) {
 				try {
 					fsm.applyEvent(new MoveToExitEvent());
-					logger.info("[" + getID() + "] Agent " + getName() + " is now moving towards the exit");
+					logger.info("[" + getID() + "] Agent " + getName() + " will move towards the exit in the next cycle.");
 				} catch (FSMException e) {
 					logger.warn("FSM can't handle event type MoveToExitEvent:" + e);
 				}
@@ -206,8 +206,8 @@ public class RoadAgent extends AbstractParticipant {
 					}
 					else {
 						// if not, slow down
-						logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()+1) + ", so is staying in lane and slowing down in hope.");
-						result = driver.decelerateMax();
+						logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()+1) + ", so is staying in lane with move " + maxSpeedMove.getA());
+						result = maxSpeedMove.getA();
 					}
 				}
 			}

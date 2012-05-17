@@ -156,6 +156,8 @@ public class SpeedService extends EnvironmentService {
 	public int getAdjustedStoppingDistance(UUID agent) {
 		double mD = (Integer)getMaxDecel();
 		double speed = getAgentSpeed(agent)-mD;
+		// stop them thinking cars can move backwards
+		if (speed<0) speed = 0;
 		// a is what is left over if speed-nmD is not 0
 		double a = speed % mD;
 		double n = ((speed-a) / mD);
