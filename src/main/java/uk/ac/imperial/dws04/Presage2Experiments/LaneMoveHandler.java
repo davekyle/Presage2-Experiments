@@ -235,29 +235,38 @@ public class LaneMoveHandler extends MoveHandler {
 				collisionsOccured++;
 			}
 			for (UUID a : collisionCandidates) {
-				RoadLocation current = (RoadLocation) locationService
-						.getAgentLocation(a);
-				if (current.getLane() == finishAt.getLane()) {
-					// same lane, if he is behind us then it is a collision
-					int hisOffset = current.getOffset();
-					int myOffset = finishAt.getOffset();
-					boolean heWrapped = hisOffset < candidateLocs.get(a).getOffset();
-					boolean iWrapped = myOffset < startFrom.getOffset();
-					if(!iWrapped && heWrapped) {
-						hisOffset += areaLength;
+				// FIXME ? This stops agents that have left being checked
+				if (locationService == null) {
+					System.out.println();// stop here
+				}
+				if (a==null) {
+					System.out.println(); // or here
+				}
+				if (!hasLeft(a)){
+					RoadLocation current = (RoadLocation) locationService
+							.getAgentLocation(a);
+					if (current.getLane() == finishAt.getLane()) {
+						// same lane, if he is behind us then it is a collision
+						int hisOffset = current.getOffset();
+						int myOffset = finishAt.getOffset();
+						boolean heWrapped = hisOffset < candidateLocs.get(a).getOffset();
+						boolean iWrapped = myOffset < startFrom.getOffset();
+						if(!iWrapped && heWrapped) {
+							hisOffset += areaLength;
+						}
+						if (hisOffset < myOffset) {
+							logger.warn("Collision Occured: Agent "
+									+ agentsOnCurrentCell + " went through " + a + " on cell " + finishAt);
+							collisionsOccured++;
+						}
 					}
-					if (hisOffset < myOffset) {
+					if (laneChange && current.getLane() == startFrom.getLane()
+							&& finishAt.getLane() == candidateLocs.get(a).getLane()
+							&& current.getOffset() <= finishAt.getOffset()) {
 						logger.warn("Collision Occured: Agent "
-								+ agentsOnCurrentCell + " went through " + a + " on cell " + finishAt);
+								+ agentsOnCurrentCell + " crossed paths with " + a + " between cells " + finishAt);
 						collisionsOccured++;
 					}
-				}
-				if (laneChange && current.getLane() == startFrom.getLane()
-						&& finishAt.getLane() == candidateLocs.get(a).getLane()
-						&& current.getOffset() <= finishAt.getOffset()) {
-					logger.warn("Collision Occured: Agent "
-							+ agentsOnCurrentCell + " crossed paths with " + a + " between cells " + finishAt);
-					collisionsOccured++;
 				}
 			}
 			if (collisionsOccured>0) {
@@ -288,6 +297,14 @@ public class LaneMoveHandler extends MoveHandler {
 			return collisionsOccured;
 		}
 
+	}
+	
+	@SuppressWarnings("unchecked")
+	private boolean hasLeft(UUID uuid){
+		if (this.sharedState.getGlobal("haveLeft")==null) {
+			logger.error("Tried to check haveLeft for " + uuid + " but the shared state doesn't exist!");
+		}
+		return ((HashSet<UUID>) this.sharedState.getGlobal("haveLeft")).contains(uuid);
 	}
 
 }

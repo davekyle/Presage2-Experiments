@@ -85,6 +85,9 @@ public class RoadSimulation extends InjectedSimulation {
 		super(modules);
 		agentLocations = new HashMap<UUID, RoadLocation>();
 		agentNames = new HashMap<UUID, String>();
+		// TODO if this is a param, needs to be loaded in getModules() or something instead
+		// the uuid's aren't governed by the same seed, so if you want to compare do it by agentname instead
+		Random.seed = 123456;
 	}
 	
 	@Inject
@@ -95,6 +98,7 @@ public class RoadSimulation extends InjectedSimulation {
 	@Inject
 	void setEnvironmentSharedStateAccess(EnvironmentSharedStateAccess sharedState) {
 		this.sharedState = sharedState;
+		this.sharedState.createGlobal("haveLeft", new HashSet<UUID>());
 	}
 	
 	RoadLocationService getLocationService() {
@@ -163,7 +167,7 @@ public class RoadSimulation extends InjectedSimulation {
 			s.addParticipant(new RoadAgent(uuid, name, startLoc, startSpeed, goals));
 			agentLocations.put(uuid, startLoc);
 			agentNames.put(uuid, name);
-			
+			logger.debug("Now tracking " + agentNames.size() + " agents.");
 		}
 	}
 
@@ -224,6 +228,7 @@ public class RoadSimulation extends InjectedSimulation {
 		p.initialise();
 		logger.info("Inserting " + name + " [" + uuid + "] at " + startLoc);
 		agentNames.put(uuid, name);
+		logger.debug("Now tracking " + agentNames.size() + " agents.");
 		this.agentLocations.put(uuid, startLoc);
 	}
 	
@@ -245,6 +250,16 @@ public class RoadSimulation extends InjectedSimulation {
 		final UUID uuid = e.getAgentID();
 		this.agentLocations.remove(uuid);
 		this.agentNames.remove(uuid);
+		// keep track of who left
+		this.sharedState.changeGlobal("haveLeft", new StateTransformer() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public Serializable transform(Serializable state) {
+				HashSet<UUID> ids = (HashSet<UUID>) state;
+				ids.add(uuid);
+				return ids;
+			}
+		});
 		// remove all the shared state associated with the agent
 		// members service
 		this.sharedState.changeGlobal("participants", new StateTransformer() {
@@ -253,7 +268,6 @@ public class RoadSimulation extends InjectedSimulation {
 			public Serializable transform(Serializable state) {
 				HashSet<UUID> ids = (HashSet<UUID>) state;
 				ids.remove(uuid);
-				
 				return ids;
 			}
 		});

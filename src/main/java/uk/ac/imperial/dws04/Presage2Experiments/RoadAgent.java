@@ -230,7 +230,7 @@ public class RoadAgent extends AbstractParticipant {
 					if (maxSpeedMove2.getB().equals(Integer.MAX_VALUE)) {
 						// if you canstay in current lane, do so.
 						logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + (myLoc.getLane()) + " so is moving to the exit.");
-						result = driver.moveIntoLaneAtSpeed(myLoc.getLane()+1, safeMoveSpeedToExit(nextJunctionDist, maxSpeed2, myLoc.getLane()));
+						result = driver.moveIntoLaneAtSpeed(myLoc.getLane(), safeMoveSpeedToExit(nextJunctionDist, maxSpeed2, myLoc.getLane()));
 					}
 					else {
 						// if not, slow down
@@ -266,8 +266,8 @@ public class RoadAgent extends AbstractParticipant {
 			return maxSpeed;
 		}
 		else {
-			// otherwise, check all the speeds between speed and speed-maxDecell for the same thing
-			for (int i = maxSpeed-1; i>=maxSpeed-speedService.getMaxDecel(); i--) {
+			// otherwise, check all the speeds between maxSpeed and yourSpeed-maxDecell for the same thing
+			for (int i = maxSpeed-1; i>=mySpeed-speedService.getMaxDecel(); i--) {
 				if (MathsUtils.mod(nextJunctionDist,i)==0) {
 					// if it is, yay
 					logger.debug("[" + getID() + "] Agent " + getName() + " found a good move in lane " + lane + " at speed " + i);
@@ -324,13 +324,13 @@ public class RoadAgent extends AbstractParticipant {
 		result = actions.getFirst();
 		if (result.getB().equals(Integer.MAX_VALUE)) {
 			logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe move: " + result.getA());
-			if (result.getA().getX()!=myLoc.getLane()) {
+			if (result.getA().getX()!=0) {
 				logger.debug("Agent is going to change lanes.");
 			}
 		}
 		else {
 			logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Decelerating as much as possible...");
-			if (result.getA().getX()!=myLoc.getLane()) {
+			if (result.getA().getX()!=0) {
 				logger.debug("Agent is going to change lanes.");
 			}
 		}
