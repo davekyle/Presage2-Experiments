@@ -24,19 +24,5 @@ Ext.define('Presage2.view.RoadVisualiser', {
 			y: this.yOffset + (ag.data.data.y * this.scale)
 		};
 		return agent;
-	}/*,
-	setTimeStep: function(time) {
-		var step = this.timeline.getById(time);
-		if(step != null) {
-			step.agents().each(function(ag) {
-				if(ag.getId() in this.sprites) {
-					var sp = this.sprites[ag.getId()];
-					sp.setAttributes({
-						x: 200 + (ag.data.data.x * this.scale),
-						y: 10 + (ag.data.data.y * this.scale)
-					}, true)
-				}
-			}, this);
-		}
-	}*/
+	}
 });
