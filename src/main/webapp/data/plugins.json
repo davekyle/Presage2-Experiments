@@ -1,0 +1,24 @@
+{
+	"plugins": [
+		{
+			"name": "Simulations list",
+			"description": "Lists all stored simulations.",
+			"class": "Presage2.view.SimulationsTable"
+		},
+		{
+			"name": "Environment visualiser",
+			"description": "Visualises agents' movements in 2D space.",
+			"class": "Presage2.view.VisualiserPlugin"
+		},
+		{
+			"name": "Simulations Tree",
+			"description": "Tree view of simulations.",
+			"class": "Presage2.view.SimulationsTree"
+		},
+		{
+			"name": "Road visualiser",
+			"description": "Visualises the RoadSimulation.",
+			"class": "Presage2.view.RoadPlugin"
+		}
+	]
+}
