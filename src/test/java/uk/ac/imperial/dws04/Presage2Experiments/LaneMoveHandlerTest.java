@@ -416,7 +416,8 @@ public class LaneMoveHandlerTest {
 		a.performAction(new CellMove(0, 5));
 		b.performAction(new CellMove(0, 3));
 		incrementTime();
-		assertEquals(1, handler.checkForCollisions(null));
+		//assertEquals(1, handler.checkForCollisions(null));
+		assertCollisions(1);
 		a.assertLocation(1, 5);
 		b.assertLocation(1, 4);
 
