@@ -16,7 +16,12 @@ public class MathsUtils {
 	 * @return a % b (by ((a%b)+b)%b)
 	 */
 	public static final int mod(int a, int b) {
-		return (((a%b)+b)%b );
+		if (a==0) {
+			return 0;
+		}
+		else {
+			return (((a%b)+b)%b );
+		}
 	}
 	
 }
