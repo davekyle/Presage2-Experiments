@@ -21,6 +21,9 @@ import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.util.random.Random;
+import uk.ac.imperial.presage2.core.db.StorageService;
+import uk.ac.imperial.presage2.core.db.persistent.PersistentAgent;
+import uk.ac.imperial.presage2.core.db.persistent.TransientAgentState;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.StateTransformer;
@@ -77,6 +80,8 @@ public class RoadSimulation extends InjectedSimulation {
 	EnvironmentServiceProvider serviceProvider;
 
 	private EnvironmentSharedStateAccess sharedState;
+
+	private StorageService storage;
 	
 	/**
 	 * @param modules
@@ -93,6 +98,11 @@ public class RoadSimulation extends InjectedSimulation {
 	@Inject
 	void setEnvironmentServiceProvider(EnvironmentServiceProvider serviceProvider) {
 		this.serviceProvider = serviceProvider;
+	}
+	
+	@Inject(optional = true)
+	public void setStorage(StorageService storage) {
+		this.storage = storage;
 	}
 	
 	@Inject
@@ -274,7 +284,9 @@ public class RoadSimulation extends InjectedSimulation {
 				return ids;
 			}
 		});
-		
+		//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
+		TransientAgentState state = this.graphDb.getAgentState(uuid, e.time.intValue());
+		state.setProperty("hasLeft", e.time.toString());
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
 		//TODO put this in the persistentdb somehow ?

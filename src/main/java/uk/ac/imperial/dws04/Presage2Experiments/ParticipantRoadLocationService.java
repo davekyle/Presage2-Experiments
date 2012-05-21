@@ -71,17 +71,15 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 		final RoadLocation theirLoc = super.getAgentLocation(participantID);
 		final RoadLocation myLoc = super.getAgentLocation(myID);
 		if (theirLoc == null ) {
-			System.out.println();
-		}
-		if (myLoc == null) {
-			System.out.println();
-		}
-
-		if ( (getOffsetDistanceBetween((RoadLocation)myLoc, (RoadLocation)theirLoc) <= this.getPerceptionRange()) ||
-			 (getOffsetDistanceBetween((RoadLocation)theirLoc, (RoadLocation)myLoc) <= this.getPerceptionRange()) )	{
-			return theirLoc;
-		} else {
 			throw new CannotSeeAgent(this.myID, participantID);
+		}
+		else {
+			if ( (getOffsetDistanceBetween((RoadLocation)myLoc, (RoadLocation)theirLoc) <= this.getPerceptionRange()) ||
+				 (getOffsetDistanceBetween((RoadLocation)theirLoc, (RoadLocation)myLoc) <= this.getPerceptionRange()) )	{
+				return theirLoc;
+			} else {
+				throw new CannotSeeAgent(this.myID, participantID);
+			}
 		}
 	}
 
