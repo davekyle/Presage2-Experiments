@@ -183,7 +183,7 @@ public class Driver {
 	}
 
 	public CellMove moveIntoLaneAtSpeed(int lane, int speed) {
-		System.err.println("Agent is trying to move to lane " + lane + " from " + this.getLocation().getLane() + " so returning " + (lane-this.getLocation().getLane()));
+		//System.err.println("Agent is trying to move to lane " + lane + " from " + this.getLocation().getLane() + " so returning " + (lane-this.getLocation().getLane()));
 		return new CellMove((lane-this.getLocation().getLane()), speed);
 	}
 	
