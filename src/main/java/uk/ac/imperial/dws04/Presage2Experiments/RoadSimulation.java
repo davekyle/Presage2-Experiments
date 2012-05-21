@@ -289,7 +289,6 @@ public class RoadSimulation extends InjectedSimulation {
 		state.setProperty("hasLeft", e.time.toString());
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
-		//TODO put this in the persistentdb somehow ?
 	}
 
 }
