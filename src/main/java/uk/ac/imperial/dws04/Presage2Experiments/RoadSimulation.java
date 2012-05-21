@@ -286,7 +286,7 @@ public class RoadSimulation extends InjectedSimulation {
 		});
 		//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
 		TransientAgentState state = this.graphDb.getAgentState(uuid, e.time.intValue());
-		state.setProperty("hasLeft", e.time.toString());
+		state.setProperty("leftAt", e.time.toString());
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
 	}
