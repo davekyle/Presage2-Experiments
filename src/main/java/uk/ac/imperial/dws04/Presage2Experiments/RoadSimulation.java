@@ -240,6 +240,7 @@ public class RoadSimulation extends InjectedSimulation {
 		agentNames.put(uuid, name);
 		logger.debug("Now tracking " + agentNames.size() + " agents.");
 		this.agentLocations.put(uuid, startLoc);
+		// do a entry in the db for this
 	}
 	
 	private RoadAgentGoals createNewAgentGoals() {
@@ -284,9 +285,11 @@ public class RoadSimulation extends InjectedSimulation {
 				return ids;
 			}
 		});
-		//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
-		TransientAgentState state = this.graphDb.getAgentState(uuid, e.time.intValue());
-		state.setProperty("leftAt", e.time.toString());
+		if (this.graphDb != null) {
+			//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
+			TransientAgentState state = this.graphDb.getAgentState(uuid, e.time.intValue());
+			state.setProperty("leftAt", e.time.toString());
+		}
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
 	}
