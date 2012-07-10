@@ -240,7 +240,7 @@ public class RoadSimulation extends InjectedSimulation {
 		agentNames.put(uuid, name);
 		logger.debug("Now tracking " + agentNames.size() + " agents.");
 		this.agentLocations.put(uuid, startLoc);
-		// do a entry in the db for this
+		// do a entry in the db for this // TODO what does this comment mean ?
 	}
 	
 	private RoadAgentGoals createNewAgentGoals() {
