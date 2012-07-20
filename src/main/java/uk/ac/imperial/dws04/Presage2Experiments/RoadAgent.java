@@ -290,6 +290,9 @@ public class RoadAgent extends AbstractParticipant {
 	private CellMove createMove(){
 		Pair<CellMove, Integer> result = null;
 		Pair<CellMove, Integer> temp = null;
+		// This is an indirect assumption of only three lanes
+		//  - yes we only want to check in lanes we can move into, but
+		//  - we should also take into account agents not in those lanes which might move into them ahead of us.
 		ArrayList<Integer> availableLanes = new ArrayList<Integer>(3);
 		LinkedList<Pair<CellMove,Integer>> actions = new LinkedList<Pair<CellMove,Integer>>();
 		availableLanes.add(myLoc.getLane());
