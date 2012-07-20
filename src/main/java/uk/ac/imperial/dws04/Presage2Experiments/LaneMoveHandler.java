@@ -154,7 +154,7 @@ public class LaneMoveHandler extends MoveHandler {
 					"Cannot change lane while stationary");
 		}
 
-		RoadLocation start = (RoadLocation) locationService
+		RoadLocation start = (RoadLocation) getLocationService()
 				.getAgentLocation(actor);
 		RoadLocation target = new RoadLocation(start.add(m));
 
@@ -176,7 +176,7 @@ public class LaneMoveHandler extends MoveHandler {
 				}
 			}
 		}
-		this.locationService.setAgentLocation(actor, target);
+		this.getLocationService().setAgentLocation(actor, target);
 		this.speedService.setAgentSpeed(actor, (int) m.getY());
 		checks.add(new CollisionCheck(actor, start, target));
 
@@ -190,7 +190,7 @@ public class LaneMoveHandler extends MoveHandler {
 		Set<UUID> collisionCandidates = new HashSet<UUID>();
 		Map<UUID, RoadLocation> candidateLocs = new HashMap<UUID, RoadLocation>();
 		final boolean laneChange;
-		final int areaLength = areaService.getSizeY();
+		final int areaLength = getAreaService().getSizeY();
 		final UUID self;
 
 		public CollisionCheck(UUID pov, RoadLocation startFrom,
@@ -205,7 +205,7 @@ public class LaneMoveHandler extends MoveHandler {
 			int finishOffset = finishAt.getOffset();
 			if (finishOffset < startOffset)
 				finishOffset += areaLength;
-			for (int lane = 0; lane < areaService.getSizeX(); lane++) {
+			for (int lane = 0; lane < getAreaService().getSizeX(); lane++) {
 				collisionCandidates.addAll(getAgentsInLane(lane, startOffset,
 						finishOffset));
 			}
@@ -213,21 +213,21 @@ public class LaneMoveHandler extends MoveHandler {
 			laneChange = startFrom.getLane() != finishAt.getLane();
 			for (UUID a : collisionCandidates) {
 				candidateLocs.put(a,
-						(RoadLocation) locationService.getAgentLocation(a));
+						(RoadLocation) getLocationService().getAgentLocation(a));
 			}
 		}
 
 		private Set<UUID> getAgentsInLane(int lane, int from, int to) {
 			Set<UUID> agents = new HashSet<UUID>();
 			for (int y = from; y <= to; y++) {
-				agents.addAll(areaService.getCell(lane, y % areaLength, 0));
+				agents.addAll(getAreaService().getCell(lane, y % areaLength, 0));
 			}
 			return agents;
 		}
 
 		public int checkForCollision() {
 			int collisionsOccured = 0;
-			Set<UUID> agentsOnCurrentCell = areaService.getCell(
+			Set<UUID> agentsOnCurrentCell = getAreaService().getCell(
 					finishAt.getLane(), finishAt.getOffset(), 0);
 			if (agentsOnCurrentCell.size() > 1) {
 				logger.warn("Collision Occurred: Multiple agents on one cell. Cell: "
@@ -236,14 +236,14 @@ public class LaneMoveHandler extends MoveHandler {
 			}
 			for (UUID a : collisionCandidates) {
 				// FIXME ? This stops agents that have left being checked
-				if (locationService == null) {
+				if (getLocationService() == null) {
 					System.out.println();// stop here
 				}
 				if (a==null) {
 					System.out.println(); // or here
 				}
 				if (!hasLeft(a)){
-					RoadLocation current = (RoadLocation) locationService
+					RoadLocation current = (RoadLocation) getLocationService()
 							.getAgentLocation(a);
 					if (current.getLane() == finishAt.getLane()) {
 						// same lane, if he is behind us then it is a collision
