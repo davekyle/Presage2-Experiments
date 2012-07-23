@@ -36,7 +36,8 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant {
 
-	
+	private enum OwnChoiceMethod {SAFE, PLANNED};
+	private enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
 	protected Driver driver;
@@ -134,6 +135,8 @@ public class RoadAgent extends AbstractParticipant {
 	public void execute() {
 		myLoc = (RoadLocation) locationService.getAgentLocation(getID());
 		mySpeed = speedService.getAgentSpeed(getID());
+		NeighbourChoiceMethod neighbourChoiceMethod = NeighbourChoiceMethod.WORSTCASE;
+		OwnChoiceMethod ownChoiceMethod = OwnChoiceMethod.SAFE;
 	 
 		logger.info("[" + getID() + "] My location is: " + this.myLoc + 
 										", my speed is " + this.mySpeed + 
@@ -148,10 +151,10 @@ public class RoadAgent extends AbstractParticipant {
 		// Check to see if you want to turn off, then if you can end up at the junction in the next timecycle, do so
 		if (	(fsm.getState().equals("MOVE_TO_EXIT")) && (junctionDist!=null) ) {
 			//move = driver.turnOff();
-			move = createExitMove(junctionDist);
+			move = createExitMove(junctionDist, neighbourChoiceMethod);
 		}
 		else {
-			move = createMove();
+			move = createMove(ownChoiceMethod, neighbourChoiceMethod);
 		}
 		if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
 			passJunction();
@@ -177,7 +180,7 @@ public class RoadAgent extends AbstractParticipant {
 	 * Create a safe move with the intention of heading towards the exit
 	 * @return
 	 */
-	private CellMove createExitMove(int nextJunctionDist) {
+	private CellMove createExitMove(int nextJunctionDist, NeighbourChoiceMethod neighbourChoiceMethod) {
 		CellMove result = null;
 		if (myLoc.getLane()==0) {
 			if (	(nextJunctionDist>= Math.max((mySpeed-speedService.getMaxDecel()), 1)) &&
@@ -189,7 +192,7 @@ public class RoadAgent extends AbstractParticipant {
 				// FIXME TODO
 				// try to make it so you can end a cycle on the right cell
 				// find a safe move in this lane; this gives you the max safe speed you can move at
-				Pair<CellMove, Integer> maxSpeedMove = createMove(myLoc.getLane());
+				Pair<CellMove, Integer> maxSpeedMove = createMoveFromNeighbours(myLoc.getLane(), neighbourChoiceMethod);
 				int maxSpeed = maxSpeedMove.getA().getYInt();
 				if (maxSpeedMove.getB().equals(Integer.MAX_VALUE)) {
 					// get a safe move to the exit in the lane
@@ -197,7 +200,7 @@ public class RoadAgent extends AbstractParticipant {
 				}
 				else {
 					logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()) + " to turn towards the exit, so checking the next lane.");
-					Pair<CellMove, Integer> maxSpeedMove2 = createMove(myLoc.getLane()+1);
+					Pair<CellMove, Integer> maxSpeedMove2 = createMoveFromNeighbours(myLoc.getLane()+1, neighbourChoiceMethod);
 					int maxSpeed2 = maxSpeedMove2.getA().getYInt();
 					if ( (maxSpeedMove2.getB().equals(Integer.MAX_VALUE)) || (maxSpeedMove2.getB()>maxSpeedMove.getB())) {
 						// if you can change lanes right, do so.
@@ -215,7 +218,7 @@ public class RoadAgent extends AbstractParticipant {
 		else {
 			// you're not in lane0 (check validity anyway)
 			if (locationService.isValidLane(myLoc.getLane()-1)) {
-				Pair<CellMove, Integer> maxSpeedMove = createMove(myLoc.getLane()-1);
+				Pair<CellMove, Integer> maxSpeedMove = createMoveFromNeighbours(myLoc.getLane()-1, neighbourChoiceMethod);
 				int maxSpeed = maxSpeedMove.getA().getYInt();
 				if (maxSpeedMove.getB().equals(Integer.MAX_VALUE)) {
 					// if you can change lanes left, do so.
@@ -225,7 +228,7 @@ public class RoadAgent extends AbstractParticipant {
 				else {
 					// if not, work out speed for current lane
 					logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()-1) + " to turn towards the exit, so is checking the current lane.");
-					Pair<CellMove, Integer> maxSpeedMove2 = createMove(myLoc.getLane());
+					Pair<CellMove, Integer> maxSpeedMove2 = createMoveFromNeighbours(myLoc.getLane(), neighbourChoiceMethod);
 					int maxSpeed2 = maxSpeedMove2.getA().getYInt();
 					if (maxSpeedMove2.getB().equals(Integer.MAX_VALUE)) {
 						// if you canstay in current lane, do so.
@@ -287,8 +290,7 @@ public class RoadAgent extends AbstractParticipant {
 	}
 	
 	@SuppressWarnings("unused")
-	private CellMove createMove(){
-		Pair<CellMove, Integer> result = null;
+	private CellMove createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
 		//  - yes we only want to check in lanes we can move into, but
@@ -305,7 +307,7 @@ public class RoadAgent extends AbstractParticipant {
 		
 		for (int i = 0; i <=availableLanes.size()-1; i++) {
 			if (locationService.isValidLane(availableLanes.get(i))) {
-				temp = createMove(availableLanes.get(i));
+				temp = createMoveFromNeighbours(availableLanes.get(i), neighbourChoiceMethod);
 				if (temp.getB().equals(Integer.MAX_VALUE)) {
 					logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + availableLanes.get(i)); 
 				}
@@ -323,27 +325,71 @@ public class RoadAgent extends AbstractParticipant {
 //			return driver.decelerateMax();
 //		}
 //		logger.error("You should never get here (deadcode), but Eclipse is insisting on a return here, so let's pass out a null to throw some exceptions later :D");
-		Collections.sort(actions, new PairBDescComparator<Integer>());
-		result = actions.getFirst();
-		if (result.getB().equals(Integer.MAX_VALUE)) {
-			logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe move: " + result.getA());
-			if (result.getA().getX()!=0) {
-				logger.debug("Agent is going to change lanes.");
-			}
+		return chooseFromSafeMoves(actions, ownChoiceMethod);
+	}
+
+	/**
+	 * @param actions list of safe actions to make
+	 * @param choiceMethod Should be OwnChoiceMethod.SAFE, OwnChoiceMethod.PLANNED
+	 * @return 
+	 */
+	private CellMove chooseFromSafeMoves(LinkedList<Pair<CellMove, Integer>> actions, OwnChoiceMethod choiceMethod) {
+		Pair<CellMove, Integer> result;
+		if (actions.isEmpty()) {
+			logger.error("[" + getID() + "] Agent " + getName() + " couldn't find any moves at all ! Totally shouldn't be here, so slowing as much as possible.");
+			return driver.decelerateToCrawl();
 		}
 		else {
-			logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Decelerating as much as possible...");
-			if (result.getA().getX()!=0) {
-				logger.debug("Agent is going to change lanes.");
+			switch (choiceMethod) {
+			case SAFE :  {
+				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe action...");
+				Collections.sort(actions, new PairBDescComparator<Integer>());
+				result = actions.getFirst();
+				if (result.getB().equals(Integer.MAX_VALUE)) {
+					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe move: " + result.getA());
+					if (result.getA().getX()!=0) {
+						logger.debug("Agent is going to change lanes.");
+					}
+				}
+				else {
+					logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Decelerating as much as possible...");
+					if (result.getA().getX()!=0) {
+						logger.debug("Agent is going to change lanes.");
+					}
+				}
+				return result.getA();
+			}
+			case PLANNED : {
+				//TODO FIXME do this :P
+			}
+			default : {
+				logger.error("[" + getID() + "] Agent " + getName() + " tried to choose a " + choiceMethod.toString() + " which doesn't exist, so slowing as much as possible.");
+				return driver.decelerateToCrawl();
+			}
 			}
 		}
-		return result.getA();
+	}
+	
+	/**
+	 * @param neighbourChoiceMethod TODO
+	 * @return a reasoned move/viability pair. Viability is Integer.Max_VALUE if the move is safe, or not if otherwise.
+	 */
+	private Pair<CellMove,Integer> createMoveFromNeighbours(int lane, NeighbourChoiceMethod neighbourChoiceMethod) {
+		switch (neighbourChoiceMethod) {
+		case WORSTCASE : return worstCaseNeighbourChoice(lane);
+		case GOALS : // FIXME TODO
+		case INSTITUTIONAL : // FIXME TODO
+		default : {
+			logger.error("[" + getID() + "] Agent " + getName() + " tried to predict neighbour moves by " + neighbourChoiceMethod.toString() + " which doesn't exist.");
+			return new Pair<CellMove, Integer>(driver.decelerateToCrawl(), 0);
+		}
+		}
 	}
 	
 	/**
 	 * @return a reasoned move/viability pair. Viability is Integer.Max_VALUE if the move is safe, or not if otherwise.
 	 */
-	private Pair<CellMove,Integer> createMove(int lane) {
+	private Pair<CellMove,Integer> worstCaseNeighbourChoice(int lane) {
 		int newSpeed;
 		// this doesn't really show if something isn't safe, but it does show if something is safe
 		// (ie, only true if you know you can go at your preferred speed instead of one for safety's sake.
