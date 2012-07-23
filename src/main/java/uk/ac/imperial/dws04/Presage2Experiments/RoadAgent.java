@@ -330,17 +330,17 @@ public class RoadAgent extends AbstractParticipant {
 
 	/**
 	 * @param actions list of safe actions to make
-	 * @param choiceMethod Should be OwnChoiceMethod.SAFE, OwnChoiceMethod.PLANNED
+	 * @param ownChoiceMethod Should be OwnChoiceMethod.SAFE, OwnChoiceMethod.PLANNED
 	 * @return 
 	 */
-	private CellMove chooseFromSafeMoves(LinkedList<Pair<CellMove, Integer>> actions, OwnChoiceMethod choiceMethod) {
+	private CellMove chooseFromSafeMoves(LinkedList<Pair<CellMove, Integer>> actions, OwnChoiceMethod ownChoiceMethod) {
 		Pair<CellMove, Integer> result;
 		if (actions.isEmpty()) {
 			logger.error("[" + getID() + "] Agent " + getName() + " couldn't find any moves at all ! Totally shouldn't be here, so slowing as much as possible.");
 			return driver.decelerateToCrawl();
 		}
 		else {
-			switch (choiceMethod) {
+			switch (ownChoiceMethod) {
 			case SAFE :  {
 				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe action...");
 				Collections.sort(actions, new PairBDescComparator<Integer>());
@@ -363,7 +363,7 @@ public class RoadAgent extends AbstractParticipant {
 				//TODO FIXME do this :P
 			}
 			default : {
-				logger.error("[" + getID() + "] Agent " + getName() + " tried to choose a " + choiceMethod.toString() + " which doesn't exist, so slowing as much as possible.");
+				logger.error("[" + getID() + "] Agent " + getName() + " tried to choose a " + ownChoiceMethod.toString() + " which doesn't exist, so slowing as much as possible.");
 				return driver.decelerateToCrawl();
 			}
 			}
