@@ -69,8 +69,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 				.addState(State.ERROR, StateType.END);
 		
 		/*
-		 * Need to do all transitions with AND ( ConversationCondition(), MessageTypeAndContentsCondition([msgType],[msgData]) )
+		 * Need to do "all" transitions with AND ( ConversationCondition(), MessageTypeAndContentsCondition([msgType],[msgData]) )
 		 * which means I need to write a MessageTypeAndContentsCondition...
+		 * ALSO NEED TO CHECK VALID ROLES OF SENDER
 		 */
 		
 		/*
