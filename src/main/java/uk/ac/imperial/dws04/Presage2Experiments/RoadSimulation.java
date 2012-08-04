@@ -189,7 +189,7 @@ public class RoadSimulation extends InjectedSimulation {
 		Set<AbstractModule> modules = new HashSet<AbstractModule>();
 	 
 		// 2D area that wraps at the top
-		modules.add(Area.Bind.area2D(lanes, length).addEdgeHander(Edge.Y_MAX, WrapEdgeHandler.class));
+		modules.add(Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX, WrapEdgeHandler.class));
 		// Environment with MoveHandler and ParticipantLocationService
 		modules.add(new AbstractEnvironmentModule()
 			.addActionHandler(LaneMoveHandler.class)

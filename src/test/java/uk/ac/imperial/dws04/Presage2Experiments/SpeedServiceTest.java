@@ -72,7 +72,7 @@ public class SpeedServiceTest {
 					.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 					.addParticipantEnvironmentService(ParticipantSpeedService.class)
 					.addGlobalEnvironmentService(RoadEnvironmentService.class),
-				Area.Bind.area2D(lanes, length).addEdgeHander(Edge.Y_MAX,
+				Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX,
 						WrapEdgeHandler.class), new EventBusModule(),
 				new AbstractModule() {
 					// add in params that are required
