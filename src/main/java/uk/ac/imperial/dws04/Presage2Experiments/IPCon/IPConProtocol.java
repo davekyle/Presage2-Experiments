@@ -4,6 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 
@@ -21,7 +22,6 @@ import uk.ac.imperial.presage2.util.fsm.AndCondition;
 import uk.ac.imperial.presage2.util.fsm.EventTypeCondition;
 import uk.ac.imperial.presage2.util.fsm.FSM;
 import uk.ac.imperial.presage2.util.fsm.Transition;
-import uk.ac.imperial.presage2.util.fsm.FSMDescription;
 import uk.ac.imperial.presage2.util.fsm.FSMException;
 import uk.ac.imperial.presage2.util.fsm.StateType;
 import uk.ac.imperial.presage2.util.fsm.TransitionCondition;
@@ -29,7 +29,6 @@ import uk.ac.imperial.presage2.util.protocols.ConversationCondition;
 import uk.ac.imperial.presage2.util.protocols.ConversationSpawnEvent;
 import uk.ac.imperial.presage2.util.protocols.FSMProtocol;
 import uk.ac.imperial.presage2.util.protocols.MessageAction;
-import uk.ac.imperial.presage2.util.protocols.MessageTypeAndContentsCondition;
 import uk.ac.imperial.presage2.util.protocols.MessageTypeCondition;
 import uk.ac.imperial.presage2.util.protocols.SpawnAction;
 import uk.ac.imperial.presage2.util.protocols.ConversationSpawnEvent;
@@ -45,6 +44,11 @@ public abstract class IPConProtocol extends FSMProtocol {
 	protected final EnvironmentConnector environment;
 	private final UUID myId;
 	private final UUID authkey;
+	private final HashMap<FSMConversation,Role> myRoles;
+	
+	enum Role {
+		LEADER, ACCEPTOR, LEARNER, PROPOSER, INVALID
+	};
 	
 	enum State {
 		START, IDLE, PRE_VOTE, OPEN_VOTE, CHOSEN, SYNC, ERROR
@@ -63,6 +67,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		this.environment = environment;
 		this.myId = myId;
 		this.authkey = authkey;
+		this.myRoles = new HashMap<FSMConversation, Role>();
 
 		this.logger = Logger.getLogger("IPCon for " + myId);
 		
@@ -90,14 +95,14 @@ public abstract class IPConProtocol extends FSMProtocol {
 			new SpawnAction() {
 
 				@Override
-				public void processSpawn(ConversationSpawnEvent event,
-						FSMConversation conv, Transition transition) {
+				public void processSpawn(ConversationSpawnEvent event, FSMConversation conv, Transition transition) {
 					// send arrogate message
 					ArrogateSpawnEvent e = (ArrogateSpawnEvent) event;
 					NetworkAddress from = conv.getNetwork().getAddress();
 					//NetworkAddress to = conv.recipients.get(0);
 					logger.debug("Arrogating: " + e.issue);
-					conv.entity = e.issue;
+					myRoles.put(conv, Role.LEADER);
+					conv.entity = new IPConDataStore(myId, e.issue, Role.LEADER);
 					conv.getNetwork().sendMessage(
 							new BroadcastMessage<String>(
 									Performative.INFORM, MessageType.ARROGATE.name(), SimTime.get(), from, e.issue));
@@ -110,6 +115,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Sends a prepare message.
 		 */
 		this.description.addTransition(MessageType.PROPOSE, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
 				new MessageTypeCondition(MessageType.PROPOSE.name()),
 				new ConversationCondition()
 				),
@@ -117,9 +123,21 @@ public abstract class IPConProtocol extends FSMProtocol {
 			new MessageAction() {
 
 				@Override
-				public void processMessage(Message<?> message,
-						FSMConversation conv, Transition transition) {
+				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 					// TODO // send the prepare message
+					if (message.getData() instanceof IPConMsgData) {
+						IPConMsgData msgData = (IPConMsgData) message.getData();
+						conv.getNetwork().sendMessage(
+							new BroadcastMessage<IPConMsgData>(
+								Performative.REQUEST, MessageType.PREPARE.name(), SimTime.get(), conv.getNetwork().getAddress(),
+								/* Send prepare message with a higher ballot number than you think exists. Value doesn't matter */
+								new IPConMsgData(msgData.getIssue(), null, ((Integer)((IPConDataStore)conv.getEntity()).getData("BallotNum"))+1)
+							)
+						);
+					}
+					else {
+						logger.warn("Tried to process a bad message on a PROPOSE transition: " + message);
+					}
 					
 				}
 					
@@ -127,20 +145,39 @@ public abstract class IPConProtocol extends FSMProtocol {
 		
 		/*
 		 * Transition: PRE_VOTE -> PRE_VOTE
-		 * Happens on recieving a response message, but not enough of them
+		 * Happens on receiving a response message, but not enough of them
 		 * Do nothing other than update own data
 		 */
 		this.description.addTransition(MessageType.RESPONSE, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.RESPONSE.name()),
-				new ConversationCondition()),
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						if (entity instanceof IPConDataStore) {
+							Integer recCount = (Integer)((IPConDataStore)entity).getData("ReceiveCount")+1;
+							Integer quorum = (Integer)((IPConDataStore)entity).getData("Quorum");
+							return (recCount < quorum);
+						}
+						else return false;
+					}
+					
+				}
+				),
 			State.PRE_VOTE, State.PRE_VOTE,
 			new Action() {
 
 				@Override
-				public void execute(Object event, Object entity,
-						Transition transition) {
-					// TODO update own data
-					
+				public void execute(Object event, Object entity,Transition transition) {
+					if (entity instanceof IPConDataStore) {
+						IPConDataStore store = ((IPConDataStore)entity);
+						Integer recCount = (Integer)store.getData("ReceiveCount")+1;
+						store.getDataMap().put("ReceiveCount", recCount);
+						logger.trace("Updated recCount to " + recCount + " on issue " + store.getIssue());
+					}
 				}
 		
 		});
@@ -151,14 +188,29 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Decide on safe values and send submit message
 		 */
 		this.description.addTransition(MessageType.RESPONSE, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.RESPONSE.name()),
-				new ConversationCondition()),
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						if (entity instanceof IPConDataStore) {
+							Integer recCount = (Integer)((IPConDataStore)entity).getData("ReceiveCount")+1;
+							Integer quorum = (Integer)((IPConDataStore)entity).getData("Quorum");
+							return (recCount >= quorum);
+						}
+						else return false;
+					}
+					
+				}
+				),
 			State.PRE_VOTE, State.OPEN_VOTE,
 			new MessageAction() {
 
 			@Override
-			public void processMessage(Message<?> message,
-					FSMConversation conv, Transition transition) {
+			public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 				// TODO // decide safe value and send the submit message
 				
 			}
@@ -171,6 +223,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Update own knowledge 
 		 */
 		this.description.addTransition(MessageType.VOTE, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.VOTE.name()),
 				new ConversationCondition()
 			),
@@ -192,18 +246,20 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Update own knowledge and send chosen message (we're adding this for clarity)
 		 */
 		this.description.addTransition(MessageType.VOTE, new AndCondition(
-					new MessageTypeCondition(MessageType.VOTE.name()),
-					new ConversationCondition()
-				),
-				State.OPEN_VOTE, State.CHOSEN,
-				new MessageAction() {
-			
-					@Override
-					public void processMessage(Message<?> message, FSMConversation conv,
-							Transition transition) {
-						// TODO update knowledge and send chosen message
-						
-					}
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new MessageTypeCondition(MessageType.VOTE.name()),
+				new ConversationCondition()
+			),
+			State.OPEN_VOTE, State.CHOSEN,
+			new MessageAction() {
+		
+				@Override
+				public void processMessage(Message<?> message, FSMConversation conv,
+						Transition transition) {
+					// TODO update knowledge and send chosen message
+					
+				}
 		});
 		
 		/*
@@ -212,6 +268,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send sync_req message and make note of who is syncing (do other acceptors need to know we're syncing?)
 		 */
 		this.description.addTransition(MessageType.JOIN_ACK, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.JOIN_ACK.name()),
 				new ConversationCondition()
 			),
@@ -232,6 +290,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send sync_req message and make note of who is syncing (do other acceptors need to know we're syncing?)
 		 */
 		this.description.addTransition(MessageType.JOIN_ACK, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.JOIN_ACK.name()),
 				new ConversationCondition()
 			),
@@ -252,6 +312,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Update knowledge of who is syncing (do other acceptors need to know we're syncing?)
 		 */
 		this.description.addTransition(MessageType.SYNC_ACK, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
 				new ConversationCondition()
 			),
@@ -273,6 +335,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Update knowledge (if other acceptors needed to know we're syncing then tell them we're not anymore)
 		 */
 		this.description.addTransition(MessageType.SYNC_ACK, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
 				new ConversationCondition()
 			),
@@ -293,6 +357,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send revise message
 		 */
 		this.description.addTransition(MessageType.SYNC_ACK, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
 				new ConversationCondition()
 			),
@@ -313,6 +379,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send revise message
 		 */
 		this.description.addTransition(MessageType.REVISE, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
 				new EventTypeCondition(NeedToReviseEvent.class),
 				new ConversationCondition()
 			),
@@ -333,6 +400,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send prepare message
 		 */
 		this.description.addTransition(MessageType.PROPOSE, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.PROPOSER),
 				new MessageTypeCondition(MessageType.PROPOSE.name()),
 				new ConversationCondition()
 			),
@@ -384,5 +453,99 @@ public abstract class IPConProtocol extends FSMProtocol {
 			this.conv = conv;
 		}
 
+	}
+	
+	private class IPConMsgData {
+		private final String issue;
+		private final Object value;
+		private Integer ballotNum;
+		/**
+		 * @param issue
+		 * @param value
+		 */
+		public IPConMsgData(String issue, Object value) {
+			super();
+			this.issue = issue;
+			this.value = value;
+			this.setBallotNum(null);
+		}
+		/**
+		 * @param issue
+		 * @param value
+		 */
+		public IPConMsgData(String issue, Object value, Integer ballotNum) {
+			super();
+			this.issue = issue;
+			this.value = value;
+			this.setBallotNum(ballotNum);
+		}
+		/**
+		 * @return the issue
+		 */
+		public String getIssue() {
+			return issue;
+		}
+		/**
+		 * @return the value
+		 */
+		public Object getValue() {
+			return value;
+		}
+		/**
+		 * @param ballotNum the ballotNum to set
+		 */
+		public void setBallotNum(Integer ballotNum) {
+			this.ballotNum = ballotNum;
+		}
+		/**
+		 * @return the ballotNum
+		 */
+		public Integer getBallotNum() {
+			return ballotNum;
+		}
+	}
+	
+	/**
+	 * TransitionCondition to check your role
+	 */
+	private class IPConOwnRoleCondition implements TransitionCondition {
+		
+		private final Role role;
+		
+		public IPConOwnRoleCondition(Role role) {
+			this.role = role;
+		}
+
+		@Override
+		public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+			if (entity instanceof IPConDataStore) {
+				return ((IPConDataStore)entity).getRole(myId).equals(role);
+			}
+			else return false;
+		}
+	}
+	
+	/**
+	 * TransitionCondition to check the role of the sender
+	 */
+	private class IPConSenderRoleCondition implements TransitionCondition {
+		
+		private final Role role;
+		
+		public IPConSenderRoleCondition(Role role) {
+			this.role = role;
+		}
+
+		@Override
+		public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+			if (event instanceof Message) {
+				Message<?> m = (Message<?>) event;
+				if (entity instanceof IPConDataStore) {
+					return ((IPConDataStore)entity).getRole(m.getFrom().getId()).equals(role);
+				}
+				else return false;
+			}
+			else return false;
+		}
 	}
 }
