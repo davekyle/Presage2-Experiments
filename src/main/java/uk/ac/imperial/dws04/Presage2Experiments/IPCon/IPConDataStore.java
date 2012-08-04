@@ -17,11 +17,13 @@ public class IPConDataStore {
 	private final UUID myId;
 	private final HashMap<UUID, IPConProtocol.Role> roleMap;
 	private final String issue;
+	private Object value = null;;
 	/**
 	 * Examples of things to store (and remember to update !)
 	 *  - BallotNum = most recent ballot you voted in / know about
 	 *  - ReceiveCount = number of receive messages you've heard this round
 	 *  - Quorum = quorum on this issue
+	 *  - VoteCount = number of votes this round
 	 */
 	private final HashMap<String, Object> dataMap;
 	
@@ -94,6 +96,20 @@ public class IPConDataStore {
 	 */
 	public Object getData(String key) {
 		return dataMap.get(key);
+	}
+
+	/**
+	 * @param value the value to set
+	 */
+	public void setValue(Object value) {
+		this.value = value;
+	}
+
+	/**
+	 * @return the value
+	 */
+	public Object getValue() {
+		return value;
 	}
 	
 

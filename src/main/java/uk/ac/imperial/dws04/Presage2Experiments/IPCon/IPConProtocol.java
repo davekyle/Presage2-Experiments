@@ -81,7 +81,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 				.addState(State.ERROR, StateType.END);
 		
 		/*
-		 * TODO ALSO NEED TO CHECK VALID ROLES OF SENDER
+		 * TODO Slightly concerned about overlapping ballots/issues/conversations...
+		 * TODO Need to ignore duplicate messages... (or messages from the same agent saying different things in the same phase)
+		 * 
 		 */
 		
 		/*
@@ -118,22 +120,28 @@ public abstract class IPConProtocol extends FSMProtocol {
 				new IPConOwnRoleCondition(Role.LEADER),
 				new MessageTypeCondition(MessageType.PROPOSE.name()),
 				new ConversationCondition()
-				),
+			),
 			State.IDLE, State.PRE_VOTE,
 			new MessageAction() {
 
 				@Override
 				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
-					// TODO // send the prepare message
+					// send the prepare message
 					if (message.getData() instanceof IPConMsgData) {
 						IPConMsgData msgData = (IPConMsgData) message.getData();
+						IPConDataStore dataStore = ((IPConDataStore)conv.getEntity());
+						Integer balNum = ((Integer)dataStore.getData("BallotNum"));
+						if (balNum==null) {
+							balNum = 0;
+						}
 						conv.getNetwork().sendMessage(
 							new BroadcastMessage<IPConMsgData>(
 								Performative.REQUEST, MessageType.PREPARE.name(), SimTime.get(), conv.getNetwork().getAddress(),
 								/* Send prepare message with a higher ballot number than you think exists. Value doesn't matter */
-								new IPConMsgData(msgData.getIssue(), null, ((Integer)((IPConDataStore)conv.getEntity()).getData("BallotNum"))+1)
+								new IPConMsgData(msgData.getIssue(), null, balNum+1)
 							)
 						);
+						dataStore.getDataMap().put("BallotNum", balNum+1);
 					}
 					else {
 						logger.warn("Tried to process a bad message on a PROPOSE transition: " + message);
@@ -166,7 +174,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 					}
 					
 				}
-				),
+			),
 			State.PRE_VOTE, State.PRE_VOTE,
 			new Action() {
 
@@ -205,59 +213,116 @@ public abstract class IPConProtocol extends FSMProtocol {
 					}
 					
 				}
-				),
+			),
 			State.PRE_VOTE, State.OPEN_VOTE,
 			new MessageAction() {
 
 			@Override
 			public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
-				// TODO // decide safe value and send the submit message
-				
+				if (conv.getEntity() instanceof IPConDataStore) {
+					// TODO // decide safe value, send the submit message with correct ballot number, reset the recCount in the datastore, set voteCount to 0
+					
+					
+					IPConDataStore dataStore = (IPConDataStore) conv.getEntity();
+					dataStore.getDataMap().put("ReceiveCount", 0);
+					dataStore.getDataMap().put("VoteCount", 0);
+					logger.trace("Sent a submit message on issue " + dataStore.getIssue() + " with value " + dataStore.getValue());
+				}
+				else {
+					logger.warn("Tried to process a bad RESPONSE message: " + message);
+				}
 			}
 		
 		});
 		
 		/*
 		 * Transition: OPEN_VOTE -> OPEN_VOTE
-		 * Happens after receiving not a quorum of votes
+		 * Happens after receiving not a quorum of votes (excluding votes with incorrect values or ballot)
 		 * Update own knowledge 
 		 */
 		this.description.addTransition(MessageType.VOTE, new AndCondition(
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.VOTE.name()),
-				new ConversationCondition()
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+							Message<?> m = (Message<?>) event;
+							IPConMsgData msgData = (IPConMsgData) m.getData();
+							IPConDataStore dataStore = (IPConDataStore)entity;
+							Integer voteCount = (Integer)(dataStore.getData("VoteCount"))+1;
+							Integer quorum = (Integer)(dataStore.getData("Quorum"));
+							return ( ( msgData.getBallotNum().equals(dataStore.getData("BallotNum")) ) && ( msgData.getValue().equals( ((IPConDataStore)entity).getValue() ) ) && (voteCount < quorum) );
+						}
+						else return false;
+					}
+				}
 			),
 			State.OPEN_VOTE, State.CHOSEN,
 			new Action() {
 
-				@Override
-				public void execute(Object event, Object entity,
-						Transition transition) {
-					// TODO update own knowlegde
-					
+			@Override
+			public void execute(Object event, Object entity,Transition transition) {
+				if (entity instanceof IPConDataStore) {
+					IPConDataStore store = ((IPConDataStore)entity);
+					Integer voteCount = (Integer)store.getData("VoteCount")+1;
+					store.getDataMap().put("VoteCount", voteCount);
+					logger.trace("Updated voteCount to " + voteCount + " on issue " + store.getIssue());
 				}
+			}
 		
 		});
 		
 		/*
 		 * Transition: OPEN_VOTE -> CHOSEN
-		 * Happens after receiving a quorum of votes
+		 * Happens after receiving a quorum of votes (of correct values in right ballot)
 		 * Update own knowledge and send chosen message (we're adding this for clarity)
 		 */
 		this.description.addTransition(MessageType.VOTE, new AndCondition(
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.VOTE.name()),
-				new ConversationCondition()
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+							Message<?> m = (Message<?>) event;
+							IPConMsgData msgData = (IPConMsgData) m.getData();
+							IPConDataStore dataStore = (IPConDataStore)entity;
+							Integer voteCount = (Integer)(dataStore.getData("VoteCount"))+1;
+							Integer quorum = (Integer)(dataStore.getData("Quorum"));
+							return ( ( msgData.getBallotNum().equals(dataStore.getData("BallotNum")) ) && ( msgData.getValue().equals( dataStore.getValue() ) ) && (voteCount >= quorum) );
+						}
+						else return false;
+					}
+				}
 			),
 			State.OPEN_VOTE, State.CHOSEN,
 			new MessageAction() {
 		
 				@Override
-				public void processMessage(Message<?> message, FSMConversation conv,
-						Transition transition) {
+				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 					// TODO update knowledge and send chosen message
+					if (		(message.getData() instanceof IPConMsgData)
+							&&	(conv.getEntity() instanceof IPConDataStore) ) {
+						IPConMsgData msgData = (IPConMsgData)message.getData();
+						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+						Integer voteCount = (Integer)store.getData("VoteCount")+1;
+						store.getDataMap().put("VoteCount", voteCount);
+						conv.getNetwork().sendMessage(
+								new BroadcastMessage<IPConMsgData>(
+									Performative.INFORM, MessageType.CHOSEN.name(), SimTime.get(), conv.getNetwork().getAddress(),
+									/* Send prepare message with a higher ballot number than you think exists. Value doesn't matter */
+									new IPConMsgData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"))
+								)
+							);
+						logger.trace("Updated voteCount to " + voteCount + " on issue " + store.getIssue() + " and issued a CHOSEN message");
+					}
 					
 				}
 		});
