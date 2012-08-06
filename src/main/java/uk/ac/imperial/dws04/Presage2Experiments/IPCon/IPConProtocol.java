@@ -16,6 +16,7 @@ import uk.ac.imperial.presage2.core.network.BroadcastMessage;
 import uk.ac.imperial.presage2.core.network.Message;
 import uk.ac.imperial.presage2.core.network.NetworkAdaptor;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
+import uk.ac.imperial.presage2.core.network.UnicastMessage;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.util.fsm.Action;
 import uk.ac.imperial.presage2.util.fsm.AndCondition;
@@ -57,7 +58,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 	enum MessageType {
 		ARROGATE, RESIGN, ADD_ROLE, REM_ROLE, PROPOSE, PREPARE, RESPONSE, SUBMIT, VOTE, SYNC_REQ, SYNC_ACK, REVISE, LEAVE,
 		/* Add this message for convenience of keeping track */ CHOSEN,
-		/* Add this message for convenience on transitions and keeping track */ JOIN_ACK
+		/* Internal message to help with transitioning on broadcasts you send (since you don't receive them) */ INTERNAL_ROLE_CHANGE
 	};
 	
 	public IPConProtocol(final UUID myId, final UUID authkey,
@@ -83,6 +84,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		/*
 		 * TODO Slightly concerned about overlapping ballots/issues/conversations...
 		 * TODO Need to ignore duplicate messages... (or messages from the same agent saying different things in the same phase)
+		 * TODO Where do revision numbers fit in ? I was going with the conversation key being the revision number (sort of) but they dont have an ordering ?
 		 * 
 		 */
 		
@@ -307,7 +309,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		
 				@Override
 				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
-					// TODO update knowledge and send chosen message
+					// update knowledge and send chosen message
 					if (		(message.getData() instanceof IPConMsgData)
 							&&	(conv.getEntity() instanceof IPConDataStore) ) {
 						IPConMsgData msgData = (IPConMsgData)message.getData();
@@ -317,11 +319,11 @@ public abstract class IPConProtocol extends FSMProtocol {
 						conv.getNetwork().sendMessage(
 								new BroadcastMessage<IPConMsgData>(
 									Performative.INFORM, MessageType.CHOSEN.name(), SimTime.get(), conv.getNetwork().getAddress(),
-									/* Send prepare message with a higher ballot number than you think exists. Value doesn't matter */
+									/* Send chosen message with correct ballot number. Value should also be correct, obviously */
 									new IPConMsgData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"))
 								)
 							);
-						logger.trace("Updated voteCount to " + voteCount + " on issue " + store.getIssue() + " and issued a CHOSEN message");
+						logger.trace("Updated voteCount to " + voteCount + " on issue " + store.getIssue() + " and issued a CHOSEN message with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
 					}
 					
 				}
@@ -329,23 +331,60 @@ public abstract class IPConProtocol extends FSMProtocol {
 		
 		/*
 		 * Transition: CHOSEN -> SYNC
-		 * Happens after a new acceptor joins (you send the addrole message before this, they join, then you do this)
+		 * Happens after a new acceptor joins (you send the addrole message then you do this)
 		 * Send sync_req message and make note of who is syncing (do other acceptors need to know we're syncing?)
 		 */
-		this.description.addTransition(MessageType.JOIN_ACK, new AndCondition(
+		this.description.addTransition(MessageType.INTERNAL_ROLE_CHANGE, new AndCondition(
 				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
-				new MessageTypeCondition(MessageType.JOIN_ACK.name()),
-				new ConversationCondition()
+				//new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new MessageTypeCondition(MessageType.INTERNAL_ROLE_CHANGE.name()),
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						// check syncCount is 0, check msg is right type, then get the data and make sure it's correct/valid
+						// Should be the first agent being synched, should be the right msgtype, should be adding an agent to acceptor with the right ballotnum
+						IPConDataStore dataStore = (IPConDataStore)entity;
+						return (	( (dataStore.getData("SyncCount").equals(null)) || (dataStore.getData("SyncCount").equals(0)) ) && 
+								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
+								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
+								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(Role.ACCEPTOR))) && 
+								( (((InternalRoleChangeMessage)event).getData().getBallotNum().equals(dataStore.getData("BallotNum"))) )
+								);
+					}
+					
+				}
 			),
 			State.CHOSEN, State.SYNC,
 			new MessageAction() {
 		
 				@Override
-				public void processMessage(Message<?> message, FSMConversation conv,
-						Transition transition) {
-					// TODO send sync_req message
-					
+				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
+					// update syncCount, send sync_req message to agent, and a broadcast to let others know
+					if (	(message instanceof InternalRoleChangeMessage)
+							&& (message.getData() instanceof IPConRoleChangeMessageData)
+							&& (conv.getEntity() instanceof IPConDataStore) ) {
+						IPConRoleChangeMessageData msgData = (IPConRoleChangeMessageData)message.getData();
+						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+						store.getDataMap().put("SyncCount", 1);
+						/* Send SyncReq message with correct ballot number. Value should also be correct, obviously */
+						IPConMsgData newData = new IPConMsgData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"));
+						conv.getNetwork().sendMessage(
+								new BroadcastMessage<IPConMsgData>(
+									Performative.INFORM, MessageType.SYNC_REQ.name(), SimTime.get(), conv.getNetwork().getAddress(),
+									newData
+								)
+							);
+						conv.getNetwork().sendMessage(
+								new UnicastMessage<IPConMsgData>(
+									Performative.INFORM, MessageType.SYNC_REQ.name(), SimTime.get(),
+									conv.getNetwork().getAddress(), msgData.getAgentId(),
+									newData
+								)
+							);
+						logger.trace("Initialised syncCount to 1 on issue " + store.getIssue() + " and issued a SYNC_REQ message to the agent (Addr:"+ msgData.getAgentId() + "/UUID:"+msgData.getAgentId().getId() + ") and broadcast group with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
+					}
 				}
 		});
 		
@@ -354,10 +393,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Happens after a new acceptor joins (you send the addrole message before this, they join, then you do this)
 		 * Send sync_req message and make note of who is syncing (do other acceptors need to know we're syncing?)
 		 */
-		this.description.addTransition(MessageType.JOIN_ACK, new AndCondition(
+		this.description.addTransition(MessageType.INTERNAL_ROLE_CHANGE, new AndCondition(
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.ACCEPTOR),
-				new MessageTypeCondition(MessageType.JOIN_ACK.name()),
+				new MessageTypeCondition(MessageType.INTERNAL_ROLE_CHANGE.name()),
 				new ConversationCondition()
 			),
 			State.SYNC, State.SYNC,
@@ -517,6 +556,122 @@ public abstract class IPConProtocol extends FSMProtocol {
 			this.issue = issue;
 			this.conv = conv;
 		}
+
+	}
+	
+	/**
+	 * Call this function when changing the role of an agent
+	 * @param conv
+	 * @param agentId
+	 * @param issue
+	 * @param ballotNum
+	 * @param addOrRem
+	 * @param oldRole
+	 * @param newRole
+	 */
+	public void internalRoleChange(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, Role oldRole, Role newRole) {
+		this.handle(new InternalRoleChangeMessage(conv, agentId, issue, ballotNum, addOrRem, oldRole, newRole));
+	}
+	
+	class IPConRoleChangeMessageData {
+		private final NetworkAddress agentId;
+		private final String issue;
+		/**
+		 * true if added, false if removed
+		 */
+		private final Boolean addRole;
+		/**
+		 * The agent's old role
+		 */
+		private final Role oldRole;
+		/**
+		 * The agent's new role
+		 */
+		private final Role newRole;
+		
+		private final Integer ballotNum;
+		
+		/**
+		 * @param agentId
+		 * @param issue
+		 * @param addRole
+		 * @param oldRole
+		 * @param newRole
+		 */
+		public IPConRoleChangeMessageData(NetworkAddress agentId, String issue, Integer ballotNum,
+				Boolean addRole, Role oldRole, Role newRole) {
+			super();
+			this.agentId = agentId;
+			this.issue = issue;
+			this.ballotNum = ballotNum;
+			this.addRole = addRole;
+			this.oldRole = oldRole;
+			this.newRole = newRole;
+		}
+
+		/**
+		 * @return the agentId
+		 */
+		public NetworkAddress getAgentId() {
+			return agentId;
+		}
+
+		/**
+		 * @return the issue
+		 */
+		public String getIssue() {
+			return issue;
+		}
+
+		/**
+		 * @return the addRole
+		 */
+		public Boolean getAddRole() {
+			return addRole;
+		}
+
+		/**
+		 * @return the oldRole
+		 */
+		public Role getOldRole() {
+			return oldRole;
+		}
+
+		/**
+		 * @return the newRole
+		 */
+		public Role getNewRole() {
+			return newRole;
+		}
+
+		/**
+		 * @return the ballotNum
+		 */
+		public Integer getBallotNum() {
+			return ballotNum;
+		}
+	}
+	
+	/**
+	 * Internal "fake" message to indicate a rolechange and trigger a transition
+	 * @author dws04
+	 *
+	 */
+	class InternalRoleChangeMessage extends Message<IPConRoleChangeMessageData> {
+		
+		/**
+		 * @param conv
+		 * @param agentId
+		 * @param issue
+		 * @param ballotNum
+		 * @param addOrRem
+		 * @param oldRole
+		 * @param newRole
+		 */
+		public InternalRoleChangeMessage(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, Role oldRole, Role newRole) {
+			super(Performative.INFORM, MessageType.INTERNAL_ROLE_CHANGE.name(), SimTime.get(), conv.getNetwork().getAddress(),new IPConRoleChangeMessageData(agentId, issue, ballotNum, addOrRem, oldRole, newRole));
+		}
+
 
 	}
 	

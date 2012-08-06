@@ -24,6 +24,7 @@ public class IPConDataStore {
 	 *  - ReceiveCount = number of receive messages you've heard this round
 	 *  - Quorum = quorum on this issue
 	 *  - VoteCount = number of votes this round
+	 *  - Synccount = number of agents being synched
 	 */
 	private final HashMap<String, Object> dataMap;
 	
