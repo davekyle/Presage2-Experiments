@@ -83,6 +83,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		
 		/*
 		 * TODO Slightly concerned about overlapping ballots/issues/conversations...
+		 * TODO Also maybe explicitly include clusters in the msgdata ? Was planning on using the conversation for this (yay overloading) but... ?
 		 * TODO Need to ignore duplicate messages... (or messages from the same agent saying different things in the same phase)
 		 * TODO Where do revision numbers fit in ? I was going with the conversation key being the revision number (sort of) but they dont have an ordering ?
 		 * 
@@ -357,36 +358,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 				}
 			),
 			State.CHOSEN, State.SYNC,
-			new MessageAction() {
-		
-				@Override
-				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
-					// update syncCount, send sync_req message to agent, and a broadcast to let others know
-					if (	(message instanceof InternalRoleChangeMessage)
-							&& (message.getData() instanceof IPConRoleChangeMessageData)
-							&& (conv.getEntity() instanceof IPConDataStore) ) {
-						IPConRoleChangeMessageData msgData = (IPConRoleChangeMessageData)message.getData();
-						IPConDataStore store = ((IPConDataStore)conv.getEntity());
-						store.getDataMap().put("SyncCount", 1);
-						/* Send SyncReq message with correct ballot number. Value should also be correct, obviously */
-						IPConMsgData newData = new IPConMsgData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"));
-						conv.getNetwork().sendMessage(
-								new BroadcastMessage<IPConMsgData>(
-									Performative.INFORM, MessageType.SYNC_REQ.name(), SimTime.get(), conv.getNetwork().getAddress(),
-									newData
-								)
-							);
-						conv.getNetwork().sendMessage(
-								new UnicastMessage<IPConMsgData>(
-									Performative.INFORM, MessageType.SYNC_REQ.name(), SimTime.get(),
-									conv.getNetwork().getAddress(), msgData.getAgentId(),
-									newData
-								)
-							);
-						logger.trace("Initialised syncCount to 1 on issue " + store.getIssue() + " and issued a SYNC_REQ message to the agent (Addr:"+ msgData.getAgentId() + "/UUID:"+msgData.getAgentId().getId() + ") and broadcast group with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
-					}
-				}
-		});
+			new SyncReqMessageAction()
+		);
 		
 		/*
 		 * Transition: SYNC -> SYNC
@@ -397,18 +370,27 @@ public abstract class IPConProtocol extends FSMProtocol {
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.INTERNAL_ROLE_CHANGE.name()),
-				new ConversationCondition()
-			),
-			State.SYNC, State.SYNC,
-			new MessageAction() {
-		
-				@Override
-				public void processMessage(Message<?> message, FSMConversation conv,
-						Transition transition) {
-					// TODO send sync_req message
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						// check syncCount is not 0, check msg is right type, then get the data and make sure it's correct/valid
+						// Should be the first agent being synched, should be the right msgtype, should be adding an agent to acceptor with the right ballotnum
+						IPConDataStore dataStore = (IPConDataStore)entity;
+						return  ( (!dataStore.getData("SyncCount").equals(0))  && 
+								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
+								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
+								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(Role.ACCEPTOR))) && 
+								( (((InternalRoleChangeMessage)event).getData().getBallotNum().equals(dataStore.getData("BallotNum"))) )
+								);
+					}
 					
 				}
-		});
+			),
+			State.SYNC, State.SYNC,
+			new SyncReqMessageAction()
+		);
 		
 		/*
 		 * Transition: SYNC -> SYNC
@@ -427,7 +409,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 				@Override
 				public void execute(Object event, Object entity,
 						Transition transition) {
-					// TODO check safety is ok, update own knowlegde
+					// TODO check safety is ok, update own knowledge
 					
 				}
 		
@@ -671,8 +653,43 @@ public abstract class IPConProtocol extends FSMProtocol {
 		public InternalRoleChangeMessage(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, Role oldRole, Role newRole) {
 			super(Performative.INFORM, MessageType.INTERNAL_ROLE_CHANGE.name(), SimTime.get(), conv.getNetwork().getAddress(),new IPConRoleChangeMessageData(agentId, issue, ballotNum, addOrRem, oldRole, newRole));
 		}
-
-
+	}
+	
+	/**
+	 * MessageAction to process an InternalRoleChangeMessage and send a sync_req message
+	 */
+	class SyncReqMessageAction extends MessageAction {
+		
+		@Override
+		public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
+			// update syncCount, send sync_req message to agent, and a broadcast to let others know
+			if (	(message instanceof InternalRoleChangeMessage)
+					&& (message.getData() instanceof IPConRoleChangeMessageData)
+					&& (conv.getEntity() instanceof IPConDataStore) ) {
+				IPConRoleChangeMessageData msgData = (IPConRoleChangeMessageData)message.getData();
+				IPConDataStore store = ((IPConDataStore)conv.getEntity());
+				// Check it's not null since we're reusing this block of code...
+				Integer syncCount = (Integer) store.getData("SyncCount");
+				if (syncCount.equals(null)) { syncCount = 0; }
+				store.getDataMap().put("SyncCount", syncCount+1);
+				/* Send SyncReq message with correct ballot number. Value should also be correct, obviously */
+				IPConMsgData newData = new IPConMsgData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"));
+				conv.getNetwork().sendMessage(
+						new BroadcastMessage<IPConMsgData>(
+							Performative.INFORM, MessageType.SYNC_REQ.name(), SimTime.get(), conv.getNetwork().getAddress(),
+							newData
+						)
+					);
+				conv.getNetwork().sendMessage(
+						new UnicastMessage<IPConMsgData>(
+							Performative.INFORM, MessageType.SYNC_REQ.name(), SimTime.get(),
+							conv.getNetwork().getAddress(), msgData.getAgentId(),
+							newData
+						)
+					);
+				logger.trace("Updated syncCount to " + syncCount + " on issue " + store.getIssue() + " and issued a SYNC_REQ message to the agent (Addr:"+ msgData.getAgentId() + "/UUID:"+msgData.getAgentId().getId() + ") and broadcast group with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
+			}
+		}
 	}
 	
 	private class IPConMsgData {
@@ -768,4 +785,6 @@ public abstract class IPConProtocol extends FSMProtocol {
 			else return false;
 		}
 	}
+	
+	
 }
