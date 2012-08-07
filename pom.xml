@@ -52,6 +52,11 @@
 			<version>4.8.2</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>uk.ac.imperial.presage2</groupId>
+			<artifactId>presage2-rules</artifactId>
+			<version>${presage.version}</version>
+		</dependency>
 	</dependencies>
 
 	<repositories>

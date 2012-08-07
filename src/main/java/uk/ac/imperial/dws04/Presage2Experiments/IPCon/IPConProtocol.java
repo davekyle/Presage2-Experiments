@@ -375,10 +375,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 					@Override
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
-						// check syncCount is not 0, check msg is right type, then get the data and make sure it's correct/valid
+						// check syncCount is not 0 (or null), check msg is right type, then get the data and make sure it's correct/valid
 						// Should be the first agent being synched, should be the right msgtype, should be adding an agent to acceptor with the right ballotnum
 						IPConDataStore dataStore = (IPConDataStore)entity;
-						return  ( (!dataStore.getData("SyncCount").equals(0))  && 
+						return  ( ( (!dataStore.getData("SyncCount").equals(null)) && (!dataStore.getData("SyncCount").equals(0)) ) && 
 								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
 								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
 								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(Role.ACCEPTOR))) && 

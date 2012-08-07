@@ -31,6 +31,7 @@ import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.core.plugin.PluginModule;
+import uk.ac.imperial.presage2.rules.RuleStorage;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
 import uk.ac.imperial.presage2.util.location.LocationService;
@@ -196,7 +197,8 @@ public class RoadSimulation extends InjectedSimulation {
 			.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 			.addParticipantEnvironmentService(ParticipantSpeedService.class)
 			//.addGlobalEnvironmentService(RoadLocationService.class)
-			.addGlobalEnvironmentService(RoadEnvironmentService.class));
+			.addGlobalEnvironmentService(RoadEnvironmentService.class)
+			.setStorage(RuleStorage.class));
 		// No network
 		modules.add(NetworkModule.noNetworkModule());
 		// Location plugin
