@@ -5,6 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -83,9 +84,11 @@ public abstract class IPConProtocol extends FSMProtocol {
 		
 		/*
 		 * TODO Slightly concerned about overlapping ballots/issues/conversations...
+		 * TODO Include checks that the ballotnum of the message isnt lower than the one you know about..
 		 * TODO Also maybe explicitly include clusters in the msgdata ? Was planning on using the conversation for this (yay overloading) but... ?
 		 * TODO Need to ignore duplicate messages... (or messages from the same agent saying different things in the same phase)
-		 * TODO Where do revision numbers fit in ? I was going with the conversation key being the revision number (sort of) but they dont have an ordering ?
+		 * TODO Where do revision numbers fit in ? I was going with the conversation key being the revision number (sort of) but they dont have an ordering ? And revisions don't start a new conversation... :s
+		 * TODO perhaps remove all the duplication of code (ie rechecking things in the action after the condition has checked already...
 		 * 
 		 */
 		
@@ -347,7 +350,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 						// check syncCount is 0, check msg is right type, then get the data and make sure it's correct/valid
 						// Should be the first agent being synched, should be the right msgtype, should be adding an agent to acceptor with the right ballotnum
 						IPConDataStore dataStore = (IPConDataStore)entity;
-						return (	( (dataStore.getData("SyncCount").equals(null)) || (dataStore.getData("SyncCount").equals(0)) ) && 
+						return (	( (dataStore.getData("SyncSet").equals(null)) || (dataStore.getData("SyncSet").equals(Collections.emptySet())) ) && 
 								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
 								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
 								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(Role.ACCEPTOR))) && 
@@ -378,7 +381,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 						// check syncCount is not 0 (or null), check msg is right type, then get the data and make sure it's correct/valid
 						// Should be the first agent being synched, should be the right msgtype, should be adding an agent to acceptor with the right ballotnum
 						IPConDataStore dataStore = (IPConDataStore)entity;
-						return  ( ( (!dataStore.getData("SyncCount").equals(null)) && (!dataStore.getData("SyncCount").equals(0)) ) && 
+						return  ( ( (!dataStore.getData("SyncSet").equals(null)) && (!dataStore.getData("SyncSet").equals(Collections.emptySet())) ) && 
 								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
 								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
 								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(Role.ACCEPTOR))) && 
@@ -401,15 +404,51 @@ public abstract class IPConProtocol extends FSMProtocol {
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
-				new ConversationCondition()
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						// check the message is correct, the agent is being synched, the agent isn't the last agent and safety is ok
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+							Message<?> m = (Message<?>) event;
+							IPConMsgData msgData = (IPConMsgData) m.getData();
+							IPConDataStore dataStore = (IPConDataStore)entity;
+							if ( ( ((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).size()!=1 ) && ((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).contains(m.getFrom()) ) {
+								// TODO FIXME Check safety here
+								
+							}
+							else return false;
+						}
+						else return false;
+					}
+					
+				}
 			),
 			State.SYNC, State.SYNC,
-			new Action() {
+			new MessageAction() {
 
 				@Override
-				public void execute(Object event, Object entity,
-						Transition transition) {
+				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 					// TODO check safety is ok, update own knowledge
+					
+					if (	(message instanceof Message<?>)
+							&& (message.getData() instanceof IPConMsgData)
+							&& (conv.getEntity() instanceof IPConDataStore) ) {
+						IPConMsgData msgData = (IPConMsgData)message.getData();
+						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+						HashSet<NetworkAddress> syncSet = (HashSet<NetworkAddress>) store.getData("SyncSet");
+						if (!syncSet.equals(null) && (syncSet.size()!=1) && syncSet.contains(message.getFrom()) ) {
+							syncSet.remove(message.getFrom());
+							store.getDataMap().put("SyncSet", syncSet); //FIXME will this always be overwriting or do I actually need to do this?
+							// TODO recheck safety is ok ?
+							// TODO add vote fact for sender
+							logger.trace("Removed " + message.getFrom() + " from SyncSet and updated to " + store.getDataMap().get("SyncSet") + " after confirming safety is still ok on issue " + store.getIssue() + " and with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
+						}
+						else {
+							logger.warn("SyncSet didn't contain the sender");
+						}
+					}
 					
 				}
 		
@@ -424,16 +463,50 @@ public abstract class IPConProtocol extends FSMProtocol {
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
-				new ConversationCondition()
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						// check the message is correct, the agent is being synched, the agent is the last agent and safety is ok
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+							Message<?> m = (Message<?>) event;
+							IPConMsgData msgData = (IPConMsgData) m.getData();
+							IPConDataStore dataStore = (IPConDataStore)entity;
+							if ( ( ((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).size()==1 ) && ((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).contains(m.getFrom()) ) {
+								// TODO FIXME Check safety ok here
+								
+							}
+							else return false;
+						}
+						else return false;
+					}
+					
+				}
 			),
 			State.SYNC, State.CHOSEN,
 			new MessageAction() {
 		
 				@Override
-				public void processMessage(Message<?> message, FSMConversation conv,
-						Transition transition) {
-					// TODO check safety is ok, update knowledge, send sync_req message
-					
+				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
+					// TODO check safety is ok, update knowledge (, send chosen message?)
+					if (	(message instanceof Message<?>)
+							&& (message.getData() instanceof IPConMsgData)
+							&& (conv.getEntity() instanceof IPConDataStore) ) {
+						IPConMsgData msgData = (IPConMsgData)message.getData();
+						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+						HashSet<NetworkAddress> syncSet = (HashSet<NetworkAddress>) store.getData("SyncSet");
+						if (!syncSet.equals(null) && (syncSet.size()==1) && syncSet.contains(message.getFrom()) ) {
+							syncSet.remove(message.getFrom());
+							store.getDataMap().put("SyncSet", syncSet); //FIXME will this always be overwriting or do I actually need to do this?
+							// TODO recheck safety is ok ?
+							// TODO add vote fact for sender
+							logger.trace("Removed last sync from " + message.getFrom() + " from SyncSet and updated to " + store.getDataMap().get("SyncSet") + " after confirming safety is still ok on issue " + store.getIssue() + " and with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
+						}
+						else {
+							logger.warn("SyncSet didn't contain the sender");
+						}
+					}
 				}
 		});
 		
@@ -446,7 +519,26 @@ public abstract class IPConProtocol extends FSMProtocol {
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
-				new ConversationCondition()
+				new ConversationCondition(),
+				new TransitionCondition() {
+
+					@Override
+					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
+						// check the message is correct, the agent is being synched, and safety is not ok
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+							Message<?> m = (Message<?>) event;
+							IPConMsgData msgData = (IPConMsgData) m.getData();
+							IPConDataStore dataStore = (IPConDataStore)entity;
+							if (((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).contains(m.getFrom())) {
+								// TODO FIXME Check safety violated here
+								
+							}
+							else return false;
+						}
+						else return false;
+					}
+					
+				}
 			),
 			State.SYNC, State.IDLE,
 			new MessageAction() {
@@ -454,8 +546,34 @@ public abstract class IPConProtocol extends FSMProtocol {
 				@Override
 				public void processMessage(Message<?> message, FSMConversation conv,
 						Transition transition) {
-					// TODO check safety is broken, send revise message
-					
+					// TODO check safety is broken, send revise message, wipe all counters/sets
+					if (	(message instanceof Message<?>)
+							&& (message.getData() instanceof IPConMsgData)
+							&& (conv.getEntity() instanceof IPConDataStore) ) {
+						IPConMsgData msgData = (IPConMsgData)message.getData();
+						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+						HashSet<NetworkAddress> syncSet = (HashSet<NetworkAddress>) store.getData("SyncSet");
+						if (syncSet.contains(message.getFrom()) ) {
+							syncSet.clear();
+							store.getDataMap().put("SyncSet", syncSet); //FIXME will this always be overwriting or do I actually need to do this?
+							store.getDataMap().put("VoteCount", 0);
+							store.getDataMap().put("ReceiveCount", 0);
+							// leave BallotNum as it is for ordering
+							// TODO recheck safety is not ok ?
+							conv.getNetwork().sendMessage(
+									new BroadcastMessage<IPConMsgData>(
+										Performative.INFORM, MessageType.REVISE.name(), SimTime.get(), conv.getNetwork().getAddress(),
+										/* Send chosen message with correct ballot number. Value should also be correct, obviously */
+										new IPConMsgData(msgData.getIssue(), null, (Integer) store.getData("BallotNum"))
+									)
+								);
+							
+							logger.trace("Revised issue " + store.getIssue() + " - previously with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
+						}
+						else {
+							logger.warn("SyncSet didn't contain the sender");
+						}
+					}
 				}
 		});
 		
@@ -482,7 +600,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		
 		/*
 		 * Transition: CHOSEN -> PRE_VOTE
-		 * Happens when you recieve a propose message (in theory)
+		 * Happens when you receive a propose message (in theory)
 		 * Send prepare message
 		 */
 		this.description.addTransition(MessageType.PROPOSE, new AndCondition(
@@ -669,9 +787,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 				IPConRoleChangeMessageData msgData = (IPConRoleChangeMessageData)message.getData();
 				IPConDataStore store = ((IPConDataStore)conv.getEntity());
 				// Check it's not null since we're reusing this block of code...
-				Integer syncCount = (Integer) store.getData("SyncCount");
-				if (syncCount.equals(null)) { syncCount = 0; }
-				store.getDataMap().put("SyncCount", syncCount+1);
+				HashSet<NetworkAddress> syncSet = (HashSet<NetworkAddress>) store.getData("SyncSet");
+				if (syncSet.equals(null)) { syncSet = new HashSet<NetworkAddress>(); }
+				syncSet.add(msgData.getAgentId());
+				store.getDataMap().put("SyncSet", syncSet); //FIXME will this always be overwriting or do I actually need to do this?
 				/* Send SyncReq message with correct ballot number. Value should also be correct, obviously */
 				IPConMsgData newData = new IPConMsgData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"));
 				conv.getNetwork().sendMessage(
@@ -687,7 +806,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 							newData
 						)
 					);
-				logger.trace("Updated syncCount to " + syncCount + " on issue " + store.getIssue() + " and issued a SYNC_REQ message to the agent (Addr:"+ msgData.getAgentId() + "/UUID:"+msgData.getAgentId().getId() + ") and broadcast group with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
+				logger.trace("Updated syncSet to " + syncSet + " on issue " + store.getIssue() + " and issued a SYNC_REQ message to the agent (Addr:"+ msgData.getAgentId() + "/UUID:"+msgData.getAgentId().getId() + ") and broadcast group with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
 			}
 		}
 	}
