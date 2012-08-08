@@ -31,6 +31,7 @@ import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.core.plugin.PluginModule;
+import uk.ac.imperial.presage2.rules.RuleModule;
 import uk.ac.imperial.presage2.rules.RuleStorage;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
@@ -191,6 +192,8 @@ public class RoadSimulation extends InjectedSimulation {
 	 
 		// 2D area that wraps at the top
 		modules.add(Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX, WrapEdgeHandler.class));
+		// rule module
+		modules.add(new RuleModule());
 		// Environment with MoveHandler and ParticipantLocationService
 		modules.add(new AbstractEnvironmentModule()
 			.addActionHandler(LaneMoveHandler.class)
