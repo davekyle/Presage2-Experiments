@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.environment.EnvironmentConnector;
 import uk.ac.imperial.presage2.core.messaging.Performative;
 import uk.ac.imperial.presage2.core.network.BroadcastMessage;
@@ -59,7 +60,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 	enum MessageType {
 		ARROGATE, RESIGN, ADD_ROLE, REM_ROLE, PROPOSE, PREPARE, RESPONSE, SUBMIT, VOTE, SYNC_REQ, SYNC_ACK, REVISE, LEAVE,
 		/* Add this message for convenience of keeping track */ CHOSEN,
-		/* Internal message to help with transitioning on broadcasts you send (since you don't receive them) */ INTERNAL_ROLE_CHANGE
+		/* Internal message to help with transitioning on broadcasts you send (since you don't receive them) */ INTERNAL_ROLE_CHANGE,
+		/* Internal message to help with detecting a revise transition */ INTERNAL_NEED_REVISION
 	};
 	
 	public IPConProtocol(final UUID myId, final UUID authkey,
@@ -85,6 +87,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		/*
 		 * TODO Slightly concerned about overlapping ballots/issues/conversations...
 		 * TODO Include checks that the ballotnum of the message isnt lower than the one you know about..
+		 * TODO work out whether/when ballotnum should be updated, especially in revision sending bits
 		 * TODO Also maybe explicitly include clusters in the msgdata ? Was planning on using the conversation for this (yay overloading) but... ?
 		 * TODO Need to ignore duplicate messages... (or messages from the same agent saying different things in the same phase)
 		 * TODO Where do revision numbers fit in ? I was going with the conversation key being the revision number (sort of) but they dont have an ordering ? And revisions don't start a new conversation... :s
@@ -124,6 +127,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 */
 		this.description.addTransition(MessageType.PROPOSE, new AndCondition(
 				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.PROPOSER),
 				new MessageTypeCondition(MessageType.PROPOSE.name()),
 				new ConversationCondition()
 			),
@@ -563,7 +567,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 							conv.getNetwork().sendMessage(
 									new BroadcastMessage<IPConMsgData>(
 										Performative.INFORM, MessageType.REVISE.name(), SimTime.get(), conv.getNetwork().getAddress(),
-										/* Send chosen message with correct ballot number. Value should also be correct, obviously */
+										/* Send revise message with correct ballot number. Value should also be correct, obviously */
 										new IPConMsgData(msgData.getIssue(), null, (Integer) store.getData("BallotNum"))
 									)
 								);
@@ -584,16 +588,37 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 */
 		this.description.addTransition(MessageType.REVISE, new AndCondition(
 				new IPConOwnRoleCondition(Role.LEADER),
-				new EventTypeCondition(NeedToReviseEvent.class),
+				new MessageTypeCondition(MessageType.INTERNAL_NEED_REVISION.name()),
 				new ConversationCondition()
 			),
 			State.CHOSEN, State.IDLE,
 			new MessageAction() {
 		
 				@Override
-				public void processMessage(Message<?> message, FSMConversation conv,
-						Transition transition) {
+				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 					// TODO send revise message if conversation in event is same
+					if (	(message instanceof InternalNeedRevisionMessage)
+							&& (message.getData() instanceof IPConMsgData)
+							&& (conv.getEntity() instanceof IPConDataStore) ) {
+						IPConMsgData msgData = (IPConMsgData)message.getData();
+						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+						// reset everything
+						store.getDataMap().put("VoteCount", 0);
+						store.getDataMap().put("ReceiveCount", 0);
+						// leave BallotNum as it is for ordering
+						conv.getNetwork().sendMessage(
+								new BroadcastMessage<IPConMsgData>(
+									Performative.INFORM, MessageType.REVISE.name(), SimTime.get(), conv.getNetwork().getAddress(),
+									/* Send revise message with correct ballot number. Value should also be correct, obviously */
+									new IPConMsgData(msgData.getIssue(), null, (Integer) store.getData("BallotNum"))
+								)
+							);
+						
+						logger.trace("Revised issue " + store.getIssue() + " - previously with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
+					}
+					else {
+						logger.warn("Couldn't find a valid internal revision change message to process");
+					}
 					
 				}
 		});
@@ -603,7 +628,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Happens when you receive a propose message (in theory)
 		 * Send prepare message
 		 */
-		this.description.addTransition(MessageType.PROPOSE, new AndCondition(
+		/*this.description.addTransition(MessageType.PROPOSE, new AndCondition(
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.PROPOSER),
 				new MessageTypeCondition(MessageType.PROPOSE.name()),
@@ -618,7 +643,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 					// TODO send prepare message
 					
 				}
-		});
+		});*/
 		
 		
 		
@@ -642,20 +667,31 @@ public abstract class IPConProtocol extends FSMProtocol {
 	}
 	
 	/**
-	 * Event to indicate need of a revision.
+	 * Call this function when a revision is needed
+	 */
+	public void internalNeedRevision(FSMConversation conv, String issue, Integer ballotNum, String reason) {
+		logger.trace("Signalling to self that a revision is needed in conversation " + conv + " in issue " + issue);
+		this.handle(new InternalNeedRevisionMessage(conv, issue, ballotNum));
+	}
+	
+	/**
+	 * Message to indicate need for revision
 	 * @author dws04
 	 *
 	 */
-	class NeedToReviseEvent extends ConversationSpawnEvent {
+	class InternalNeedRevisionMessage extends Message<IPConMsgData> {
 
-		final String issue;
-		final FSMConversation conv;
-
-		NeedToReviseEvent(FSMConversation conv, String issue) {
-			super(Collections.<NetworkAddress>emptySet());
-			this.issue = issue;
-			this.conv = conv;
+		/**
+		 * 
+		 * @param conv
+		 * @param issue
+		 * @param ballotNum 
+		 */
+		public InternalNeedRevisionMessage(FSMConversation conv, String issue, Integer ballotNum) {
+			super(Performative.INFORM, MessageType.INTERNAL_NEED_REVISION.name(), SimTime.get(), conv.getNetwork().getAddress(),new IPConMsgData(issue, null, ballotNum));
 		}
+
+		
 
 	}
 	
