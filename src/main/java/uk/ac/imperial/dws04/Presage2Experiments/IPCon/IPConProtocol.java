@@ -61,7 +61,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		ARROGATE, RESIGN, ADD_ROLE, REM_ROLE, PROPOSE, PREPARE, RESPONSE, SUBMIT, VOTE, SYNC_REQ, SYNC_ACK, REVISE, LEAVE,
 		/* Add this message for convenience of keeping track */ CHOSEN,
 		/* Internal message to help with transitioning on broadcasts you send (since you don't receive them) */ INTERNAL_ROLE_CHANGE,
-		/* Internal message to help with detecting a revise transition */ INTERNAL_NEED_REVISION
+		/* Internal message to help with detecting a revise transition */ INTERNAL_NEED_REVISION,
+		/* Internal message to end the conversation (go to error) */ INTERNAL_END
 	};
 	
 	public IPConProtocol(final UUID myId, final UUID authkey,
@@ -596,7 +597,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		
 				@Override
 				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
-					// TODO send revise message if conversation in event is same
+					// send revise message if conversation in event is same
 					if (	(message instanceof InternalNeedRevisionMessage)
 							&& (message.getData() instanceof IPConMsgData)
 							&& (conv.getEntity() instanceof IPConDataStore) ) {
@@ -613,7 +614,6 @@ public abstract class IPConProtocol extends FSMProtocol {
 									new IPConMsgData(msgData.getIssue(), null, (Integer) store.getData("BallotNum"))
 								)
 							);
-						
 						logger.trace("Revised issue " + store.getIssue() + " - previously with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
 					}
 					else {
@@ -622,6 +622,45 @@ public abstract class IPConProtocol extends FSMProtocol {
 					
 				}
 		});
+		
+		/*
+		 * Transition: ANY -> ERROR
+		 * Happens when you receive an internal_end message
+		 * Go to ERROR state, do nothing else.
+		 */
+		for (State state : State.values()) {
+			this.description.addTransition(MessageType.INTERNAL_END, new AndCondition(
+					new MessageTypeCondition(MessageType.INTERNAL_END.name()),
+					new ConversationCondition()
+				),
+				state, State.ERROR,
+				new MessageAction() {
+
+					@Override
+					public void processMessage(Message<?> message,
+							FSMConversation conv, Transition transition) {
+						logger.trace("Ending conversation " + conv + " on issue " + ((IPConMsgData)message.getData()).issue);
+					}
+
+			});
+
+		}
+		/*this.description.addTransition(MessageType.PROPOSE, new AndCondition(
+				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConSenderRoleCondition(Role.PROPOSER),
+				new MessageTypeCondition(MessageType.PROPOSE.name()),
+				new ConversationCondition()
+			),
+			State.CHOSEN, State.PRE_VOTE,
+			new MessageAction() {
+		
+				@Override
+				public void processMessage(Message<?> message, FSMConversation conv,
+						Transition transition) {
+					// TODO send prepare message
+					
+				}
+		});*/
 		
 		/*
 		 * Transition: CHOSEN -> PRE_VOTE
@@ -644,10 +683,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 					
 				}
 		});*/
-		
-		
-		
-		
+
+	
 	}
 	
 	/**
