@@ -48,16 +48,20 @@ public abstract class IPConProtocol extends FSMProtocol {
 	private final UUID myId;
 	private final UUID authkey;
 	private final HashMap<FSMConversation,Role> myRoles;
+	/**
+	 * The most recent ballots voted for by the agent
+	 */
+	private final HashMap<String,IPConVoteData> hnb;
 	
-	enum Role {
+	public static enum Role {
 		LEADER, ACCEPTOR, LEARNER, PROPOSER, INVALID
 	};
 	
-	enum State {
+	public static enum State {
 		START, IDLE, PRE_VOTE, OPEN_VOTE, CHOSEN, SYNC, ERROR
 	};
 
-	enum MessageType {
+	public static enum MessageType {
 		ARROGATE, RESIGN, ADD_ROLE, REM_ROLE, PROPOSE, PREPARE, RESPONSE, SUBMIT, VOTE, SYNC_REQ, SYNC_ACK, REVISE, LEAVE,
 		/* Add this message for convenience of keeping track */ CHOSEN,
 		/* Internal message to help with transitioning on broadcasts you send (since you don't receive them) */ INTERNAL_ROLE_CHANGE,
@@ -73,6 +77,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		this.myId = myId;
 		this.authkey = authkey;
 		this.myRoles = new HashMap<FSMConversation, Role>();
+		this.hnb = new HashMap<String,IPConVoteData>();
 
 		this.logger = Logger.getLogger("IPCon for " + myId);
 		
@@ -98,7 +103,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		
 		/*
 		 * Transition: Start -> IDLE.
-		 * Happens immediately after creating FSM.
+		 * Happens immediately after creating FSM. FIXME work out if this is how to init ?
 		 * Sends an ARROGATE message to form new cluster/issue
 		 */
 		this.description.addTransition(MessageType.ARROGATE,
@@ -114,7 +119,18 @@ public abstract class IPConProtocol extends FSMProtocol {
 					//NetworkAddress to = conv.recipients.get(0);
 					logger.debug("Arrogating: " + e.issue);
 					myRoles.put(conv, Role.LEADER);
-					conv.entity = new IPConDataStore(myId, e.issue, Role.LEADER);
+					Integer hnbBallot = hnb.get(e.issue).getBallotNum();
+					Integer hnbRevision = hnb.get(e.issue).getRevision();
+					// If you don't know about any previous ballots or revisions, start with 0
+					// otherwise, try a higher ballot number in the same revision
+					// make sure the actual hnb doesn't change
+					if (hnbBallot.equals(null)) { hnbBallot = 0; } else hnbBallot++;
+					if (hnbRevision.equals(null)) { hnbRevision = 0; }
+					if (hnbBallot.equals(hnb.get(e.issue).getBallotNum())) {
+						logger.error("INADVERTANTLY CHANGED HNB !");
+						System.exit(1);
+					}
+					conv.entity = new IPConConvDataStore(myId, e.issue, hnbBallot, hnbRevision, Role.LEADER);
 					conv.getNetwork().sendMessage(
 							new BroadcastMessage<String>(
 									Performative.INFORM, MessageType.ARROGATE.name(), SimTime.get(), from, e.issue));
@@ -138,21 +154,20 @@ public abstract class IPConProtocol extends FSMProtocol {
 				@Override
 				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 					// send the prepare message
-					if (message.getData() instanceof IPConMsgData) {
-						IPConMsgData msgData = (IPConMsgData) message.getData();
-						IPConDataStore dataStore = ((IPConDataStore)conv.getEntity());
-						Integer balNum = ((Integer)dataStore.getData("BallotNum"));
-						if (balNum==null) {
-							balNum = 0;
+					if (message.getData() instanceof IPConVoteData) {
+						IPConVoteData msgData = (IPConVoteData) message.getData();
+						IPConConvDataStore dataStore = ((IPConConvDataStore)conv.getEntity());
+						Integer hnbBal = getHNB(msgData.getIssue()).getBallotNum();
+						Integer hnbRev = getHNB(msgData.getIssue()).getRevision();
+						if ( (dataStore.getRevision() >= hnbRev) && (dataStore.getBallotNum() >= hnbBal) ) {
+							conv.getNetwork().sendMessage(
+								new BroadcastMessage<IPConVoteData>(
+									Performative.REQUEST, MessageType.PREPARE.name(), SimTime.get(), conv.getNetwork().getAddress(),
+									/* Send prepare message at the correct ballot and revision number. Value doesn't matter */
+									new IPConVoteData(msgData.getIssue(), null, hnbBal, hnbRev)
+								)
+							);
 						}
-						conv.getNetwork().sendMessage(
-							new BroadcastMessage<IPConMsgData>(
-								Performative.REQUEST, MessageType.PREPARE.name(), SimTime.get(), conv.getNetwork().getAddress(),
-								/* Send prepare message with a higher ballot number than you think exists. Value doesn't matter */
-								new IPConMsgData(msgData.getIssue(), null, balNum+1)
-							)
-						);
-						dataStore.getDataMap().put("BallotNum", balNum+1);
 					}
 					else {
 						logger.warn("Tried to process a bad message on a PROPOSE transition: " + message);
@@ -176,9 +191,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 					@Override
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
-						if (entity instanceof IPConDataStore) {
-							Integer recCount = (Integer)((IPConDataStore)entity).getData("ReceiveCount")+1;
-							Integer quorum = (Integer)((IPConDataStore)entity).getData("Quorum");
+						if (entity instanceof IPConConvDataStore) {
+							Integer recCount = (Integer)((IPConConvDataStore)entity).getData("ReceiveCount")+1;
+							Integer quorum = (Integer)((IPConConvDataStore)entity).getData("Quorum");
 							return (recCount < quorum);
 						}
 						else return false;
@@ -191,8 +206,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 				@Override
 				public void execute(Object event, Object entity,Transition transition) {
-					if (entity instanceof IPConDataStore) {
-						IPConDataStore store = ((IPConDataStore)entity);
+					if (entity instanceof IPConConvDataStore) {
+						IPConConvDataStore store = ((IPConConvDataStore)entity);
 						Integer recCount = (Integer)store.getData("ReceiveCount")+1;
 						store.getDataMap().put("ReceiveCount", recCount);
 						logger.trace("Updated recCount to " + recCount + " on issue " + store.getIssue());
@@ -215,9 +230,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 					@Override
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
-						if (entity instanceof IPConDataStore) {
-							Integer recCount = (Integer)((IPConDataStore)entity).getData("ReceiveCount")+1;
-							Integer quorum = (Integer)((IPConDataStore)entity).getData("Quorum");
+						if (entity instanceof IPConConvDataStore) {
+							Integer recCount = (Integer)((IPConConvDataStore)entity).getData("ReceiveCount")+1;
+							Integer quorum = (Integer)((IPConConvDataStore)entity).getData("Quorum");
 							return (recCount >= quorum);
 						}
 						else return false;
@@ -230,11 +245,11 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 			@Override
 			public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
-				if (conv.getEntity() instanceof IPConDataStore) {
-					// TODO // decide safe value, send the submit message with correct ballot number, reset the recCount in the datastore, set voteCount to 0
+				if (conv.getEntity() instanceof IPConConvDataStore) {
+					// TODO FIXME // decide safe value, send the submit message with correct ballot number, reset the recCount in the datastore, set voteCount to 0
 					
 					
-					IPConDataStore dataStore = (IPConDataStore) conv.getEntity();
+					IPConConvDataStore dataStore = (IPConConvDataStore) conv.getEntity();
 					dataStore.getDataMap().put("ReceiveCount", 0);
 					dataStore.getDataMap().put("VoteCount", 0);
 					logger.trace("Sent a submit message on issue " + dataStore.getIssue() + " with value " + dataStore.getValue());
@@ -260,13 +275,13 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 					@Override
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
-						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConVoteData) && (entity instanceof IPConConvDataStore) ) {
 							Message<?> m = (Message<?>) event;
-							IPConMsgData msgData = (IPConMsgData) m.getData();
-							IPConDataStore dataStore = (IPConDataStore)entity;
+							IPConVoteData msgData = (IPConVoteData) m.getData();
+							IPConConvDataStore dataStore = (IPConConvDataStore)entity;
 							Integer voteCount = (Integer)(dataStore.getData("VoteCount"))+1;
 							Integer quorum = (Integer)(dataStore.getData("Quorum"));
-							return ( ( msgData.getBallotNum().equals(dataStore.getData("BallotNum")) ) && ( msgData.getValue().equals( ((IPConDataStore)entity).getValue() ) ) && (voteCount < quorum) );
+							return ( ( msgData.getBallotNum().equals(dataStore.getData("BallotNum")) ) && ( msgData.getValue().equals( ((IPConConvDataStore)entity).getValue() ) ) && (voteCount < quorum) );
 						}
 						else return false;
 					}
@@ -277,8 +292,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 			@Override
 			public void execute(Object event, Object entity,Transition transition) {
-				if (entity instanceof IPConDataStore) {
-					IPConDataStore store = ((IPConDataStore)entity);
+				if (entity instanceof IPConConvDataStore) {
+					IPConConvDataStore store = ((IPConConvDataStore)entity);
 					Integer voteCount = (Integer)store.getData("VoteCount")+1;
 					store.getDataMap().put("VoteCount", voteCount);
 					logger.trace("Updated voteCount to " + voteCount + " on issue " + store.getIssue());
@@ -301,10 +316,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 					@Override
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
-						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConVoteData) && (entity instanceof IPConConvDataStore) ) {
 							Message<?> m = (Message<?>) event;
-							IPConMsgData msgData = (IPConMsgData) m.getData();
-							IPConDataStore dataStore = (IPConDataStore)entity;
+							IPConVoteData msgData = (IPConVoteData) m.getData();
+							IPConConvDataStore dataStore = (IPConConvDataStore)entity;
 							Integer voteCount = (Integer)(dataStore.getData("VoteCount"))+1;
 							Integer quorum = (Integer)(dataStore.getData("Quorum"));
 							return ( ( msgData.getBallotNum().equals(dataStore.getData("BallotNum")) ) && ( msgData.getValue().equals( dataStore.getValue() ) ) && (voteCount >= quorum) );
@@ -319,17 +334,17 @@ public abstract class IPConProtocol extends FSMProtocol {
 				@Override
 				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 					// update knowledge and send chosen message
-					if (		(message.getData() instanceof IPConMsgData)
-							&&	(conv.getEntity() instanceof IPConDataStore) ) {
-						IPConMsgData msgData = (IPConMsgData)message.getData();
-						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+					if (		(message.getData() instanceof IPConVoteData)
+							&&	(conv.getEntity() instanceof IPConConvDataStore) ) {
+						IPConVoteData msgData = (IPConVoteData)message.getData();
+						IPConConvDataStore store = ((IPConConvDataStore)conv.getEntity());
 						Integer voteCount = (Integer)store.getData("VoteCount")+1;
 						store.getDataMap().put("VoteCount", voteCount);
 						conv.getNetwork().sendMessage(
-								new BroadcastMessage<IPConMsgData>(
+								new BroadcastMessage<IPConVoteData>(
 									Performative.INFORM, MessageType.CHOSEN.name(), SimTime.get(), conv.getNetwork().getAddress(),
 									/* Send chosen message with correct ballot number. Value should also be correct, obviously */
-									new IPConMsgData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"))
+									new IPConVoteData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"), null)
 								)
 							);
 						logger.trace("Updated voteCount to " + voteCount + " on issue " + store.getIssue() + " and issued a CHOSEN message with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
@@ -354,7 +369,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
 						// check syncCount is 0, check msg is right type, then get the data and make sure it's correct/valid
 						// Should be the first agent being synched, should be the right msgtype, should be adding an agent to acceptor with the right ballotnum
-						IPConDataStore dataStore = (IPConDataStore)entity;
+						IPConConvDataStore dataStore = (IPConConvDataStore)entity;
 						return (	( (dataStore.getData("SyncSet").equals(null)) || (dataStore.getData("SyncSet").equals(Collections.emptySet())) ) && 
 								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
 								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
@@ -385,7 +400,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
 						// check syncCount is not 0 (or null), check msg is right type, then get the data and make sure it's correct/valid
 						// Should be the first agent being synched, should be the right msgtype, should be adding an agent to acceptor with the right ballotnum
-						IPConDataStore dataStore = (IPConDataStore)entity;
+						IPConConvDataStore dataStore = (IPConConvDataStore)entity;
 						return  ( ( (!dataStore.getData("SyncSet").equals(null)) && (!dataStore.getData("SyncSet").equals(Collections.emptySet())) ) && 
 								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
 								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
@@ -415,10 +430,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 					@Override
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
 						// check the message is correct, the agent is being synched, the agent isn't the last agent and safety is ok
-						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConVoteData) && (entity instanceof IPConConvDataStore) ) {
 							Message<?> m = (Message<?>) event;
-							IPConMsgData msgData = (IPConMsgData) m.getData();
-							IPConDataStore dataStore = (IPConDataStore)entity;
+							IPConVoteData msgData = (IPConVoteData) m.getData();
+							IPConConvDataStore dataStore = (IPConConvDataStore)entity;
 							if ( ( ((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).size()!=1 ) && ((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).contains(m.getFrom()) ) {
 								// TODO FIXME Check safety here
 								
@@ -438,10 +453,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 					// TODO check safety is ok, update own knowledge
 					
 					if (	(message instanceof Message<?>)
-							&& (message.getData() instanceof IPConMsgData)
-							&& (conv.getEntity() instanceof IPConDataStore) ) {
-						IPConMsgData msgData = (IPConMsgData)message.getData();
-						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+							&& (message.getData() instanceof IPConVoteData)
+							&& (conv.getEntity() instanceof IPConConvDataStore) ) {
+						IPConVoteData msgData = (IPConVoteData)message.getData();
+						IPConConvDataStore store = ((IPConConvDataStore)conv.getEntity());
 						HashSet<NetworkAddress> syncSet = (HashSet<NetworkAddress>) store.getData("SyncSet");
 						if (!syncSet.equals(null) && (syncSet.size()!=1) && syncSet.contains(message.getFrom()) ) {
 							syncSet.remove(message.getFrom());
@@ -474,10 +489,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 					@Override
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
 						// check the message is correct, the agent is being synched, the agent is the last agent and safety is ok
-						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConVoteData) && (entity instanceof IPConConvDataStore) ) {
 							Message<?> m = (Message<?>) event;
-							IPConMsgData msgData = (IPConMsgData) m.getData();
-							IPConDataStore dataStore = (IPConDataStore)entity;
+							IPConVoteData msgData = (IPConVoteData) m.getData();
+							IPConConvDataStore dataStore = (IPConConvDataStore)entity;
 							if ( ( ((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).size()==1 ) && ((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).contains(m.getFrom()) ) {
 								// TODO FIXME Check safety ok here
 								
@@ -496,10 +511,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 					// TODO check safety is ok, update knowledge (, send chosen message?)
 					if (	(message instanceof Message<?>)
-							&& (message.getData() instanceof IPConMsgData)
-							&& (conv.getEntity() instanceof IPConDataStore) ) {
-						IPConMsgData msgData = (IPConMsgData)message.getData();
-						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+							&& (message.getData() instanceof IPConVoteData)
+							&& (conv.getEntity() instanceof IPConConvDataStore) ) {
+						IPConVoteData msgData = (IPConVoteData)message.getData();
+						IPConConvDataStore store = ((IPConConvDataStore)conv.getEntity());
 						HashSet<NetworkAddress> syncSet = (HashSet<NetworkAddress>) store.getData("SyncSet");
 						if (!syncSet.equals(null) && (syncSet.size()==1) && syncSet.contains(message.getFrom()) ) {
 							syncSet.remove(message.getFrom());
@@ -530,10 +545,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 					@Override
 					public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
 						// check the message is correct, the agent is being synched, and safety is not ok
-						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConMsgData) && (entity instanceof IPConDataStore) ) {
+						if ( (event instanceof Message<?>) && ( ((Message<?>)event).getData() instanceof IPConVoteData) && (entity instanceof IPConConvDataStore) ) {
 							Message<?> m = (Message<?>) event;
-							IPConMsgData msgData = (IPConMsgData) m.getData();
-							IPConDataStore dataStore = (IPConDataStore)entity;
+							IPConVoteData msgData = (IPConVoteData) m.getData();
+							IPConConvDataStore dataStore = (IPConConvDataStore)entity;
 							if (((HashSet<NetworkAddress>)(dataStore.getData("SyncSet"))).contains(m.getFrom())) {
 								// TODO FIXME Check safety violated here
 								
@@ -553,10 +568,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 						Transition transition) {
 					// TODO check safety is broken, send revise message, wipe all counters/sets
 					if (	(message instanceof Message<?>)
-							&& (message.getData() instanceof IPConMsgData)
-							&& (conv.getEntity() instanceof IPConDataStore) ) {
-						IPConMsgData msgData = (IPConMsgData)message.getData();
-						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+							&& (message.getData() instanceof IPConVoteData)
+							&& (conv.getEntity() instanceof IPConConvDataStore) ) {
+						IPConVoteData msgData = (IPConVoteData)message.getData();
+						IPConConvDataStore store = ((IPConConvDataStore)conv.getEntity());
 						HashSet<NetworkAddress> syncSet = (HashSet<NetworkAddress>) store.getData("SyncSet");
 						if (syncSet.contains(message.getFrom()) ) {
 							syncSet.clear();
@@ -566,10 +581,10 @@ public abstract class IPConProtocol extends FSMProtocol {
 							// leave BallotNum as it is for ordering
 							// TODO recheck safety is not ok ?
 							conv.getNetwork().sendMessage(
-									new BroadcastMessage<IPConMsgData>(
+									new BroadcastMessage<IPConVoteData>(
 										Performative.INFORM, MessageType.REVISE.name(), SimTime.get(), conv.getNetwork().getAddress(),
 										/* Send revise message with correct ballot number. Value should also be correct, obviously */
-										new IPConMsgData(msgData.getIssue(), null, (Integer) store.getData("BallotNum"))
+										new IPConVoteData(msgData.getIssue(), null, (Integer) store.getData("BallotNum"), null)
 									)
 								);
 							
@@ -599,19 +614,19 @@ public abstract class IPConProtocol extends FSMProtocol {
 				public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
 					// send revise message if conversation in event is same
 					if (	(message instanceof InternalNeedRevisionMessage)
-							&& (message.getData() instanceof IPConMsgData)
-							&& (conv.getEntity() instanceof IPConDataStore) ) {
-						IPConMsgData msgData = (IPConMsgData)message.getData();
-						IPConDataStore store = ((IPConDataStore)conv.getEntity());
+							&& (message.getData() instanceof IPConVoteData)
+							&& (conv.getEntity() instanceof IPConConvDataStore) ) {
+						IPConVoteData msgData = (IPConVoteData)message.getData();
+						IPConConvDataStore store = ((IPConConvDataStore)conv.getEntity());
 						// reset everything
 						store.getDataMap().put("VoteCount", 0);
 						store.getDataMap().put("ReceiveCount", 0);
 						// leave BallotNum as it is for ordering
 						conv.getNetwork().sendMessage(
-								new BroadcastMessage<IPConMsgData>(
+								new BroadcastMessage<IPConVoteData>(
 									Performative.INFORM, MessageType.REVISE.name(), SimTime.get(), conv.getNetwork().getAddress(),
 									/* Send revise message with correct ballot number. Value should also be correct, obviously */
-									new IPConMsgData(msgData.getIssue(), null, (Integer) store.getData("BallotNum"))
+									new IPConVoteData(msgData.getIssue(), null, (Integer) store.getData("BallotNum"), null)
 								)
 							);
 						logger.trace("Revised issue " + store.getIssue() + " - previously with value " + store.getValue() + " and ballot " + store.getData("BallotNum"));
@@ -637,14 +652,13 @@ public abstract class IPConProtocol extends FSMProtocol {
 				new MessageAction() {
 
 					@Override
-					public void processMessage(Message<?> message,
-							FSMConversation conv, Transition transition) {
-						logger.trace("Ending conversation " + conv + " on issue " + ((IPConMsgData)message.getData()).issue);
+					public void processMessage(Message<?> message, FSMConversation conv, Transition transition) {
+						logger.trace("Ending conversation " + conv + " on issue " + ((IPConVoteData)message.getData()).issue);
 					}
 
 			});
-
 		}
+		
 		/*this.description.addTransition(MessageType.PROPOSE, new AndCondition(
 				new IPConOwnRoleCondition(Role.LEADER),
 				new IPConSenderRoleCondition(Role.PROPOSER),
@@ -716,7 +730,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 	 * @author dws04
 	 *
 	 */
-	class InternalNeedRevisionMessage extends Message<IPConMsgData> {
+	class InternalNeedRevisionMessage extends Message<IPConVoteData> {
 
 		/**
 		 * 
@@ -725,7 +739,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * @param ballotNum 
 		 */
 		public InternalNeedRevisionMessage(FSMConversation conv, String issue, Integer ballotNum) {
-			super(Performative.INFORM, MessageType.INTERNAL_NEED_REVISION.name(), SimTime.get(), conv.getNetwork().getAddress(),new IPConMsgData(issue, null, ballotNum));
+			super(Performative.INFORM, MessageType.INTERNAL_NEED_REVISION.name(), SimTime.get(), conv.getNetwork().getAddress(),new IPConVoteData(issue, null, ballotNum, null));
 		}
 
 		
@@ -744,6 +758,15 @@ public abstract class IPConProtocol extends FSMProtocol {
 	 */
 	public void internalRoleChange(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, Role oldRole, Role newRole) {
 		this.handle(new InternalRoleChangeMessage(conv, agentId, issue, ballotNum, addOrRem, oldRole, newRole));
+	}
+	
+	protected IPConVoteData getHNB(String issue) {
+		return this.hnb.get(issue);
+	}
+	
+	protected void setHNB(String issue, Object value, Integer ballotNum, Integer revision) {
+		this.hnb.get(issue).setBallotNum(ballotNum);
+		this.hnb.get(issue).setRevision(revision);
 	}
 	
 	class IPConRoleChangeMessageData {
@@ -856,24 +879,24 @@ public abstract class IPConProtocol extends FSMProtocol {
 			// update syncCount, send sync_req message to agent, and a broadcast to let others know
 			if (	(message instanceof InternalRoleChangeMessage)
 					&& (message.getData() instanceof IPConRoleChangeMessageData)
-					&& (conv.getEntity() instanceof IPConDataStore) ) {
+					&& (conv.getEntity() instanceof IPConConvDataStore) ) {
 				IPConRoleChangeMessageData msgData = (IPConRoleChangeMessageData)message.getData();
-				IPConDataStore store = ((IPConDataStore)conv.getEntity());
+				IPConConvDataStore store = ((IPConConvDataStore)conv.getEntity());
 				// Check it's not null since we're reusing this block of code...
 				HashSet<NetworkAddress> syncSet = (HashSet<NetworkAddress>) store.getData("SyncSet");
 				if (syncSet.equals(null)) { syncSet = new HashSet<NetworkAddress>(); }
 				syncSet.add(msgData.getAgentId());
 				store.getDataMap().put("SyncSet", syncSet); //FIXME will this always be overwriting or do I actually need to do this?
 				/* Send SyncReq message with correct ballot number. Value should also be correct, obviously */
-				IPConMsgData newData = new IPConMsgData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"));
+				final IPConVoteData newData = new IPConVoteData(msgData.getIssue(), store.getValue(), (Integer) store.getData("BallotNum"), null);
 				conv.getNetwork().sendMessage(
-						new BroadcastMessage<IPConMsgData>(
+						new BroadcastMessage<IPConVoteData>(
 							Performative.INFORM, MessageType.SYNC_REQ.name(), SimTime.get(), conv.getNetwork().getAddress(),
 							newData
 						)
 					);
 				conv.getNetwork().sendMessage(
-						new UnicastMessage<IPConMsgData>(
+						new UnicastMessage<IPConVoteData>(
 							Performative.INFORM, MessageType.SYNC_REQ.name(), SimTime.get(),
 							conv.getNetwork().getAddress(), msgData.getAgentId(),
 							newData
@@ -884,29 +907,38 @@ public abstract class IPConProtocol extends FSMProtocol {
 		}
 	}
 	
-	private class IPConMsgData {
-		private final String issue;
-		private final Object value;
+	/**
+	 * Class to hold the data to identify a vote (issue, value, ballot)
+	 * @author dave
+	 *
+	 */
+	private class IPConVoteData {
+		private String issue;
+		private Object value;
 		private Integer ballotNum;
+		private Integer revision;
 		/**
 		 * @param issue
 		 * @param value
 		 */
-		public IPConMsgData(String issue, Object value) {
+		public IPConVoteData(String issue, Object value) {
 			super();
 			this.issue = issue;
 			this.value = value;
-			this.setBallotNum(null);
+			this.ballotNum = null;
+			this.revision = null;
 		}
 		/**
 		 * @param issue
 		 * @param value
+		 * @param revision TODO
 		 */
-		public IPConMsgData(String issue, Object value, Integer ballotNum) {
+		public IPConVoteData(String issue, Object value, Integer ballotNum, Integer revision) {
 			super();
 			this.issue = issue;
 			this.value = value;
-			this.setBallotNum(ballotNum);
+			this.ballotNum = null;
+			this.revision = null;
 		}
 		/**
 		 * @return the issue
@@ -921,16 +953,29 @@ public abstract class IPConProtocol extends FSMProtocol {
 			return value;
 		}
 		/**
+		/**
+		 * @return the ballotNum
+		 */
+		public Integer getBallotNum() {
+			return ballotNum;
+		}
+		/**
+		 * @return the revision
+		 */
+		public Integer getRevision() {
+			return revision;
+		}
+		/**
 		 * @param ballotNum the ballotNum to set
 		 */
 		public void setBallotNum(Integer ballotNum) {
 			this.ballotNum = ballotNum;
 		}
 		/**
-		 * @return the ballotNum
+		 * @param revision the revision to set
 		 */
-		public Integer getBallotNum() {
-			return ballotNum;
+		public void setRevision(Integer revision) {
+			this.revision = revision;
 		}
 	}
 	
@@ -947,8 +992,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 
 		@Override
 		public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
-			if (entity instanceof IPConDataStore) {
-				return ((IPConDataStore)entity).getRole(myId).equals(role);
+			if (entity instanceof IPConConvDataStore) {
+				// FIXME this should use myRoles or change entity.roleMap to have a list of roles each
+				return ((IPConConvDataStore)entity).getRole(myId).equals(role);
 			}
 			else return false;
 		}
@@ -969,8 +1015,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 		public boolean allow(Object event, Object entity, uk.ac.imperial.presage2.util.fsm.State state) {
 			if (event instanceof Message) {
 				Message<?> m = (Message<?>) event;
-				if (entity instanceof IPConDataStore) {
-					return ((IPConDataStore)entity).getRole(m.getFrom().getId()).equals(role);
+				if (entity instanceof IPConConvDataStore) {
+					// FIXME change entity.roleMap to have a list of roles each
+					return ((IPConConvDataStore)entity).getRole(m.getFrom().getId()).equals(role);
 				}
 				else return false;
 			}

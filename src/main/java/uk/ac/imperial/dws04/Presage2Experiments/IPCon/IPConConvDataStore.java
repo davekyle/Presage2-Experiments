@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -13,14 +14,21 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
  * @author dws04
  *
  */
-public class IPConDataStore {
+public class IPConConvDataStore {
 	private final UUID myId;
-	private final HashMap<UUID, IPConProtocol.Role> roleMap;
+	private final HashMap<UUID, ArrayList<Role>> roleMap;
 	private final String issue;
-	private Object value = null;;
+	private Object value = null;
+	/**
+	 * Revision of the issue
+	 */
+	private final Integer revision;
+	/**
+	 * Ballot that the conversation is for
+	 */
+	private final Integer ballotNum;
 	/**
 	 * Examples of things to store (and remember to update !)
-	 *  - BallotNum = most recent ballot you voted in / know about
 	 *  - ReceiveCount = number of receive messages you've heard this round
 	 *  - Quorum = quorum on this issue
 	 *  - VoteCount = number of votes this round
@@ -33,11 +41,13 @@ public class IPConDataStore {
 	 * @param roleMap
 	 * @param issue
 	 */
-	public IPConDataStore(UUID myId, String issue, HashMap<UUID, Role> roleMap) {
+	public IPConConvDataStore(UUID myId, String issue, Integer ballotNum, Integer revision, HashMap<UUID, ArrayList<Role>> roleMap) {
 		super();
 		this.myId = myId;
 		this.roleMap = roleMap;
 		this.issue = issue;
+		this.ballotNum = ballotNum;
+		this.revision = revision;
 		this.dataMap = new HashMap<String,Object>();
 	}
 	
@@ -46,12 +56,14 @@ public class IPConDataStore {
 	 * @param myStartingRole
 	 * @param issue
 	 */
-	public IPConDataStore(UUID myId, String issue, Role myStartingRole) {
+	public IPConConvDataStore(UUID myId, String issue, Integer ballotNum, Integer revision, Role myStartingRole) {
 		super();
 		this.myId = myId;
-		this.roleMap = new HashMap<UUID, Role>();
-		this.roleMap.put(myId, myStartingRole);
+		this.roleMap = new HashMap<UUID, ArrayList<Role>>();
+		this.addRole(myId, myStartingRole);
 		this.issue = issue;
+		this.ballotNum = ballotNum;
+		this.revision = revision;
 		this.dataMap = new HashMap<String,Object>();
 	}
 
@@ -65,7 +77,7 @@ public class IPConDataStore {
 	/**
 	 * @return the roleMap
 	 */
-	public HashMap<UUID, IPConProtocol.Role> getRoleMap() {
+	public HashMap<UUID, ArrayList<Role>> getRoleMap() {
 		return roleMap;
 	}
 	
@@ -74,8 +86,24 @@ public class IPConDataStore {
 	 * @param agentId
 	 * @return the role of the given agent in this conversation
 	 */
-	public IPConProtocol.Role getRole(UUID agentId) {
+	public ArrayList<Role> getRoles(UUID agentId) {
 		return roleMap.get(agentId);
+	}
+	
+	public void addRole(UUID agentId, Role role) {
+		if (!this.roleMap.get(agentId).contains(role)) {
+			this.roleMap.get(agentId).add(role);
+		}
+	}
+	
+	/**
+	 *
+	 * @param agentId
+	 * @param role
+	 * @return true if the agent has the role, false otherwise
+	 */
+	public boolean agentHasRole(UUID agentId, Role role) {
+		return roleMap.get(agentId).contains(role);
 	}
 
 	/**
@@ -111,6 +139,20 @@ public class IPConDataStore {
 	 */
 	public Object getValue() {
 		return value;
+	}
+
+	/**
+	 * @return the revision
+	 */
+	public Integer getRevision() {
+		return revision;
+	}
+
+	/**
+	 * @return the ballotNum
+	 */
+	public Integer getBallotNum() {
+		return ballotNum;
 	}
 	
 
