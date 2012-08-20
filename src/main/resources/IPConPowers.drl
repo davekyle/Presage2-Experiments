@@ -111,6 +111,47 @@ end
 declare LeavePow
 	agent : NetworkAddress
 	cluster : UUID
+end
+
+//power to addRole
+declare AddRolePow
+	leader : NetworkAddress
+	agent : NetworkAddress
+	role : Role
+	revision : Integer
+	issue : String
+	cluster : UUID
+end
+
+// permission to addRole
+declare AddRolePer
+	leader : NetworkAddress
+	agent : NetworkAddress
+	role : Role
+	revision : Integer
+	issue : String
+	cluster : UUID
+end	
+
+//power to remRole
+declare RemRolePow
+	leader : NetworkAddress
+	agent : NetworkAddress
+	role : Role
+	revision : Integer
+	issue : String
+	cluster : UUID
+end	
+
+//permission to remRole
+declare RemRolePer
+	leader : NetworkAddress
+	agent : NetworkAddress
+	role : Role
+	revision : Integer
+	issue : String
+	cluster : UUID
+end	
 
 rule "holdsAt for power to request0a"
 	when
@@ -221,3 +262,41 @@ rule "holdsAt for power to leave"
 	then
 		insertLogical( new LeavePow( $agent, $cluster ) );
 end
+
+rule "holdsAt for power to addRole"
+	when
+		HasRole( role==Role.LEADER, $leader : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		not HasRole( $role : role, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( new (AddRolePow( $leader, $agent, $role, $revision, $issue, $cluster ) );
+end
+
+rule "holdsAt for permission to addRole"
+	when
+		AddRolePow( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( new (AddRolePer( $leader, $agent, $role, $revision, $issue, $cluster ) );
+end
+
+rule "holdsAt for power to remRole"
+	when
+		HasRole( role==Role.LEADER, $leader : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		HasRole( $role : role, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( new (RemRolePow( $leader, $agent, $role, $revision, $issue, $cluster ) );
+end
+
+rule "holdsAt for permission to remRole"
+	when
+		RemRolePow( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( new (RemRolePer( $leader, $agent, $role, $revision, $issue, $cluster ) );
+end
+
+
+
+
+
+
+
+

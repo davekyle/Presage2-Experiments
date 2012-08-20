@@ -17,6 +17,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowers
 
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 
 //presage2
 import uk.ac.imperial.presage2.core.network.NetworkAddress
@@ -138,7 +139,21 @@ rule "LeaveCluster terminates all roles, syncs and reported votes"
 		// FIXME what about Voted's ?
 end
 
+rule "AddRole initiates role"
+	when
+		AddRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
+		AddRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		insert( new HasRole( $role, $agent, $revision, $issue, $cluster ) );
+end
 
+rule "RemRole terminates role"
+	when
+		RemRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
+		RemRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		retract( HasRole( $role, $agent, $revision, $issue, $cluster ) );
+end
 
 
 
