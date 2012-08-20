@@ -133,7 +133,7 @@ rule "LeaveCluster terminates all roles, syncs and reported votes"
 		LeaveCluster( $agent : agent, $cluster : cluster )
 		LeavePow( agent==$agent, cluster==$cluster )
 	then
-		retract( HasRole( $agent, $cluster ) );
+		retract( HasRole( $agent, $cluster ) ); // FIXME these are wrong
 		retract( Sync( $agent, $cluster ) );
 		retract( ReportedVote( $agent, $cluster ) );
 		// FIXME what about Voted's ?
@@ -155,7 +155,13 @@ rule "RemRole terminates role"
 		retract( HasRole( $role, $agent, $revision, $issue, $cluster ) );
 end
 
-
+rule "Revise terminates all syncs"
+	when
+		Revise( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		// match all sync with revision<revision
+	then
+		// forloop through and retract
+end
 
 
 
