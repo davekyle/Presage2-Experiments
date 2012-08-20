@@ -1,0 +1,67 @@
+//created on: Aug 20, 2012
+package uk.ac.imperial.dws04.Presage2Experiments.IPCon
+
+//list any import classes here.
+//java
+import java.lang.String
+import java.lang.Integer
+import java.util.UUID
+//presage2
+import uk.ac.imperial.presage2.core.network.NetworkAddress
+
+//declare any global variables here
+global org.apache.log4j.Logger logger
+
+
+// IPCon institutional facts
+declare Proposed
+	value : Object @key
+	issue : String @key
+	cluser : UUID @key
+end
+
+declare Pre_Vote
+	revision : Integer @key
+	ballot : Integer @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+declare Open_Vote
+	revision : Integer @key
+	ballot : Integer @key
+	value : Object @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+declare Voted
+	agent : NetworkAddress @key
+	revision : Integer @key
+	ballot : Integer @key
+	value : Object @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+// FIXME TODO Assume these are inserted and retracted elsewhere based on a messagehandler
+declare IsAcceptor
+	agent : NetworkAddress @key
+	cluster : UUID @key
+	issue : String @key
+	revision : Integer @key
+end
+
+declare IsLeader
+	agent : NetworkAddress @key
+	cluster : UUID @key
+	issue : String @key
+	revision : Integer @key
+end
+
+declare IsProposer
+	agent : NetworkAddress @key
+	cluster : UUID @key
+	issue : String @key
+	revision : Integer @key
+end

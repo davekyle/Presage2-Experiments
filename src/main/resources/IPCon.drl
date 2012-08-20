@@ -1,0 +1,75 @@
+//created on: Aug 20, 2012
+package uk.ac.imperial.dws04.Presage2Experiments.IPCon
+
+//list any import classes here.
+// java
+import java.util.List
+import java.lang.Math
+import java.lang.Double
+import java.lang.String
+import java.lang.Integer
+import java.util.UUID
+
+//other drls files
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts
+
+// my presage2
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
+
+//presage2
+import uk.ac.imperial.presage2.core.network.NetworkAddress
+
+//declare any global variables here
+global org.apache.log4j.Logger logger
+
+// drls stuff here
+
+declare Request0A
+	@role( event )
+end
+
+declare Prepare1A
+	@role( event )
+end
+
+
+rule "Request0A initiates Proposed"
+
+    when
+        Request0A( $agent : agent, $revision : revision, $value : value, $issue : issue, $cluster : cluster )
+        // pow if role, per if pow
+        IsProposer( agent==$agent, cluster==$cluster, issue==$issue, revision==$revision )
+    then
+        insert( new Proposed( $value, $issue, $cluster ) )
+end
+
+rule "Prepare1A initiate Pre_Vote"
+    //include attributes such as "salience" here...
+    when
+        Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+        //pow if role of leader, per if pow
+        IsLeader( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+    then
+        insert( new Pre_Vote( $revision, $ballot, $issue, $cluster ) )
+
+end
+
+rule "Prepare1A terminates previous Pre_Votes on same issue (previous revision)"
+	when
+		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+        //pow if role of leader, per if pow
+        IsLeader( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+        $pv = Pre_Vote( revision<$revision, issue==$issue, cluster==$cluster )
+    then
+        retract( $pv )
+end
+
+rule "Prepare1A terminates previous Pre_Votes on same issue (same revision, previous ballot)"
+	when
+		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+        //pow if role of leader, per if pow
+        IsLeader( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+        $pv = Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
+    then
+        retract( $pv )
+end
