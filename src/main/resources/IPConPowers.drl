@@ -1,0 +1,164 @@
+//created on: Aug 20, 2012
+package uk.ac.imperial.dws04.Presage2Experiments.IPCon
+
+//list any import classes here.
+//java
+import java.lang.String
+import java.lang.Integer
+import java.util.UUID
+import java.lang.Object
+//presage2
+import uk.ac.imperial.presage2.core.network.NetworkAddress
+
+//declare any global variables here
+global org.apache.log4j.Logger logger
+
+// power to make a request0a action
+declare RequestPow
+	agent : NetworkAddress @key
+	revision : Integer @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+// permission to make a request0a action
+declare RequestPer
+	agent : NetworkAddress @key
+	revision : Integer @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+// power to make a prepare1a action
+declare PreparePow
+	agent : NetworkAddress @key
+	revision : Integer @key
+	ballot : Integer @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+// permission to make a prepare1a action
+declare PreparePer
+	agent : NetworkAddress @key
+	revision : Integer @key
+	ballot : Integer @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+// power to make a response1b action
+declare ResponsePow
+	agent : NetworkAddress @key
+	voteRevision : Integer @key
+	voteBallot : Integer @key
+	voteValue : Object @key
+	revision : Integer @key
+	ballot : Integer @key
+	issue : String @key
+	cluster : UUID @key 
+end
+
+// permission to make a response1b action
+declare ResponsePer
+	agent : NetworkAddress @key
+	voteRevision : Integer @key
+	voteBallot : Integer @key
+	voteValue : Object @key
+	revision : Integer @key
+	ballot : Integer @key
+	issue : String @key
+	cluster : UUID @key 
+end
+
+// power to make a submit2a action
+declare SubmitPow
+	agent : NetworkAddress @key
+	revision : Integer @key
+	ballot : Integer @key
+	value : Object @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+// permission to make a submit2a action
+declare SubmitPer
+	agent : NetworkAddress @key
+	revision : Integer @key
+	ballot : Integer @key
+	value : Object @key
+	issue : String @key
+	cluster : UUID @key
+end
+
+rule "holdsAt for power to request0a"
+	when
+		IsProposer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( RequestPow( $agent, $revision, $issue, $cluster ) );
+end
+
+rule "holdsAt for permission to request0a"
+	when
+		RequestPow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( RequestPer(  $agent, $revision, $issue, $cluster ) );
+end
+
+rule "holdsAt for power to prepare1a"
+	when
+		IsLeader( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( PreparePow( $agent, $revision, $ballot, $issue, $cluster ) );
+end
+
+rule "holdsAt for permission to prepare1a"
+	when
+		PreparePow( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( PreparePow( $agent, $revision, $ballot, $issue, $cluster ) );
+end
+
+rule "holdsAt for power to reponse1b"
+	when
+		IsAcceptor( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		Pre_Vote( revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+	then
+		insertLogical( ResponsePow( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
+end
+
+rule "holdsAt for permission to response1b (if voted)"
+	when
+		ResponsePow( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		Voted( agent==$agent, voteRevision==$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, issue==$issue, cluster==$cluster )
+		//$voteBallot < $ballot
+		//$voteRevision <= $revision
+	then
+		insertLogical( ResponsePer( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
+end
+
+rule "holdsAt for permission to response1b (with indicators if didn't vote in this revision)"
+	when
+		ResponsePow( $agent : agent, voteRevision==$revision, voteBallot==0, voteValue==null, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		not Voted( agent==$agent, voteRevision==$revision, issue==$issue, cluster==$cluster )
+	then
+		insertLogical( ResponsePer( $agent, $revision, 0, null, $revision, $ballot, $issue, $cluster );
+end
+
+rule "holdsAt for power to submit2a"
+	when
+		IsLeader( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		Pre_Vote( revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+	then
+		insertLogical( SubmitPow( $agent, $revision, $ballot, $value, $issue, $cluster ) );
+end
+
+rule "holdsAt for permission to submit2a"
+	when
+		SubmitPow( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		// FIXME TODO calculate safety ?
+	then
+		insertLogical( SubmitPer( $agent, $revision, $ballot, $value, $issue, $cluster ) );
+end
+
+

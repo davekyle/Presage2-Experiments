@@ -8,10 +8,12 @@ import java.lang.Math
 import java.lang.Double
 import java.lang.String
 import java.lang.Integer
+import java.lang.Object
 import java.util.UUID
 
 //other drls files
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowers
 
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
@@ -32,15 +34,22 @@ declare Prepare1A
 	@role( event )
 end
 
+declare Response1B
+	@role( event )
+end
+
+declare Submit2A
+	@role( event )
+end
 
 rule "Request0A initiates Proposed"
 
     when
         Request0A( $agent : agent, $revision : revision, $value : value, $issue : issue, $cluster : cluster )
-        // pow if role, per if pow
-        IsProposer( agent==$agent, cluster==$cluster, issue==$issue, revision==$revision )
+        RequestPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+        //RequestPer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
     then
-        insert( new Proposed( $value, $issue, $cluster ) )
+        insert( new Proposed( $revision, $value, $issue, $cluster ) );
 end
 
 rule "Prepare1A initiate Pre_Vote"
@@ -48,28 +57,53 @@ rule "Prepare1A initiate Pre_Vote"
     when
         Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
         //pow if role of leader, per if pow
-        IsLeader( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+        PreparePow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+        //PreparePer( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
     then
-        insert( new Pre_Vote( $revision, $ballot, $issue, $cluster ) )
+        insert( new Pre_Vote( $revision, $ballot, $issue, $cluster ) );
 
 end
 
 rule "Prepare1A terminates previous Pre_Votes on same issue (previous revision)"
 	when
 		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-        //pow if role of leader, per if pow
-        IsLeader( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
         $pv = Pre_Vote( revision<$revision, issue==$issue, cluster==$cluster )
+        //pow if role of leader, per if pow
+        PreparePow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+        //PreparePer( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
     then
-        retract( $pv )
+        retract( $pv );
 end
 
 rule "Prepare1A terminates previous Pre_Votes on same issue (same revision, previous ballot)"
 	when
 		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-        //pow if role of leader, per if pow
-        IsLeader( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
         $pv = Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
+        //pow if role of leader, per if pow
+        PreparePow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+        //PreparePer( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
     then
-        retract( $pv )
+        retract( $pv );
 end
+
+rule "Response1B initiates Reported_Vote"
+	when
+		Response1B( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		ResponsePow( agent==$agent, voteRevision=$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster
+	then
+		insert( new Reported_Vote( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster ) );
+end
+
+rule "Submit2A initiates Open_Vote"
+	when
+		Submit2A( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		SubmitPow( agent==$agent, revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
+	then
+		insert( new Open_Vote( $revision, $ballot, $value, $issue, $cluster ) );
+end
+
+
+
+
+
+
