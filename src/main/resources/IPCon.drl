@@ -116,7 +116,7 @@ rule "Arrogate initiates IsLeader"
 		ArrogateLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		ArrogatePer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		insert( new IsLeader( $agent, $revision, $issue, $cluster ) );
+		insert( new HasRole( role==Role.LEADER, $agent, $revision, $issue, $cluster ) );
 end
 
 rule "Resign terminates IsLeader"
@@ -124,10 +124,19 @@ rule "Resign terminates IsLeader"
 		ResignLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		ResignPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		retract( IsLeader( $agent, $revision, $issue, $cluster ) );
+		retract( HasRole( role==Role.LEADER, $agent, $revision, $issue, $cluster ) );
 end
 
-
+rule "LeaveCluster terminates all roles, syncs and reported votes"
+	when
+		LeaveCluster( $agent : agent, $cluster : cluster )
+		LeavePow( agent==$agent, cluster==$cluster )
+	then
+		retract( HasRole( $agent, $cluster ) );
+		retract( Sync( $agent, $cluster ) );
+		retract( ReportedVote( $agent, $cluster ) );
+		// FIXME what about Voted's ?
+end
 
 
 

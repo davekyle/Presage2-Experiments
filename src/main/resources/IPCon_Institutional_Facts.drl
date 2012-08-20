@@ -9,6 +9,8 @@ import java.langh.Object
 import java.util.UUID
 //presage2
 import uk.ac.imperial.presage2.core.network.NetworkAddress
+//IPCon
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConRole
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
@@ -16,82 +18,69 @@ global org.apache.log4j.Logger logger
 
 // IPCon institutional facts
 declare Proposed
-	revision : Integer @key
-	value : Object @key
-	issue : String @key
-	cluster : UUID @key
+	revision : Integer
+	value : Object
+	issue : String
+	cluster : UUID
 end
 
 declare Pre_Vote
-	revision : Integer @key
-	ballot : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	revision : Integer
+	ballot : Integer
+	issue : String
+	cluster : UUID
 end
 
 declare Open_Vote
-	revision : Integer @key
-	ballot : Integer @key
-	value : Object @key
-	issue : String @key
-	cluster : UUID @key
+	revision : Integer
+	ballot : Integer
+	value : Object
+	issue : String
+	cluster : UUID
 end
 
 declare Voted
-	agent : NetworkAddress @key
-	revision : Integer @key
-	ballot : Integer @key
-	value : Object @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	ballot : Integer
+	value : Object
+	issue : String
+	cluster : UUID
 end
 
 declare ReportedVote
-	agent : NetworkAddress @key
-	voteRevision : Integer @key
-	voteBallot : Integer @key
-	voteValue : Object @key
-	revision : Integer @key
-	ballot : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	voteRevision : Integer
+	voteBallot : Integer
+	voteValue : Object
+	revision : Integer
+	ballot : Integer
+	issue : String
+	cluster : UUID
 end
 
 declare Chosen
-	revision : Integer @key
-	ballot : Integer @key
-	value : Object @key
-	issue : String @key
-	cluster : UUID @key
+	revision : Integer
+	ballot : Integer
+	value : Object
+	issue : String
+	cluster : UUID
 end
 
 declare Sync
-	agent : NetworkAddress @key
-	value : Object @key
-	revision : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	value : Object
+	revision : Integer
+	issue : String
+	cluster : UUID
 end
 	
 
 // FIXME TODO Assume these are inserted and retracted elsewhere based on a messagehandler or something
-declare IsAcceptor
-	agent : NetworkAddress @key
-	revision : Integer @key
-	issue : String @key
-	cluster : UUID @key
-end
-
-declare IsLeader
-	agent : NetworkAddress @key
-	revision : Integer @key
-	issue : String @key
-	cluster : UUID @key
-end
-
-declare IsProposer
-	agent : NetworkAddress @key
-	revision : Integer @key
-	issue : String @key
-	cluster : UUID @key
+declare Role
+	role : Role
+	agent : NetworkAddress
+	revision : Integer
+	issue : String
+	cluster : UUID
 end

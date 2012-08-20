@@ -15,101 +15,106 @@ global org.apache.log4j.Logger logger
 
 // power to make a request0a action
 declare RequestPow
-	agent : NetworkAddress @key
-	revision : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	issue : String
+	cluster : UUID
 end
 
 // permission to make a request0a action
 declare RequestPer
-	agent : NetworkAddress @key
-	revision : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	issue : String
+	cluster : UUID
 end
 
 // power to make a prepare1a action
 declare PreparePow
-	agent : NetworkAddress @key
-	revision : Integer @key
-	ballot : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	ballot : Integer
+	issue : String
+	cluster : UUID
 end
 
 // permission to make a prepare1a action
 declare PreparePer
-	agent : NetworkAddress @key
-	revision : Integer @key
-	ballot : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	ballot : Integer
+	issue : String
+	cluster : UUID
 end
 
 // power to make a response1b action
 declare ResponsePow
-	agent : NetworkAddress @key
-	voteRevision : Integer @key
-	voteBallot : Integer @key
-	voteValue : Object @key
-	revision : Integer @key
-	ballot : Integer @key
-	issue : String @key
-	cluster : UUID @key 
+	agent : NetworkAddress
+	voteRevision : Integer
+	voteBallot : Integer
+	voteValue : Object
+	revision : Integer
+	ballot : Integer
+	issue : String
+	cluster : UUID 
 end
 
 // permission to make a response1b action
 declare ResponsePer
-	agent : NetworkAddress @key
-	voteRevision : Integer @key
-	voteBallot : Integer @key
-	voteValue : Object @key
-	revision : Integer @key
-	ballot : Integer @key
-	issue : String @key
-	cluster : UUID @key 
+	agent : NetworkAddress
+	voteRevision : Integer
+	voteBallot : Integer
+	voteValue : Object
+	revision : Integer
+	ballot : Integer
+	issue : String
+	cluster : UUID 
 end
 
 // power to make a submit2a action
 declare SubmitPow
-	agent : NetworkAddress @key
-	revision : Integer @key
-	ballot : Integer @key
-	value : Object @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	ballot : Integer
+	value : Object
+	issue : String
+	cluster : UUID
 end
 
 // permission to make a submit2a action
 declare SubmitPer
-	agent : NetworkAddress @key
-	revision : Integer @key
-	ballot : Integer @key
-	value : Object @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	ballot : Integer
+	value : Object
+	issue : String
+	cluster : UUID
 end
 
 // permission to make an arrogate action
 declare ArrogatePer
-	agent : NetworkAddress @key
-	revision : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	issue : String
+	cluster : UUID
 end	
 
 // power to make a resign action
 declare ResignPow
-	agent : NetworkAddress @key
-	revision : Integer @key
-	issue : String @key
-	cluster : UUID @key
+	agent : NetworkAddress
+	revision : Integer
+	issue : String
+	cluster : UUID
 end	
+
+// power to leave the cluster
+declare LeavePow
+	agent : NetworkAddress
+	cluster : UUID
 
 rule "holdsAt for power to request0a"
 	when
-		IsProposer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
 		insertLogical( new RequestPow( $agent, $revision, $issue, $cluster ) );
 end
@@ -123,7 +128,7 @@ end
 
 rule "holdsAt for power to prepare1a"
 	when
-		IsLeader( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 	then
 		insertLogical( new PreparePow( $agent, $revision, $ballot, $issue, $cluster ) );
 end
@@ -137,7 +142,7 @@ end
 
 rule "holdsAt for power to reponse1b"
 	when
-		IsAcceptor( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Pre_Vote( revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
 		insertLogical( new ResponsePow( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
@@ -163,7 +168,7 @@ end
 
 rule "holdsAt for power to submit2a"
 	when
-		IsLeader( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Pre_Vote( revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
 		insertLogical( new SubmitPow( $agent, $revision, $ballot, $value, $issue, $cluster ) );
@@ -179,7 +184,7 @@ end
 
 rule "holdsAt for power to vote"
 	when
-		IsAcceptor( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Open_Vote( revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
 	then
 		insertLogical( new VotePow( $agent, $revision, $ballot, $value, $issue, $cluster ) );
@@ -198,14 +203,21 @@ end
 
 rule "holdsAt for permission to arrogate"
 	when
-		not IsLeader( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		not HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
 		insertLogical( new ArrogatePer( $agent, $revision, $issue, $cluster ) );
 end
 
 rule "holdsAt for power to resign"
 	when
-		IsLeader( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
 		insertLogical( new ResignPow( $agent, $revision, $issue, $cluster ) );
+end
+
+rule "holdsAt for power to leave"
+	when
+		HasRole( $agent : agent, $cluster : cluster )
+	then
+		insertLogical( new LeavePow( $agent, $cluster ) );
 end
