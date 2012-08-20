@@ -102,6 +102,45 @@ rule "Submit2A initiates Open_Vote"
 		insert( new Open_Vote( $revision, $ballot, $value, $issue, $cluster ) );
 end
 
+rule "Vote initiates Voted and ReportedVote"
+	when
+		Vote2B( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		VotePow( agent==$agent, revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster ) 
+	then
+		insert( new Voted( $agent, $revision, $ballot, $value, $issue, $cluster ) );
+		insert( new ReportedVote( $agent, $revision, $ballot, $value, $revision, $ballot, $issue, $cluster ) );
+end
+
+rule "Arrogate initiates IsLeader"
+	when
+		ArrogateLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		ArrogatePer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		insert( new IsLeader( $agent, $revision, $issue, $cluster ) );
+end
+
+rule "Resign terminates IsLeader"
+	when
+		ResignLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		ResignPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		retract( IsLeader( $agent, $revision, $issue, $cluster ) );
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

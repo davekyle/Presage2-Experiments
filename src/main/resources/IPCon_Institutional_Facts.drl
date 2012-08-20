@@ -77,21 +77,21 @@ end
 // FIXME TODO Assume these are inserted and retracted elsewhere based on a messagehandler or something
 declare IsAcceptor
 	agent : NetworkAddress @key
-	cluster : UUID @key
-	issue : String @key
 	revision : Integer @key
+	issue : String @key
+	cluster : UUID @key
 end
 
 declare IsLeader
 	agent : NetworkAddress @key
-	cluster : UUID @key
-	issue : String @key
 	revision : Integer @key
+	issue : String @key
+	cluster : UUID @key
 end
 
 declare IsProposer
 	agent : NetworkAddress @key
-	cluster : UUID @key
-	issue : String @key
 	revision : Integer @key
+	issue : String @key
+	cluster : UUID @key
 end
