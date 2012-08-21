@@ -1,0 +1,98 @@
+//created on: Aug 21, 2012
+package uk.ac.imperial.dws04.Presage2Experiments.IPCon
+
+//list any import classes here.
+//java
+import java.lang.String
+import java.lang.Integer
+import java.langh.Object
+import java.util.UUID
+//presage2
+import uk.ac.imperial.presage2.core.network.NetworkAddress
+//IPCon
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+//drls
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer
+
+//declare any global variables here
+global org.apache.log4j.Logger logger
+
+// fact indicating that if the person about to sync says no, there should be a revision after
+declare PossibleAddRevision
+	revision : Integer
+	issue : String
+	cluster : UUID
+end
+
+// fact indicating that if someone leaves, there may need to be a revision after
+declare PossibleRemRevision
+	revision : Integer
+	issue : String
+	cluster : UUID
+end
+
+rule "holdsAt for possibleAddRevision"
+	when
+		Sync( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
+		Chosen( revision==$revision, $ballot : ballot, value==$value, issue==$issue, cluster==$cluster )
+		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
+		Integer( $forVotes : intValue ) from accumulate( 
+								// find all the acceptors
+								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								// that voted for the value
+								$b : Voted( agent==$a.agent, revision==$revision, value==$value, issue==$issue, cluster==$cluster )
+								// and didn't vote since the one you just got
+								not( Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
+								, count( $b ) )
+		Integer( $notForVotes : intValue ) from accumulate( 
+								// find all the acceptors
+								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								// that voted against the value
+								$b1 : (
+									Voted( agent==$a1.agent, revision==$revision, value!=$value, issue==$issue, cluster==$cluster )
+									||
+								// or didnt vote
+									not Voted( agent==$a1.agent, revision==$revision, issue==$issue, cluster==$cluster )
+									)
+								// and didn't vote since the one you just got
+								not( Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
+								, count( $b1 ) )
+		$forVotes==$notForVotes
+	then
+		insertLogical( new PossibleAddRevision( $revision, $issue, $cluster ) );
+end
+
+
+rule "holdsAt for possibleRemRevision"
+	when
+		// NOTE that this code is all reused from above except the following line...
+		//Sync( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
+		Chosen( revision==$revision, $ballot : ballot, value==$value, issue==$issue, cluster==$cluster )
+		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
+		Integer( $forVotes : intValue ) from accumulate( 
+								// find all the acceptors
+								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								// that voted for the value
+								$b : Voted( agent==$a.agent, revision==$revision, value==$value, issue==$issue, cluster==$cluster )
+								// and didn't vote since the one you just got
+								not( Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
+								, count( $b ) )
+		Integer( $notForVotes : intValue ) from accumulate( 
+								// find all the acceptors
+								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								// that voted against the value
+								$b1 : (
+									Voted( agent==$a1.agent, revision==$revision, value!=$value, issue==$issue, cluster==$cluster )
+									||
+								// or didnt vote
+									not Voted( agent==$a1.agent, revision==$revision, issue==$issue, cluster==$cluster )
+									)
+								// and didn't vote since the one you just got
+								not( Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
+								, count( $b1 ) )
+		$forVotes==$notForVotes
+	then
+		insertLogical( new PossibleRemRevision( $revision, $issue, $cluster ) );
+end
+
