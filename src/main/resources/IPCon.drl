@@ -58,8 +58,8 @@ rule "Prepare1A initiate Pre_Vote"
     when
         Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
         //pow if role of leader, per if pow
-        PreparePow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
-        //PreparePer( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+        PreparePow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+        //PreparePer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
     then
         insert( new Pre_Vote( $revision, $ballot, $issue, $cluster ) );
 

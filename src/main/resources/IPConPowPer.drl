@@ -33,7 +33,6 @@ end
 declare PreparePow
 	agent : NetworkAddress
 	revision : Integer
-	ballot : Integer
 	issue : String
 	cluster : UUID
 end
@@ -42,7 +41,6 @@ end
 declare PreparePer
 	agent : NetworkAddress
 	revision : Integer
-	ballot : Integer
 	issue : String
 	cluster : UUID
 end
@@ -222,22 +220,22 @@ end
 
 rule "holdsAt for power to prepare1a"
 	when
-		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		insertLogical( new PreparePow( $agent, $revision, $ballot, $issue, $cluster ) );
+		insertLogical( new PreparePow( $agent, $revision, $issue, $cluster ) );
 end
 
 rule "holdsAt for permission to prepare1a"
 	when
-		PreparePow( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		PreparePow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		insertLogical( new PreparePow( $agent, $revision, $ballot, $issue, $cluster ) );
+		insertLogical( new PreparePer( $agent, $revision, $issue, $cluster ) );
 end
 
 rule "holdsAt for power to reponse1b"
 	when
-		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-		Pre_Vote( revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		Pre_Vote( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
 	then
 		insertLogical( new ResponsePow( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
 end
@@ -278,8 +276,8 @@ end
 
 rule "holdsAt for power to vote"
 	when
-		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-		Open_Vote( revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
+		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		Open_Vote( revision==$revision, $ballot : ballot, value==$value, issue==$issue, cluster==$cluster )
 	then
 		insertLogical( new VotePow( $agent, $revision, $ballot, $value, $issue, $cluster ) );
 end
