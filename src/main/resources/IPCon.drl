@@ -13,7 +13,7 @@ import java.util.UUID
 
 //other drls files
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowers
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer
 
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
@@ -168,7 +168,27 @@ rule "Revise terminates all syncs"
 		retract( $x );
 end
 
+rule "SyncReq initiates Sync"
+	when
+		SyncReq( $leader : leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
+		SyncReqPow( leader==$leader, revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		insert( new Sync( agent==$agent, value==$value, revision==$revision, issue==$issue, cluster==$cluster ) );
+end
 
+rule "SyncAck initiates Voted and ReportedVote (if agree)"
+	when
+		SyncAck( $agent : agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster )
+		SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
+		Chosen( revision==$revision, $ballot : ballot, value==$answer, issue==$issue, cluster==$cluster )
+	then
+		insert( new Voted( $agent, $revision, $ballot, $answer, $issue, $cluster ) );
+		insert( new ReportedVote( $agent, $revision, $ballot, $answer, $revision, $ballot, $issue, $cluster ) ); 
+end
+
+rule "SyncAck initiates null ReportedVote (if not agree)"
+	// doesn't initiate null Voted because that doesn't make sense
+	// this might not be needed, depending on implementation of Response...
 
 
 

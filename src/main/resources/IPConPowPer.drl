@@ -169,7 +169,42 @@ declare RevisePer
 	cluster : UUID
 end
 
+//power to SyncReq (value not included because it doesn't have an effect)
+declare SyncReqPow
+	leader : NetworkAddress
+	agent : NetworkAddress
+	revision : Integer
+	issue : String
+	cluster : UUID
+end
 
+//permission to SyncReq (value included this time)
+declare SyncReqPow
+	leader : NetworkAddress
+	agent : NetworkAddress
+	value : Object
+	revision : Integer
+	issue : String
+	cluster : UUID
+end
+
+// power to SyncAck
+declare SyncAckPow
+	agent : NetworkAddress
+	value : Object
+	revision : Integer
+	issue : String
+	cluster : UUID
+end
+
+//permission to SyncAck
+declare SyncAckPer
+	agent : NetworkAddress
+	value : Object
+	revision : Integer
+	issue : String
+	cluster : UUID
+end
 
 rule "holdsAt for power to request0a"
 	when
@@ -325,9 +360,46 @@ rule "holdsAt for per to revise"
 		insertLogical( new RevisePer( $agent, $revision, $issue, $cluster ) );
 end
 
+rule "holdsAt for pow to SyncReq"
+	when
+		HasRole( role==Role.LEADER, $leader : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		// added this check that wasn't in the prolog because it makes more sense, and constrains the amount of facts that are inserted :P
+		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( new SyncReqPow( $leader, $agent, $revision, $issue, $cluster ) );
+end
 
+rule "holdsAt for per to SyncReq"
+	when
+		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		// avoiding temporal checks by using declared institutional fact checking - Chosen can be retracted
+		Chosen( revision==$revision, $value : value, issue==$issue, cluster==$cluster )
+		//using a signal fact rather than a temporal event to avoid having to use temporal operators
+		NeedToSync( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( new SyncReqPer( $leader, $agent, $value, $revision, $issue, $cluster ) );
+end
 
+rule "holdsAt for pow to SyncAck"
+	when
+		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		Sync( agent==$agent, $value : value, revision==$revision, issue==$issue, cluster==$cluster )
+		$answer : ( $value || "no" )
+	then
+		insertLogical( new SyncAckPow( $agent, $answer, $revision, $issue, $cluster ) );
+end
 
+rule "holdsAt for per to SyncAck"
+	when
+		SyncAckPow( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		insertLogical( new SyncAckPer( $agent, $value, $revision, $issue, $cluster ) );
+end
+		 
+		 
+		 
+		 
+		 
 
 
 

@@ -74,10 +74,19 @@ declare Sync
 	issue : String
 	cluster : UUID
 end
-	
+
+// internal fact to get round having to do temporal checks on new acceptors
+
+declare NeedToSync
+	agent : NetworkAddress
+	value : Object
+	revision : Integer
+	issue : String
+	cluster : UUID
+end	
 
 // FIXME TODO Assume these are inserted and retracted elsewhere based on a messagehandler or something
-declare Role
+declare HasRole
 	role : Role
 	agent : NetworkAddress
 	revision : Integer
