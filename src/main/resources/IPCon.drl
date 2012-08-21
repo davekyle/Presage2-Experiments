@@ -124,18 +124,22 @@ rule "Resign terminates IsLeader"
 	when
 		ResignLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		ResignPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		$role : HasRole( role==Role.LEADER, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		retract( HasRole( role==Role.LEADER, $agent, $revision, $issue, $cluster ) );
+		retract( $role );
 end
 
 rule "LeaveCluster terminates all roles, syncs and reported votes"
 	when
 		LeaveCluster( $agent : agent, $cluster : cluster )
 		LeavePow( agent==$agent, cluster==$cluster )
+		$roles : HasRole( agent==$agent, cluster==$cluster )
+		$syncs : Sync( agent==$agent, cluster==$cluster )
+		$reportedVotes : ReportedVote( agent==$agent, cluster==$cluster )
 	then
-		retract( HasRole( $agent, $cluster ) ); // FIXME these are wrong
-		retract( Sync( $agent, $cluster ) );
-		retract( ReportedVote( $agent, $cluster ) );
+		retract( $roles );
+		retract( $syncs );
+		retract( $reportedVotes );
 		// FIXME what about Voted's ?
 end
 
@@ -151,16 +155,17 @@ rule "RemRole terminates role"
 	when
 		RemRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
 		RemRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		$role : HasRole( role==$role, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		retract( HasRole( $role, $agent, $revision, $issue, $cluster ) );
+		retract( $role );
 end
 
 rule "Revise terminates all syncs"
 	when
 		Revise( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
-		// match all sync with revision<revision
+		$x : Sync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		// forloop through and retract
+		retract( $x );
 end
 
 
