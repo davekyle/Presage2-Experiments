@@ -30,9 +30,11 @@ rule "holdsAt for obligation to prepare"
 // if you have permission, a value has been proposed, and a pre_vote doesn't exist already
 
     when
-        //conditions
+        PreparePer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+        Proposed( revision==$revision, issue==$issue, cluster==$cluster )
+        not( Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
     then
-        //actions
+        insertLogical( new Obligation( $agent, new Prepare1A( $agent, $revision, $ballot 
 
 end
 
