@@ -1,0 +1,38 @@
+//created on: Aug 21, 2012
+package uk.ac.imperial.dws04.Presage2Experiments.IPCon
+
+//list any import classes here.
+// java
+import java.util.List
+import java.lang.Math
+import java.lang.Double
+import java.lang.String
+import java.lang.Integer
+import java.lang.Object
+import java.util.UUID
+
+//other drls files
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConUtils
+
+// my presage2
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+
+//presage2
+import uk.ac.imperial.presage2.core.network.NetworkAddress
+
+//declare any global variables here
+global org.apache.log4j.Logger logger
+
+rule "holdsAt for obligation to prepare"
+// if you have permission, a value has been proposed, and a pre_vote doesn't exist already
+
+    when
+        //conditions
+    then
+        //actions
+
+end
+

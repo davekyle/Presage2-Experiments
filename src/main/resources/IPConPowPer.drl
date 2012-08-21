@@ -9,6 +9,9 @@ import java.util.UUID
 import java.lang.Object
 //presage2
 import uk.ac.imperial.presage2.core.network.NetworkAddress
+// my presage2
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 //drls
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts
 
@@ -229,6 +232,7 @@ end
 
 rule "holdsAt for permission to prepare1a"
 	when
+		// FIXME TODO maybe needs to take the ballot into account to prevent making them "in the past" ?
 		PreparePow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
 		insertLogical( new PreparePer( $agent, $revision, $issue, $cluster ) );
