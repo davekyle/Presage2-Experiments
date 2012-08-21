@@ -188,7 +188,15 @@ end
 
 rule "SyncAck initiates null ReportedVote (if not agree)"
 	// doesn't initiate null Voted because that doesn't make sense
-	// this might not be needed, depending on implementation of Response...
+	// this might not be needed, depending on implementation of Submit & Response...
+	when
+		$answer : null
+		SyncAck( $agent : agent, value==$answer, $revision : revision, $issue : issue, $cluster : cluster )
+		SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
+		Chosen( revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		insert( new ReportedVote( $agent, $revision, 0, $answer, $revision, $ballot, $issue, $cluster ) );
+end
 
 
 

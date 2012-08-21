@@ -244,8 +244,6 @@ rule "holdsAt for permission to response1b (if voted)"
 	when
 		ResponsePow( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Voted( agent==$agent, voteRevision==$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, issue==$issue, cluster==$cluster )
-		//$voteBallot < $ballot
-		//$voteRevision <= $revision
 	then
 		insertLogical( new ResponsePer( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
 end
@@ -270,6 +268,7 @@ rule "holdsAt for permission to submit2a"
 	when
 		SubmitPow( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
 		// FIXME TODO calculate safety ?
+		// make sure to take null reportedVotes into account
 	then
 		insertLogical( new SubmitPer( $agent, $revision, $ballot, $value, $issue, $cluster ) );
 end
@@ -382,7 +381,7 @@ rule "holdsAt for pow to SyncAck"
 	when
 		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Sync( agent==$agent, $value : value, revision==$revision, issue==$issue, cluster==$cluster )
-		$answer : ( $value || "no" )
+		$answer : ( $value || null )
 	then
 		insertLogical( new SyncAckPow( $agent, $answer, $revision, $issue, $cluster ) );
 end
