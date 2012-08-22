@@ -275,8 +275,15 @@ end
 rule "holdsAt for permission to submit2a"
 	when
 		SubmitPow( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		Proposed( revision==$revision, value==$value, issue==$issue, cluster==$cluster )
+		
+		
+		
 		// FIXME TODO calculate safety ?
 		// make sure to take null reportedVotes into account
+		
+		
+		
 	then
 		insertLogical( new SubmitPer( $agent, $revision, $ballot, $value, $issue, $cluster ) );
 end

@@ -98,3 +98,27 @@ rule "holdsAt for possibleRemRevision"
 		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );
 end
 
+
+declare QuorumSize
+	quorumSize : Integer
+end
+
+rule "create new quorumsize fact"
+	no-loop
+	when
+		not QuorumSize(  )
+	then
+		insert( new QuorumSize( 0 ) );
+
+rule "update quorumsize"
+// FIXME TODO work out how to do this properly
+	no-loop
+	when
+		$q = QuorumSize(  )
+		Integer( $quorumSize : intValue ) from accumulate( 
+								// find all the acceptors
+								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								, count( $a ) )
+	then
+		modify($q) { $q.quorumSize = $quorumSize }; 
+
