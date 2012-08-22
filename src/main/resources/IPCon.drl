@@ -69,7 +69,7 @@ end
 rule "Prepare1A terminates previous Pre_Votes on same issue (previous revision)"
 	when
 		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-        $pv = Pre_Vote( revision<$revision, issue==$issue, cluster==$cluster )
+        $pv : Pre_Vote( revision<$revision, issue==$issue, cluster==$cluster )
         //pow if role of leader, per if pow
         PreparePow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
         //PreparePer( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
@@ -80,7 +80,7 @@ end
 rule "Prepare1A terminates previous Pre_Votes on same issue (same revision, previous ballot)"
 	when
 		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-        $pv = Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
+        $pv : Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
         //pow if role of leader, per if pow
         PreparePow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
         //PreparePer( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
