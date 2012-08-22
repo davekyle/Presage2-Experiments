@@ -11,7 +11,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
  * @author dave
  *
  */
-public class Submit2A {
+public class Submit2A extends IPConAction {
 	public NetworkAddress agent;
 	public Integer revision;
 	public Integer ballot;

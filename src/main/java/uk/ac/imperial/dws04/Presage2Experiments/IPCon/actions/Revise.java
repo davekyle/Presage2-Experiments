@@ -11,7 +11,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
  * @author dave
  *
  */
-public class Revise {
+public class Revise extends IPConAction {
 	public NetworkAddress agent;
 	// The new revision number
 	public Integer revision;

@@ -76,7 +76,6 @@ declare Sync
 end
 
 // internal fact to get round having to do temporal checks on new acceptors
-
 declare NeedToSync
 	agent : NetworkAddress
 	value : Object
@@ -85,11 +84,15 @@ declare NeedToSync
 	cluster : UUID
 end	
 
-// FIXME TODO Assume these are inserted and retracted elsewhere based on a messagehandler or something
 declare HasRole
 	role : Role
 	agent : NetworkAddress
 	revision : Integer
 	issue : String
 	cluster : UUID
+end
+
+declare Obligation
+	agent : NetworkAddress
+	action : IPConAction
 end

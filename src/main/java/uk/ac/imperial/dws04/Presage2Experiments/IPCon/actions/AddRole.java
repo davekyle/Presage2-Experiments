@@ -12,7 +12,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
  * @author dave
  *
  */
-public class AddRole {
+public class AddRole extends IPConAction {
 	public NetworkAddress leader;
 	public NetworkAddress agent;
 	public Role role;

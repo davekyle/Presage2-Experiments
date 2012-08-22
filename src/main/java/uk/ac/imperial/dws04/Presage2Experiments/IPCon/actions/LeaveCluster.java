@@ -11,7 +11,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
  * @author dave
  *
  */
-public class LeaveCluster {
+public class LeaveCluster extends IPConAction {
 	public NetworkAddress agent;
 	public UUID cluster;
 	

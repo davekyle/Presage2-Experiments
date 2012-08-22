@@ -12,7 +12,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
  * @author dave
  *
  */
-public class SyncAck {
+public class SyncAck extends IPConAction {
 	public NetworkAddress agent;
 	public Object value;
 	public Integer revision;
