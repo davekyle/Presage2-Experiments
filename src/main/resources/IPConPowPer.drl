@@ -276,13 +276,29 @@ rule "holdsAt for permission to submit2a"
 	when
 		SubmitPow( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
 		Proposed( revision==$revision, value==$value, issue==$issue, cluster==$cluster )
-		
-		
+		QuorumSize( $quorumSize : quorumSize )
 		
 		// FIXME TODO calculate safety ?
-		// make sure to take null reportedVotes into account
+		// TODO make sure to take null reportedVotes into account
+		// TODO probably need to do nested from collects ? Or use queries ?
 		
+		// get all ReportedVotes
 		
+		// get the highest ReportedVote with the highest ballotNumber for each agent
+		
+		// ignore all that are in lower revisions than this
+		
+		// check there are no votes in any ballots later than this one
+		
+		// get the set of agents that those ReportedVotes are about
+		
+		// make sure you have >= $quorumSize of them
+		
+		// make all the possible quorumSize-sized groups of them
+		
+		// for each group, check that the hnb is either $value or null
+		
+		// if so, $value is safe
 		
 	then
 		insertLogical( new SubmitPer( $agent, $revision, $ballot, $value, $issue, $cluster ) );
