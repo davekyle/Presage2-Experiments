@@ -130,17 +130,19 @@ rule "Resign terminates IsLeader"
 		retract( $role );
 end
 
-rule "LeaveCluster terminates all roles, syncs and reported votes"
+rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 	when
 		LeaveCluster( $agent : agent, $cluster : cluster )
 		LeavePow( agent==$agent, cluster==$cluster )
 		$roles : HasRole( agent==$agent, cluster==$cluster )
 		$syncs : Sync( agent==$agent, cluster==$cluster )
 		$reportedVotes : ReportedVote( agent==$agent, cluster==$cluster )
+		$needToSyncs : NeedToSync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		retract( $roles );
 		retract( $syncs );
 		retract( $reportedVotes );
+		retract( $needToSyncs );
 		// FIXME what about Voted's ?
 end
 
@@ -163,8 +165,16 @@ end
 
 rule "Revise terminates all syncs"
 	when
-		Revise( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
 		$x : Sync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		retract( $x );
+end
+
+rule "Revise terminates all needtosyncs"
+	when
+		Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
+		$x : NeedToSync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		retract( $x );
 end
@@ -173,8 +183,11 @@ rule "SyncReq initiates Sync"
 	when
 		SyncReq( $leader : leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
 		SyncReqPow( leader==$leader, revision==$revision, issue==$issue, cluster==$cluster )
+		$needToSync : NeedToSync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		insert( new Sync( agent==$agent, value==$value, revision==$revision, issue==$issue, cluster==$cluster ) );
+		// retract NeedtoSync indicator
+		retract( $needToSync );
 end
 
 rule "SyncAck initiates Voted and ReportedVote (if agree)"

@@ -20,6 +20,7 @@ global org.apache.log4j.Logger logger
 
 // fact indicating that if the person about to sync says no, there should be a revision after
 declare PossibleAddRevision
+	value : Object
 	revision : Integer
 	issue : String
 	cluster : UUID
@@ -27,6 +28,7 @@ end
 
 // fact indicating that if someone leaves, there may need to be a revision after
 declare PossibleRemRevision
+	value : Object
 	revision : Integer
 	issue : String
 	cluster : UUID
@@ -60,7 +62,7 @@ rule "holdsAt for possibleAddRevision"
 								, count( $b1 ) )
 		$forVotes==$notForVotes
 	then
-		insertLogical( new PossibleAddRevision( $revision, $issue, $cluster ) );
+		insertLogical( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
 end
 
 
@@ -93,6 +95,6 @@ rule "holdsAt for possibleRemRevision"
 								, count( $b1 ) )
 		$forVotes==$notForVotes
 	then
-		insertLogical( new PossibleRemRevision( $revision, $issue, $cluster ) );
+		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );
 end
 

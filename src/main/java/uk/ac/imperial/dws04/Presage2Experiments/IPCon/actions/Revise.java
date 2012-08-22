@@ -13,8 +13,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
  */
 public class Revise extends IPConAction {
 	public NetworkAddress agent;
-	// The new revision number
-	public Integer revision;
+	public Integer oldRevision;
 	public String issue;
 	public UUID cluster;
 	
@@ -29,7 +28,7 @@ public class Revise extends IPConAction {
 		result = prime * result + ((cluster == null) ? 0 : cluster.hashCode());
 		result = prime * result + ((issue == null) ? 0 : issue.hashCode());
 		result = prime * result
-				+ ((revision == null) ? 0 : revision.hashCode());
+				+ ((oldRevision == null) ? 0 : oldRevision.hashCode());
 		return result;
 	}
 	/* (non-Javadoc)
@@ -59,10 +58,10 @@ public class Revise extends IPConAction {
 				return false;
 		} else if (!issue.equals(other.issue))
 			return false;
-		if (revision == null) {
-			if (other.revision != null)
+		if (oldRevision == null) {
+			if (other.oldRevision != null)
 				return false;
-		} else if (!revision.equals(other.revision))
+		} else if (!oldRevision.equals(other.oldRevision))
 			return false;
 		return true;
 	}
