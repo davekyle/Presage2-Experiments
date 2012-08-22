@@ -5,7 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon
 //java
 import java.lang.String
 import java.lang.Integer
-import java.langh.Object
+import java.lang.Object
 import java.util.UUID
 //presage2
 import uk.ac.imperial.presage2.core.network.NetworkAddress
@@ -109,17 +109,18 @@ rule "create new quorumsize fact"
 		not QuorumSize(  )
 	then
 		insert( new QuorumSize( 0 ) );
+end
 
 rule "update quorumsize"
 // FIXME TODO work out how to do this properly
 	no-loop
 	when
-		$q = QuorumSize(  )
-		Integer( $acceptors : intValue ) from accumulate( 
+		$q : QuorumSize(  )
+		$acceptors : Integer( ) from accumulate( 
 								// find all the acceptors
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a ) )
-		$quorumSize : ( $acceptors/2 ) + 1
 	then
-		modify($q) { $q.quorumSize = $quorumSize }; 
+		modify($q) { $q.quorumSize = ( $acceptors / 2 ) + 1; };
+end
 

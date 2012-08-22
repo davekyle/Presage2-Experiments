@@ -32,7 +32,7 @@ rule "holdsAt for obligation to prepare"
     when
         PreparePer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
         Proposed( revision==$revision, issue==$issue, cluster==$cluster )
-        not( Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
+        not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
     then
     	$ballot = Integer.NaN; // FIXME todo need to work out how to handle this...
     	Prepare1A $prepare = new Prepare1A( $agent, $revision, $ballot, $issue, $cluster );
@@ -45,7 +45,7 @@ rule "holdsAt for obligation to respond"
 	when
 		ReponsePer( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Voted( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, issue==$issue, cluster==$cluster )
-		not ( ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		not ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
 		Reponse1B $reponse = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
 		insertLogical( new Obligation( $agent, $response ) );
@@ -78,7 +78,7 @@ end
  rule "initiates for obligation to revise on remRole"
 // if an agent leaves when they are an acceptor and voted and you have a permission to revise and there is a possRemRev
 	when
-		RemRole( $leader : leader, $agent : agent, role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster
+		RemRole( $leader : leader, $agent : agent, role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster )
 		//FIXME TODO check that this will actually work as the permission will be modified by the remrole...
 		RemRolePer( leader==$leader, agent==$agent, role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 		//HasRole( role==Role.ACCEPTOR, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
@@ -111,7 +111,7 @@ end
 rule "syncAck no initiates obligation to revise"
 // if syncAck is no and agent had permission to say so and leader has permission to revise and possibleAddRevision, leader must revise
 	when
-		$answer : null
+		$answer==null // FIXME TODO how to do this ?
 		SyncAck( $agent : agent, value==$answer, $revision : revision, $issue : issue, $cluster : cluster )
 		SyncAckPer( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
 		RevisePer( $leader : leader, revision==$revision, issue==$issue, cluster==$cluster )

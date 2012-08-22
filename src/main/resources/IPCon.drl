@@ -91,7 +91,7 @@ end
 rule "Response1B initiates Reported_Vote"
 	when
 		Response1B( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-		ResponsePow( agent==$agent, voteRevision=$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster
+		ResponsePow( agent==$agent, voteRevision==$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster
 	then
 		insert( new Reported_Vote( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster ) );
 end
@@ -204,7 +204,7 @@ rule "SyncAck initiates null ReportedVote (if not agree)"
 	// doesn't initiate null Voted because that doesn't make sense
 	// this might not be needed, depending on implementation of Submit & Response...
 	when
-		$answer : null
+		$answer : null // FIXME TODO how to do this ?
 		SyncAck( $agent : agent, value==$answer, $revision : revision, $issue : issue, $cluster : cluster )
 		SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
 		Chosen( revision==$revision, issue==$issue, cluster==$cluster )

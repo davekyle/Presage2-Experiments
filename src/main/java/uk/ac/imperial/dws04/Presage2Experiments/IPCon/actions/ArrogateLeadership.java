@@ -17,6 +17,24 @@ public class ArrogateLeadership extends IPConAction {
 	public String issue;
 	public UUID cluster;
 	
+	@SuppressWarnings("unused")
+	private ArrogateLeadership(){}
+	
+	/**
+	 * @param agent
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 */
+	public ArrogateLeadership(NetworkAddress agent, Integer revision,
+			String issue, UUID cluster) {
+		super();
+		this.agent = agent;
+		this.revision = revision;
+		this.issue = issue;
+		this.cluster = cluster;
+	}
+	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
