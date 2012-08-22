@@ -115,10 +115,11 @@ rule "update quorumsize"
 	no-loop
 	when
 		$q = QuorumSize(  )
-		Integer( $quorumSize : intValue ) from accumulate( 
+		Integer( $acceptors : intValue ) from accumulate( 
 								// find all the acceptors
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a ) )
+		$quorumSize : ( $acceptors/2 ) + 1
 	then
 		modify($q) { $q.quorumSize = $quorumSize }; 
 
