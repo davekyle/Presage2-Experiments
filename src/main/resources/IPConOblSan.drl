@@ -26,15 +26,37 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress
 //declare any global variables here
 global org.apache.log4j.Logger logger
 
+
 rule "holdsAt for obligation to prepare"
 // if you have permission, a value has been proposed, and a pre_vote doesn't exist already
-
     when
         PreparePer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
         Proposed( revision==$revision, issue==$issue, cluster==$cluster )
         not( Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
     then
-        insertLogical( new Obligation( $agent, new Prepare1A( $agent, $revision, $ballot 
-
+    	$ballot = Integer.NaN // FIXME todo need to work out how to handle this...
+    	Prepare1A prepare = new Prepare1A( $agent, $revision, $ballot, $issue, $cluster );
+        insertLogical( new Obligation( $agent, $prepare ) ); 
 end
+
+rule "holdsAt for obligation to respond"
+// if you haven't responded when you have permission to do so, and have voted, you must respond
+// FIXME TODO possibly also send an indicator if you've responded higher to help the leader
+	when
+		ReponsePer( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		Voted( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, issue==$issue, cluster==$cluster )
+		not ( ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+	then
+		Reponse1B reponse = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
+		insertLogical( new Obligation( $agent, $response ) );
+end
+
+rule "holdsAt for obligation to submit"
+// if you have permission (which is pretty explicitly done) and haven't yet, you must
+	when
+		SubmitPer( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		not Open_Vote( revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
+	then
+		Submit2A submit = new Submit2A( $agent, $revision, $ballot, $value, $issue, $cluster );
+		insertLogical( new Obligation( $agent, $submit ) );
 

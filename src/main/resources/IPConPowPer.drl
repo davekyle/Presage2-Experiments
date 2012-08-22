@@ -233,6 +233,8 @@ end
 rule "holdsAt for permission to prepare1a"
 	when
 		// FIXME TODO maybe needs to take the ballot into account to prevent making them "in the past" ?
+		// buuut, how to show that you have permission to do anything above x without making infinite facts ?
+		// - put a placeholder in the obligation instead
 		PreparePow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
 		insertLogical( new PreparePer( $agent, $revision, $issue, $cluster ) );
