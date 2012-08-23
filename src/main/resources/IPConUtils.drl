@@ -41,26 +41,27 @@ rule "holdsAt for possibleAddRevision"
 		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
 		Integer( $forVotes : intValue ) from accumulate( 
 								// find all the acceptors
-								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								 $a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted for the value
-								$b : Voted( agent==$a.agent, revision==$revision, value==$value, issue==$issue, cluster==$cluster )
+								$b : Voted( agent==$a.agent, revision==$revision, value==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not( Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
+								not Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
 		Integer( $notForVotes : intValue ) from accumulate( 
 								// find all the acceptors
-								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted against the value
-								$b1 : (
-									Voted( agent==$a1.agent, revision==$revision, value!=$value, issue==$issue, cluster==$cluster )
-									||
-								// or didnt vote
-									not Voted( agent==$a1.agent, revision==$revision, issue==$issue, cluster==$cluster )
-									)
+								$b1 : Voted( agent==$a1.agent, revision==$revision, value!=$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not( Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
+								not Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
 								, count( $b1 ) )
-		$forVotes==$notForVotes
+		Integer( $didntVotes : intValue ) from accumulate(
+								// find all the acceptors
+								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
+								// who didnt vote
+								not Voted( agent==$a2.agent, revision==$revision, issue==$issue, cluster==$cluster )
+								, count( $a2 ) )
+		$forVotes==($notForVotes+$didntVotes)
 	then
 		insertLogical( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
 end
@@ -74,26 +75,27 @@ rule "holdsAt for possibleRemRevision"
 		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
 		Integer( $forVotes : intValue ) from accumulate( 
 								// find all the acceptors
-								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and 
 								// that voted for the value
-								$b : Voted( agent==$a.agent, revision==$revision, value==$value, issue==$issue, cluster==$cluster )
+								$b : Voted( agent==$a.agent, revision==$revision, value==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not( Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
+								not Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
 		Integer( $notForVotes : intValue ) from accumulate( 
 								// find all the acceptors
-								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted against the value
-								$b1 : (
-									Voted( agent==$a1.agent, revision==$revision, value!=$value, issue==$issue, cluster==$cluster )
-									||
-								// or didnt vote
-									not Voted( agent==$a1.agent, revision==$revision, issue==$issue, cluster==$cluster )
-									)
+								$b1 : Voted( agent==$a1.agent, revision==$revision, value!=$value, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
-								not( Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
-								, count( $b1 ) )
-		$forVotes==$notForVotes
+								not Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
+								, count( $b1 ) ) and
+		Integer( $didntVotes : intValue ) from accumulate(
+								// find all the acceptors
+								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
+								// who didnt vote
+								not Voted( agent==$a2.agent, revision==$revision, issue==$issue, cluster==$cluster )
+								, count( $a2 ) )
+		$forVotes==($notForVotes+$didntVotes)
 	then
 		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );
 end

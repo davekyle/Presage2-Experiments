@@ -64,7 +64,7 @@ end
 rule "initiates for obligation to revise on leaveCluster"
 // if an agent leaves when they are an acceptor and voted and you have a permission to revise and there is a possRemRev
 	when
-		RemRole( $leader : leader, $agent : agent, role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster
+		RemRole( $leader : leader, $agent : agent, role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster )
 		//FIXME TODO check that this will actually work as the role will be modified by the remrole...
 		HasRole( role==Role.ACCEPTOR, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		RevisePer( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster )
@@ -111,8 +111,8 @@ end
 rule "syncAck no initiates obligation to revise"
 // if syncAck is no and agent had permission to say so and leader has permission to revise and possibleAddRevision, leader must revise
 	when
-		$answer==null // FIXME TODO how to do this ?
-		SyncAck( $agent : agent, value==$answer, $revision : revision, $issue : issue, $cluster : cluster )
+		//$answer==null 
+		SyncAck( $agent : agent, $anser : value, value==null, $revision : revision, $issue : issue, $cluster : cluster )
 		SyncAckPer( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
 		RevisePer( $leader : leader, revision==$revision, issue==$issue, cluster==$cluster )
 		PossibleAddRevision( value!=$answer, revision==$revision, issue==$issue, cluster==$cluster )
