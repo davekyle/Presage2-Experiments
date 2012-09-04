@@ -13,7 +13,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 //drls
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
@@ -250,7 +250,7 @@ rule "holdsAt for power to reponse1b"
 		Pre_Vote( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Logically inserting ResponsePow( " + $agent + " , " + $voteRevision + " , " + $voteBallot + " , " + $voteValue + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
-		insertLogical( new ResponsePow( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
+		insertLogical( new ResponsePow( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster ) );
 end
 
 rule "holdsAt for permission to response1b (if voted)"
@@ -259,16 +259,17 @@ rule "holdsAt for permission to response1b (if voted)"
 		Voted( agent==$agent, voteRevision==$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Logically inserting ResponsePer( " + $agent + " , " + $voteRevision + " , " + $voteBallot + " , " + $voteValue + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
-		insertLogical( new ResponsePer( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
+		insertLogical( new ResponsePer( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster ) );
 end
 
 rule "holdsAt for permission to response1b (with indicators if didn't vote in this revision)"
 	when
-		ResponsePow( $agent : agent, voteRevision==$revision, voteBallot==0, voteValue==null, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		ResponsePow( $agent : agent, voteBallot==0, voteValue==null, $revision : revision, voteRevision==$revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		//ResponsePow( $agent : agent, voteRevision==$revision, voteBallot==0, voteValue==null, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		not Voted( agent==$agent, voteRevision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Logically inserting ResponsePer( " + $agent + " , " + $revision + " , 0 , null , " + $revision + " , " + $issue + " , " + $cluster + ")");
-		insertLogical( new ResponsePer( $agent, $revision, 0, null, $revision, $ballot, $issue, $cluster );
+		insertLogical( new ResponsePer( $agent, $revision, 0, null, $revision, $ballot, $issue, $cluster ) );
 end
 
 rule "holdsAt for power to submit2a"
@@ -285,7 +286,7 @@ rule "holdsAt for permission to submit2a"
 		SubmitPow( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
 		Proposed( revision==$revision, value==$value, issue==$issue, cluster==$cluster )
 		QuorumSize( $quorumSize : quorumSize )
-		not true
+		//not true
 		// FIXME TODO calculate safety ?
 		// TODO make sure to take null reportedVotes into account
 		// TODO probably need to do nested from collects ? Or use queries ?
