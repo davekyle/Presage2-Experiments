@@ -15,6 +15,15 @@ public class LeaveCluster extends IPConAction {
 	public NetworkAddress agent;
 	public UUID cluster;
 	
+	/**
+	 * @param agent
+	 * @param cluster
+	 */
+	public LeaveCluster(NetworkAddress agent, UUID cluster) {
+		super();
+		this.agent = agent;
+		this.cluster = cluster;
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -49,5 +58,29 @@ public class LeaveCluster extends IPConAction {
 		} else if (!cluster.equals(other.cluster))
 			return false;
 		return true;
+	}
+	/**
+	 * @return the agent
+	 */
+	public NetworkAddress getAgent() {
+		return agent;
+	}
+	/**
+	 * @param agent the agent to set
+	 */
+	public void setAgent(NetworkAddress agent) {
+		this.agent = agent;
+	}
+	/**
+	 * @return the cluster
+	 */
+	public UUID getCluster() {
+		return cluster;
+	}
+	/**
+	 * @param cluster the cluster to set
+	 */
+	public void setCluster(UUID cluster) {
+		this.cluster = cluster;
 	}
 }

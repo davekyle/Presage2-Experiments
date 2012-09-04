@@ -18,6 +18,22 @@ public class Prepare1A extends IPConAction {
 	public String issue;
 	public UUID cluster;
 	
+	/**
+	 * @param agent
+	 * @param revision
+	 * @param ballot
+	 * @param issue
+	 * @param cluster
+	 */
+	public Prepare1A(NetworkAddress agent, Integer revision, Integer ballot,
+			String issue, UUID cluster) {
+		super();
+		this.agent = agent;
+		this.revision = revision;
+		this.ballot = ballot;
+		this.issue = issue;
+		this.cluster = cluster;
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -71,5 +87,65 @@ public class Prepare1A extends IPConAction {
 		} else if (!revision.equals(other.revision))
 			return false;
 		return true;
+	}
+	/**
+	 * @return the agent
+	 */
+	public NetworkAddress getAgent() {
+		return agent;
+	}
+	/**
+	 * @param agent the agent to set
+	 */
+	public void setAgent(NetworkAddress agent) {
+		this.agent = agent;
+	}
+	/**
+	 * @return the revision
+	 */
+	public Integer getRevision() {
+		return revision;
+	}
+	/**
+	 * @param revision the revision to set
+	 */
+	public void setRevision(Integer revision) {
+		this.revision = revision;
+	}
+	/**
+	 * @return the ballot
+	 */
+	public Integer getBallot() {
+		return ballot;
+	}
+	/**
+	 * @param ballot the ballot to set
+	 */
+	public void setBallot(Integer ballot) {
+		this.ballot = ballot;
+	}
+	/**
+	 * @return the issue
+	 */
+	public String getIssue() {
+		return issue;
+	}
+	/**
+	 * @param issue the issue to set
+	 */
+	public void setIssue(String issue) {
+		this.issue = issue;
+	}
+	/**
+	 * @return the cluster
+	 */
+	public UUID getCluster() {
+		return cluster;
+	}
+	/**
+	 * @param cluster the cluster to set
+	 */
+	public void setCluster(UUID cluster) {
+		this.cluster = cluster;
 	}
 }

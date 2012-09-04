@@ -17,6 +17,20 @@ public class Revise extends IPConAction {
 	public String issue;
 	public UUID cluster;
 	
+	/**
+	 * @param agent
+	 * @param oldRevision
+	 * @param issue
+	 * @param cluster
+	 */
+	public Revise(NetworkAddress agent, Integer oldRevision, String issue,
+			UUID cluster) {
+		super();
+		this.agent = agent;
+		this.oldRevision = oldRevision;
+		this.issue = issue;
+		this.cluster = cluster;
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -64,5 +78,53 @@ public class Revise extends IPConAction {
 		} else if (!oldRevision.equals(other.oldRevision))
 			return false;
 		return true;
+	}
+	/**
+	 * @return the agent
+	 */
+	public NetworkAddress getAgent() {
+		return agent;
+	}
+	/**
+	 * @param agent the agent to set
+	 */
+	public void setAgent(NetworkAddress agent) {
+		this.agent = agent;
+	}
+	/**
+	 * @return the oldRevision
+	 */
+	public Integer getOldRevision() {
+		return oldRevision;
+	}
+	/**
+	 * @param oldRevision the oldRevision to set
+	 */
+	public void setOldRevision(Integer oldRevision) {
+		this.oldRevision = oldRevision;
+	}
+	/**
+	 * @return the issue
+	 */
+	public String getIssue() {
+		return issue;
+	}
+	/**
+	 * @param issue the issue to set
+	 */
+	public void setIssue(String issue) {
+		this.issue = issue;
+	}
+	/**
+	 * @return the cluster
+	 */
+	public UUID getCluster() {
+		return cluster;
+	}
+	/**
+	 * @param cluster the cluster to set
+	 */
+	public void setCluster(UUID cluster) {
+		this.cluster = cluster;
 	}
 }

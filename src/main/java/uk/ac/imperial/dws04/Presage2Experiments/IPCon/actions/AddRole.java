@@ -20,6 +20,24 @@ public class AddRole extends IPConAction {
 	public String issue;
 	public UUID cluster;
 	
+	/**
+	 * @param leader
+	 * @param agent
+	 * @param role
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 */
+	public AddRole(NetworkAddress leader, NetworkAddress agent, Role role,
+			Integer revision, String issue, UUID cluster) {
+		super();
+		this.leader = leader;
+		this.agent = agent;
+		this.role = role;
+		this.revision = revision;
+		this.issue = issue;
+		this.cluster = cluster;
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -76,5 +94,77 @@ public class AddRole extends IPConAction {
 		if (role != other.role)
 			return false;
 		return true;
+	}
+	/**
+	 * @return the leader
+	 */
+	public NetworkAddress getLeader() {
+		return leader;
+	}
+	/**
+	 * @param leader the leader to set
+	 */
+	public void setLeader(NetworkAddress leader) {
+		this.leader = leader;
+	}
+	/**
+	 * @return the agent
+	 */
+	public NetworkAddress getAgent() {
+		return agent;
+	}
+	/**
+	 * @param agent the agent to set
+	 */
+	public void setAgent(NetworkAddress agent) {
+		this.agent = agent;
+	}
+	/**
+	 * @return the role
+	 */
+	public Role getRole() {
+		return role;
+	}
+	/**
+	 * @param role the role to set
+	 */
+	public void setRole(Role role) {
+		this.role = role;
+	}
+	/**
+	 * @return the revision
+	 */
+	public Integer getRevision() {
+		return revision;
+	}
+	/**
+	 * @param revision the revision to set
+	 */
+	public void setRevision(Integer revision) {
+		this.revision = revision;
+	}
+	/**
+	 * @return the issue
+	 */
+	public String getIssue() {
+		return issue;
+	}
+	/**
+	 * @param issue the issue to set
+	 */
+	public void setIssue(String issue) {
+		this.issue = issue;
+	}
+	/**
+	 * @return the cluster
+	 */
+	public UUID getCluster() {
+		return cluster;
+	}
+	/**
+	 * @param cluster the cluster to set
+	 */
+	public void setCluster(UUID cluster) {
+		this.cluster = cluster;
 	}
 }

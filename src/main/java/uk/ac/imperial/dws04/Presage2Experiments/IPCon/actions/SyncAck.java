@@ -19,6 +19,22 @@ public class SyncAck extends IPConAction {
 	public String issue;
 	public UUID cluster;
 	
+	/**
+	 * @param agent
+	 * @param value
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 */
+	public SyncAck(NetworkAddress agent, Object value, Integer revision,
+			String issue, UUID cluster) {
+		super();
+		this.agent = agent;
+		this.value = value;
+		this.revision = revision;
+		this.issue = issue;
+		this.cluster = cluster;
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -72,5 +88,65 @@ public class SyncAck extends IPConAction {
 		} else if (!value.equals(other.value))
 			return false;
 		return true;
+	}
+	/**
+	 * @return the agent
+	 */
+	public NetworkAddress getAgent() {
+		return agent;
+	}
+	/**
+	 * @param agent the agent to set
+	 */
+	public void setAgent(NetworkAddress agent) {
+		this.agent = agent;
+	}
+	/**
+	 * @return the value
+	 */
+	public Object getValue() {
+		return value;
+	}
+	/**
+	 * @param value the value to set
+	 */
+	public void setValue(Object value) {
+		this.value = value;
+	}
+	/**
+	 * @return the revision
+	 */
+	public Integer getRevision() {
+		return revision;
+	}
+	/**
+	 * @param revision the revision to set
+	 */
+	public void setRevision(Integer revision) {
+		this.revision = revision;
+	}
+	/**
+	 * @return the issue
+	 */
+	public String getIssue() {
+		return issue;
+	}
+	/**
+	 * @param issue the issue to set
+	 */
+	public void setIssue(String issue) {
+		this.issue = issue;
+	}
+	/**
+	 * @return the cluster
+	 */
+	public UUID getCluster() {
+		return cluster;
+	}
+	/**
+	 * @param cluster the cluster to set
+	 */
+	public void setCluster(UUID cluster) {
+		this.cluster = cluster;
 	}
 }

@@ -65,4 +65,52 @@ public class ResignLeadership extends IPConAction {
 			return false;
 		return true;
 	}
+	/**
+	 * @return the agent
+	 */
+	public NetworkAddress getAgent() {
+		return agent;
+	}
+	/**
+	 * @param agent the agent to set
+	 */
+	public void setAgent(NetworkAddress agent) {
+		this.agent = agent;
+	}
+	/**
+	 * @return the revision
+	 */
+	public Integer getRevision() {
+		return revision;
+	}
+	/**
+	 * @param revision the revision to set
+	 */
+	public void setRevision(Integer revision) {
+		this.revision = revision;
+	}
+	/**
+	 * @return the issue
+	 */
+	public String getIssue() {
+		return issue;
+	}
+	/**
+	 * @param issue the issue to set
+	 */
+	public void setIssue(String issue) {
+		this.issue = issue;
+	}
+	/**
+	 * @return the cluster
+	 */
+	public UUID getCluster() {
+		return cluster;
+	}
+	/**
+	 * @param cluster the cluster to set
+	 */
+	public void setCluster(UUID cluster) {
+		this.cluster = cluster;
+	}
 }
