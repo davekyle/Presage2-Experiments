@@ -46,10 +46,9 @@ public class IPConDrlsTest {
 	public void setUp() throws Exception {
 		injector = Guice.createInjector(new RuleModule()
 				.addClasspathDrlFile("IPCon_Institutional_Facts.drl")
+				.addClasspathDrlFile("IPConUtils.drl")
 				.addClasspathDrlFile("IPConPowPer.drl")
 				.addClasspathDrlFile("IPConOblSan.drl")
-				.addClasspathDrlFile("IPConUtils.drl")
-				
 				.addClasspathDrlFile("IPCon.drl"));
 		rules = injector.getInstance(RuleStorage.class);
 		session = injector.getInstance(StatefulKnowledgeSession.class);

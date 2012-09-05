@@ -7,13 +7,14 @@ import java.lang.String
 import java.lang.Integer
 import java.lang.Object
 import java.util.UUID
+import java.util.LinkedList
 //presage2
 import uk.ac.imperial.presage2.core.network.NetworkAddress
 //IPCon
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 //drls
-//import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*
+//import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer.*
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
@@ -72,13 +73,13 @@ rule "holdsAt for possibleRemRevision"
 	when
 		// NOTE that this code is all reused from above except the following line...
 		//Sync( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
-		Chosen( revision==$revision, $ballot : ballot, value==$value, issue==$issue, cluster==$cluster )
+		Chosen( $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
 		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
 		
 		// find all acceptors
-		$agents : LinkedList(size >0) from accumulate(
+		$agents : LinkedList(size > 0) from accumulate(
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
-								, collectList( $a.agent ) )
+								, collectList( $a.getAgent() ) )
 		
 		Integer( $forVotes : intValue ) from accumulate( 
 								// that voted for the value
@@ -103,10 +104,12 @@ rule "holdsAt for possibleRemRevision"
 		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );
 end
 
-
+/*
 declare QuorumSize
 	quorumSize : Integer
 end
+
+// FIXME TODO need to do this as a query so you can pass RIC in...
 
 rule "create new quorumsize fact"
 	no-loop
@@ -128,4 +131,11 @@ rule "update quorumsize"
 	then
 		modify($q) { $q.quorumSize = ( $acceptors / 2 ) + 1; };
 end
+*/
 
+query "quorumSize"( Integer $revision, String $issue, UUID $cluster)
+	$acceptors : Integer( ) from accumulate( 
+								// find all the acceptors
+								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								, count( $a ) )
+end
