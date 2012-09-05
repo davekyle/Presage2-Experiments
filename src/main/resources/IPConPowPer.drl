@@ -118,10 +118,13 @@ end
 // permission to make an arrogate action
 declare ArrogatePer
 	agent : NetworkAddress
+end
+/*declare ArrogatePer
+	agent : NetworkAddress
 	revision : Integer
 	issue : String
 	cluster : UUID
-end	
+end*/	
 
 // power to make a resign action
 declare ResignPow
@@ -270,7 +273,7 @@ rule "holdsAt for power to reponse1b"
 		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Pre_Vote( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting ResponsePow( " + $agent + " , " + $voteRevision + " , " + $voteBallot + " , " + $voteValue + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically inserting ResponsePow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new ResponsePow( $agent, $revision, $ballot, $issue, $cluster ) );
 end
 
@@ -306,7 +309,7 @@ rule "holdsAt for permission to submit2a"
 	when
 		SubmitPow( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Proposed( revision==$revision, $value : value, issue==$issue, cluster==$cluster )
-		$quorumSize : quorumSize( $revision, $issue, $cluster )
+		$quorumSize : quorumSize( $revision, $issue, $cluster ;)
 		//not true
 		// FIXME TODO calculate safety ?
 		// TODO make sure to take null reportedVotes into account
@@ -358,12 +361,24 @@ end
 
 rule "holdsAt for permission to arrogate"
 	when
+		$agent : NetworkAddress( )
+		//Can't do checks for roles you already have easily, so HACKITY HACK
+	then
+		logger.trace("Logically inserting ArrogatePer( " + $agent + ")");
+		insertLogical( new ArrogatePer( $agent ) );
+end
+
+/*
+rule "holdsAt for permission to arrogate"
+	when
+		$agent : NetworkAddress( )
 		//FIXME TODO Can't define new ones in 'not' constraints ?
-		not HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		not HasRole( role==Role.LEADER, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Logically inserting ArrogatePer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new ArrogatePer( $agent, $revision, $issue, $cluster ) );
 end
+*/
 
 rule "holdsAt for power to resign"
 	when
@@ -384,8 +399,10 @@ end
 rule "holdsAt for power to addRole"
 	when
 		HasRole( role==Role.LEADER, $leader : agent, $revision : revision, $issue : issue, $cluster : cluster )
-		//FIXME TODO Can't define new ones in 'not' constraints ?
-		not HasRole( $role : role, $agent : agent, revision==$revision, issue==$issue, cluster==$cluster )
+		//Can't define new ones in 'not' constraints
+		$agent : NetworkAddress(  )
+		$role : Role( )
+		not HasRole( role==$role, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Logically inserting AddRolePow( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new AddRolePow( $leader, $agent, $role, $revision, $issue, $cluster ) );

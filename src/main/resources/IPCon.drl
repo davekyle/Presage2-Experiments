@@ -124,7 +124,8 @@ end
 rule "Arrogate initiates IsLeader"
 	when
 		ArrogateLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
-		ArrogatePer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		//ArrogatePer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		ArrogatePer( agent==$agent )
 	then
 		logger.trace("Arrogate inserted HasRole( LEADER " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + " )");
 		insert( new HasRole( role==Role.LEADER, $agent, $revision, $issue, $cluster ) );

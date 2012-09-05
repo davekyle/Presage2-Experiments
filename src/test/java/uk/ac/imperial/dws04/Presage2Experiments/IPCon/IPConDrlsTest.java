@@ -20,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.util.random.Random;
@@ -55,6 +56,10 @@ public class IPConDrlsTest {
 		session.setGlobal("logger", this.logger);
 		session.setGlobal("session", session);
 		session.setGlobal("storage", null);
+		
+		for (Role role : Role.values()) {
+			session.insert(role);
+		}
 	}
 
 	@After

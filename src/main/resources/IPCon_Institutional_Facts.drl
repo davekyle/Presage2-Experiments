@@ -97,3 +97,10 @@ declare Obligation
 	agent : NetworkAddress
 	action : IPConAction
 end
+
+rule "Keep NetworkAddress in memory when HasRole exists"
+	when
+		HasRole( $agent : agent )
+	then
+		insertLogical( $agent );
+end
