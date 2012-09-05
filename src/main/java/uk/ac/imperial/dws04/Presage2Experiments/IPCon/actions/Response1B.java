@@ -215,4 +215,14 @@ public class Response1B extends IPConAction {
 	public void setCluster(UUID cluster) {
 		this.cluster = cluster;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "Response1B [agent=" + agent + ", voteRevision=" + voteRevision
+				+ ", voteBallot=" + voteBallot + ", voteValue=" + voteValue
+				+ ", revision=" + revision + ", ballot=" + ballot + ", issue="
+				+ issue + ", cluster=" + cluster + "]";
+	}
 }

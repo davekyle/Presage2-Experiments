@@ -167,4 +167,13 @@ public class RemRole extends IPConAction {
 	public void setCluster(UUID cluster) {
 		this.cluster = cluster;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "RemRole [leader=" + leader + ", agent=" + agent + ", role="
+				+ role + ", revision=" + revision + ", issue=" + issue
+				+ ", cluster=" + cluster + "]";
+	}
 }

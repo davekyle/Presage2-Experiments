@@ -169,4 +169,13 @@ public class Vote2B extends IPConAction {
 	public void setCluster(UUID cluster) {
 		this.cluster = cluster;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "Vote2B [agent=" + agent + ", revision=" + revision
+				+ ", ballot=" + ballot + ", value=" + value + ", issue="
+				+ issue + ", cluster=" + cluster + "]";
+	}
 }

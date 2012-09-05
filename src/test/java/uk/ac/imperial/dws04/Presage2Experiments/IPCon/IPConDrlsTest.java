@@ -54,8 +54,8 @@ public class IPConDrlsTest {
 		rules = injector.getInstance(RuleStorage.class);
 		session = injector.getInstance(StatefulKnowledgeSession.class);
 		session.setGlobal("logger", this.logger);
-		session.setGlobal("session", session);
-		session.setGlobal("storage", null);
+		//session.setGlobal("session", session);
+		//session.setGlobal("storage", null);
 		
 		for (Role role : Role.values()) {
 			session.insert(role);

@@ -127,4 +127,12 @@ public class Revise extends IPConAction {
 	public void setCluster(UUID cluster) {
 		this.cluster = cluster;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "Revise [agent=" + agent + ", oldRevision=" + oldRevision
+				+ ", issue=" + issue + ", cluster=" + cluster + "]";
+	}
 }

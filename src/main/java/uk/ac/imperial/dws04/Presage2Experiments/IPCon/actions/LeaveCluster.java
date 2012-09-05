@@ -83,4 +83,11 @@ public class LeaveCluster extends IPConAction {
 	public void setCluster(UUID cluster) {
 		this.cluster = cluster;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "LeaveCluster [agent=" + agent + ", cluster=" + cluster + "]";
+	}
 }

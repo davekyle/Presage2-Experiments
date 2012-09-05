@@ -170,4 +170,13 @@ public class SyncReq extends IPConAction {
 	public void setCluster(UUID cluster) {
 		this.cluster = cluster;
 	}
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "SyncReq [leader=" + leader + ", agent=" + agent + ", value="
+				+ value + ", revision=" + revision + ", issue=" + issue
+				+ ", cluster=" + cluster + "]";
+	}
 }
