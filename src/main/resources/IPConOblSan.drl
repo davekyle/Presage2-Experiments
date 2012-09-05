@@ -12,9 +12,9 @@ import java.lang.Object
 import java.util.UUID
 
 //other drls files
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConUtils
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConUtils.*
 
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
@@ -34,8 +34,8 @@ rule "holdsAt for obligation to prepare"
         Proposed( revision==$revision, issue==$issue, cluster==$cluster )
         not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
     then
-    	$ballot = Integer.NaN; // FIXME todo need to work out how to handle this...
-    	Prepare1A $prepare = new Prepare1A( $agent, $revision, $ballot, $issue, $cluster );
+    	//$ballot = Integer.NaN; // FIXME todo need to work out how to handle this...
+    	Prepare1A $prepare = new Prepare1A( $agent, $revision, null, $issue, $cluster );
         insertLogical( new Obligation( $agent, $prepare ) ); 
 end
 
@@ -43,11 +43,11 @@ rule "holdsAt for obligation to respond"
 // if you haven't responded when you have permission to do so, and have voted, you must respond
 // FIXME TODO possibly also send an indicator if you've responded higher to help the leader
 	when
-		ReponsePer( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		ResponsePer( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Voted( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, issue==$issue, cluster==$cluster )
-		not ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		not ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
-		Reponse1B $reponse = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
+		Response1B $response = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
 		insertLogical( new Obligation( $agent, $response ) );
 end
 
@@ -69,7 +69,7 @@ rule "initiates for obligation to revise on leaveCluster"
 		HasRole( role==Role.ACCEPTOR, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		RevisePer( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster )
 		PossibleRemRevision( $value : value, revision==$revision, issue==$issue, cluster==$cluster )
-		ReportedVote( agent==$agent, voteRevision==$revision, value==$value, revision==$revision, issue==$issue, cluster==$cluster )
+		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
 		insert( new Obligation( $leader, $revise ) ); 
@@ -84,7 +84,7 @@ end
 		//HasRole( role==Role.ACCEPTOR, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		RevisePer( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster )
 		PossibleRemRevision( $value : value, revision==$revision, issue==$issue, cluster==$cluster )
-		ReportedVote( agent==$agent, voteRevision==$revision, value==$value, revision==$revision, issue==$issue, cluster==$cluster )
+		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
 		insert( new Obligation( $leader, $revise ) ); 
@@ -92,9 +92,10 @@ end
 
 rule "revise terminates obligation to revise"
 // TODO will this work ? :S If it does, how about more general Action terminates obligation to Action ?
+	no-loop
 	when
-		$revise : Revise( $leader : leader, $revision : revision, $issue : issue, $cluster : cluster )
-		$obl : Obligation( $leader, $revise )
+		$revise : Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
+		$obl : Obligation( agent==$agent, action==$revise )
 	then
 		retract( $obl );
 end
@@ -112,9 +113,9 @@ rule "syncAck no initiates obligation to revise"
 // if syncAck is no and agent had permission to say so and leader has permission to revise and possibleAddRevision, leader must revise
 	when
 		//$answer==null 
-		SyncAck( $agent : agent, $anser : value, value==null, $revision : revision, $issue : issue, $cluster : cluster )
+		SyncAck( $agent : agent, $answer : value, value==null, $revision : revision, $issue : issue, $cluster : cluster )
 		SyncAckPer( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
-		RevisePer( $leader : leader, revision==$revision, issue==$issue, cluster==$cluster )
+		RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
 		PossibleAddRevision( value!=$answer, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
@@ -128,8 +129,8 @@ rule "holdsAt for obligation to syncack"
 		SyncAckPer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Sync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		$answer = Integer.NaN; //FIXME TODO need to work out how to handle this...
-		SyncAck $syncAck = new SyncAck( $agent, $answer, $revision, $issue, $cluster );
+		//$answer = Integer.NaN; //FIXME TODO need to work out how to handle this...
+		SyncAck $syncAck = new SyncAck( $agent, "PLACEHOLDER", $revision, $issue, $cluster );
 		insertLogical( new Obligation( $agent, $syncAck ) );
 end
 

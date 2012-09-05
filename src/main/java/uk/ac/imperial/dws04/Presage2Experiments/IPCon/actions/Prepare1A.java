@@ -8,6 +8,8 @@ import java.util.UUID;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 
 /**
+ * If ballot is null, this is from an obligation to prepare and any sensible value may be chosen
+ * 
  * @author dave
  *
  */

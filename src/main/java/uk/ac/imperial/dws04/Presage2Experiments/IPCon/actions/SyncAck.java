@@ -9,6 +9,8 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 
 /**
+ * If value is the string "PLACEHOLDER" this is from an obligation and either the correct value or a null (no) should be chosen
+ * 
  * @author dave
  *
  */
