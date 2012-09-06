@@ -5,16 +5,15 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions;
 
 import java.util.UUID;
 
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
-import uk.ac.imperial.presage2.core.network.NetworkAddress;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 
 /**
  * @author dave
  *
  */
 public class SyncReq extends IPConAction {
-	public NetworkAddress leader;
-	public NetworkAddress agent;
+	public IPConAgent leader;
+	public IPConAgent agent;
 	public Object value;
 	public Integer revision;
 	public String issue;
@@ -28,7 +27,7 @@ public class SyncReq extends IPConAction {
 	 * @param issue
 	 * @param cluster
 	 */
-	public SyncReq(NetworkAddress leader, NetworkAddress agent, Object value,
+	public SyncReq(IPConAgent leader, IPConAgent agent, Object value,
 			Integer revision, String issue, UUID cluster) {
 		super();
 		this.leader = leader;
@@ -101,25 +100,25 @@ public class SyncReq extends IPConAction {
 	/**
 	 * @return the leader
 	 */
-	public NetworkAddress getLeader() {
+	public IPConAgent getLeader() {
 		return leader;
 	}
 	/**
 	 * @param leader the leader to set
 	 */
-	public void setLeader(NetworkAddress leader) {
+	public void setLeader(IPConAgent leader) {
 		this.leader = leader;
 	}
 	/**
 	 * @return the agent
 	 */
-	public NetworkAddress getAgent() {
+	public IPConAgent getAgent() {
 		return agent;
 	}
 	/**
 	 * @param agent the agent to set
 	 */
-	public void setAgent(NetworkAddress agent) {
+	public void setAgent(IPConAgent agent) {
 		this.agent = agent;
 	}
 	/**

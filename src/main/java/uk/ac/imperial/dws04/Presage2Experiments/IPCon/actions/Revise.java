@@ -5,14 +5,14 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions;
 
 import java.util.UUID;
 
-import uk.ac.imperial.presage2.core.network.NetworkAddress;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 
 /**
  * @author dave
  *
  */
 public class Revise extends IPConAction {
-	public NetworkAddress agent;
+	public IPConAgent agent;
 	public Integer oldRevision;
 	public String issue;
 	public UUID cluster;
@@ -23,7 +23,7 @@ public class Revise extends IPConAction {
 	 * @param issue
 	 * @param cluster
 	 */
-	public Revise(NetworkAddress agent, Integer oldRevision, String issue,
+	public Revise(IPConAgent agent, Integer oldRevision, String issue,
 			UUID cluster) {
 		super();
 		this.agent = agent;
@@ -82,13 +82,13 @@ public class Revise extends IPConAction {
 	/**
 	 * @return the agent
 	 */
-	public NetworkAddress getAgent() {
+	public IPConAgent getAgent() {
 		return agent;
 	}
 	/**
 	 * @param agent the agent to set
 	 */
-	public void setAgent(NetworkAddress agent) {
+	public void setAgent(IPConAgent agent) {
 		this.agent = agent;
 	}
 	/**

@@ -8,8 +8,6 @@ import java.lang.Integer
 import java.lang.Object
 import java.util.UUID
 import java.util.LinkedList
-//presage2
-import uk.ac.imperial.presage2.core.network.NetworkAddress
 //IPCon
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 //drls

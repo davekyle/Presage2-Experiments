@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
@@ -71,7 +72,7 @@ public class IPConDrlsTest {
 	
 	@Test
 	public void basicTest() throws Exception {
-		NetworkAddress agent = new NetworkAddress(Random.randomUUID());
+		IPConAgent agent = new IPConAgent();
 		Integer revision = 0;
 		String issue = "IssueString";
 		UUID cluster = Random.randomUUID();

@@ -7,11 +7,10 @@ import java.lang.String
 import java.lang.Integer
 import java.lang.Object
 import java.util.UUID
-//presage2
-import uk.ac.imperial.presage2.core.network.NetworkAddress
 //IPCon
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
@@ -41,7 +40,7 @@ declare Open_Vote
 end
 
 declare Voted
-	agent : NetworkAddress
+	agent : IPConAgent
 	revision : Integer
 	ballot : Integer
 	value : Object
@@ -50,7 +49,7 @@ declare Voted
 end
 
 declare ReportedVote
-	agent : NetworkAddress
+	agent : IPConAgent
 	voteRevision : Integer
 	voteBallot : Integer
 	voteValue : Object
@@ -69,7 +68,7 @@ declare Chosen
 end
 
 declare Sync
-	agent : NetworkAddress
+	agent : IPConAgent
 	value : Object
 	revision : Integer
 	issue : String
@@ -78,7 +77,7 @@ end
 
 // internal fact to get round having to do temporal checks on new acceptors
 declare NeedToSync
-	agent : NetworkAddress
+	agent : IPConAgent
 	value : Object
 	revision : Integer
 	issue : String
@@ -87,18 +86,18 @@ end
 
 declare HasRole
 	role : Role
-	agent : NetworkAddress
+	agent : IPConAgent
 	revision : Integer
 	issue : String
 	cluster : UUID
 end
 
 declare Obligation
-	agent : NetworkAddress
+	agent : IPConAgent
 	action : IPConAction
 end
 
-/*rule "Keep NetworkAddress in memory when HasRole exists"
+/*rule "Keep IPConAgent in memory when HasRole exists"
 	when
 		HasRole( $agent : agent )
 	then

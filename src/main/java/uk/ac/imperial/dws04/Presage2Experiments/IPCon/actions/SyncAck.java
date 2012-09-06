@@ -6,7 +6,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions;
 import java.util.UUID;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
-import uk.ac.imperial.presage2.core.network.NetworkAddress;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 
 /**
  * If value is the string "PLACEHOLDER" this is from an obligation and either the correct value or a null (no) should be chosen
@@ -15,7 +15,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
  *
  */
 public class SyncAck extends IPConAction {
-	public NetworkAddress agent;
+	public IPConAgent agent;
 	public Object value;
 	public Integer revision;
 	public String issue;
@@ -28,7 +28,7 @@ public class SyncAck extends IPConAction {
 	 * @param issue
 	 * @param cluster
 	 */
-	public SyncAck(NetworkAddress agent, Object value, Integer revision,
+	public SyncAck(IPConAgent agent, Object value, Integer revision,
 			String issue, UUID cluster) {
 		super();
 		this.agent = agent;
@@ -94,13 +94,13 @@ public class SyncAck extends IPConAction {
 	/**
 	 * @return the agent
 	 */
-	public NetworkAddress getAgent() {
+	public IPConAgent getAgent() {
 		return agent;
 	}
 	/**
 	 * @param agent the agent to set
 	 */
-	public void setAgent(NetworkAddress agent) {
+	public void setAgent(IPConAgent agent) {
 		this.agent = agent;
 	}
 	/**

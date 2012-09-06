@@ -5,7 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions;
 
 import java.util.UUID;
 
-import uk.ac.imperial.presage2.core.network.NetworkAddress;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 
 /**
  * If ballot is null, this is from an obligation to prepare and any sensible value may be chosen
@@ -14,7 +14,7 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
  *
  */
 public class Prepare1A extends IPConAction {
-	public NetworkAddress agent;
+	public IPConAgent agent;
 	public Integer revision;
 	public Integer ballot;
 	public String issue;
@@ -27,7 +27,7 @@ public class Prepare1A extends IPConAction {
 	 * @param issue
 	 * @param cluster
 	 */
-	public Prepare1A(NetworkAddress agent, Integer revision, Integer ballot,
+	public Prepare1A(IPConAgent agent, Integer revision, Integer ballot,
 			String issue, UUID cluster) {
 		super();
 		this.agent = agent;
@@ -93,13 +93,13 @@ public class Prepare1A extends IPConAction {
 	/**
 	 * @return the agent
 	 */
-	public NetworkAddress getAgent() {
+	public IPConAgent getAgent() {
 		return agent;
 	}
 	/**
 	 * @param agent the agent to set
 	 */
-	public void setAgent(NetworkAddress agent) {
+	public void setAgent(IPConAgent agent) {
 		this.agent = agent;
 	}
 	/**

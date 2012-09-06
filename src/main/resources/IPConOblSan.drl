@@ -20,9 +20,6 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConUtils.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 
-//presage2
-import uk.ac.imperial.presage2.core.network.NetworkAddress
-
 //declare any global variables here
 global org.apache.log4j.Logger logger
 
