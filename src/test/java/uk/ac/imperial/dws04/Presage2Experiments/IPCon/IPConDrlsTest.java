@@ -6,6 +6,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
+import org.drools.definition.type.FactType;
 import org.drools.runtime.ObjectFilter;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.junit.After;
@@ -73,11 +75,75 @@ public class IPConDrlsTest {
 		Integer revision = 0;
 		String issue = "IssueString";
 		UUID cluster = Random.randomUUID();
+		session.insert(agent);
 		session.insert(new ArrogateLeadership(agent, revision, issue, cluster));
 		rules.incrementTime();
 		
 		Collection<Object> objects = session.getObjects();
-		logger.info("Objects: " + objects.toString());
+		logger.info("Objects: " + objects.toString() + " are :");
+		for (Object object : objects) {
+			logger.info(object);
+		}
+		logger.info("/objects");
+		
+		//String hasRoleTypeString = "HasRole";
+		final FactType hasRoleType = typeFromString("HasRole");
+		
+		Collection<Object> hasRoles = session.getObjects(new ObjectFilter() {
+			@Override
+			public boolean accept(Object object) {
+				return assertFactType(object, hasRoleType);
+			}
+		});
+		assertEquals(1, hasRoles.size());
+		Object hasRole = Arrays.asList(hasRoles.toArray()).get(0);
+		Role role = (Role) hasRoleType.get(hasRole, "role");
+		assertEquals(role.toString(), "LEADER");
+	}
+	
+	private final FactType typeFromString(String factTypeString) {
+		return rules.getKbase().getFactType("uk.ac.imperial.dws04.Presage2Experiments.IPCon", factTypeString);
+	}
+	
+	/**
+	 * Wrapper function to check an object from the kbase is a drls FactType. Replaces instanceof functionality.
+	 * @param obj
+	 * @param factTypeName
+	 * @return
+	 */
+	private boolean assertFactType(Object obj, String factTypeName) {
+		try {
+			return ( ( typeFromString(factTypeName).newInstance().getClass() ).equals( ( obj.getClass() ) ) );
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	/**
+	 * Wrapper function to check an object from the kbase is a drls FactType. Replaces instanceof functionality.
+	 * @param obj
+	 * @param factTypeName
+	 * @return
+	 */
+	private boolean assertFactType(Object obj, FactType factType) {
+		try {
+			return ( ( factType.newInstance().getClass() ).equals( ( obj.getClass() ) ) );
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
 	}
 
 }

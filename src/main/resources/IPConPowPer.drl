@@ -333,6 +333,22 @@ rule "holdsAt for permission to submit2a"
 		
 		// if so, $value is safe
 		
+		////
+		
+		// get all ReportedVote facts that aren't out of date (hard part)
+		//	// ReportedVote( $a, $vote, $RIC) and
+		//	// not ReportedVote( $a, r1>$R, $IC) and
+		//	// not ReportedVote( $a, b1>$B, $RIC)
+		//	// (this solution presumes nullvotes are reported by the agents... )
+		$reportedVotes : LinkedList( size >= $quorumSize ) from accumulate (
+				$rVote : ReportedVote( $a : agent, voteRevision==$revision, voteBallot<=$ballot, (voteValue==$value || voteValue==null), revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) and
+				not ReportedVote( agent==$a, voteRevision>$revision, issue==$issue, cluster==$cluster ) and
+				not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$ballot, issue==$issue, cluster==$cluster ) // probably don't need this line due to <=$ballot in first one...
+				, collectList( $rVote ) ) 
+		// find all quorumSize'd sets of ReportedVote facts (done by size constraint on $reportedVotes)
+		// if all of the facts in the group you're looking at have the voteValue of null or $value, yay (done by conditional on voteValue)
+		
+		
 	then
 		logger.trace("Logically inserting SubmitPer( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new SubmitPer( $agent, $revision, $ballot, $value, $issue, $cluster ) );
