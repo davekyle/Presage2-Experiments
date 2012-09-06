@@ -7,7 +7,7 @@ import java.lang.String
 import java.lang.Integer
 import java.util.UUID
 import java.lang.Object
-import java.util.LinkedList
+import java.util.List
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
@@ -234,7 +234,7 @@ end
 
 rule "holdsAt for power to request0a"
 	when
-		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		HasRole( role==Role.PROPOSER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
 		logger.trace("Logically inserting RequestPow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new RequestPow( $agent, $revision, $issue, $cluster ) );
@@ -308,7 +308,8 @@ rule "holdsAt for permission to submit2a"
 	when
 		SubmitPow( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Proposed( revision==$revision, $value : value, issue==$issue, cluster==$cluster )
-		$quorumSize : quorumSize( $revision, $issue, $cluster ;)
+		//$quorumSize : quorumSize( $revision, $issue, $cluster ;)
+		QuorumSize( $quorumSize : quorumSize, revision==$revision, issue==$issue, cluster==$cluster )
 		//not true
 		// FIXME TODO calculate safety ?
 		// TODO make sure to take null reportedVotes into account
@@ -339,7 +340,7 @@ rule "holdsAt for permission to submit2a"
 		//	// not ReportedVote( $a, r1>$R, $IC) and
 		//	// not ReportedVote( $a, b1>$B, $RIC)
 		//	// (this solution presumes nullvotes are reported by the agents... )
-		$reportedVotes : LinkedList( size >= $quorumSize ) from accumulate (
+		$reportedVotes : List(size >= $quorumSize) from accumulate (
 				$rVote : ReportedVote( $a : agent, voteRevision==$revision, voteBallot<=$ballot, (voteValue==$value || voteValue==null), revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) and
 				not ReportedVote( agent==$a, voteRevision>$revision, issue==$issue, cluster==$cluster ) and
 				not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$ballot, issue==$issue, cluster==$cluster ) // probably don't need this line due to <=$ballot in first one...

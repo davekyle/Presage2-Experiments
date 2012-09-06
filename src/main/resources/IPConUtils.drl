@@ -5,7 +5,9 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon
 //java
 import java.lang.String
 import java.lang.Integer
+import java.lang.Double
 import java.lang.Object
+import java.lang.Math
 import java.util.UUID
 import java.util.LinkedList
 //IPCon
@@ -102,38 +104,46 @@ rule "holdsAt for possibleRemRevision"
 		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );
 end
 
-/*
+
 declare QuorumSize
 	quorumSize : Integer
+	revision : Integer
+	issue : String
+	cluster : UUID
 end
-
-// FIXME TODO need to do this as a query so you can pass RIC in...
 
 rule "create new quorumsize fact"
 	no-loop
 	when
-		not QuorumSize(  )
+		HasRole( $revision : revision, $issue : issue, $cluster : cluster )
+		not QuorumSize( revision==$revision, issue==$issue, cluster==$cluster )
+		
 	then
-		insert( new QuorumSize( 0 ) );
+		insert( new QuorumSize( 0, $revision, $issue, $cluster ) );
 end
 
 rule "update quorumsize"
 // FIXME TODO work out how to do this properly
 	no-loop
 	when
-		$q : QuorumSize(  )
+		$q : QuorumSize( $revision : revision, $issue : issue, $cluster : cluster )
 		$acceptors : Integer( ) from accumulate( 
 								// find all the acceptors
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a ) )
 	then
-		modify($q) { $q.quorumSize = ( $acceptors / 2 ) + 1; };
+		modify($q) {
+			Integer newQS = ((Double)(java.lang.Math.ceil( $acceptors / 2 ) )).intValue();
+			$q.setQuorumSize( newQS );
+		};
 end
-*/
 
+
+/*
 query "quorumSize"( Integer $revision, String $issue, UUID $cluster)
 	$acceptors : Integer( ) from accumulate( 
 								// find all the acceptors
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a ) )
 end
+*/
