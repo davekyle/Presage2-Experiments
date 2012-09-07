@@ -133,7 +133,7 @@ rule "holdsAt for Chosen"
 	when
 		Open_Vote( $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
 		// prevent multiples
-		not Chosen( issue==$issue, cluster==$cluster )
+		not Chosen( revision==$revision, issue==$issue, cluster==$cluster )
 		QuorumSize( $quorumSize : quorumSize, revision==$revision, issue==$issue, cluster==$cluster )
 		// if number of reportedVotes that arent out of date and are for the value are >= quorumSize, then chosen 
 		$reportedVotes : List(size >= $quorumSize) from accumulate (
@@ -191,6 +191,16 @@ rule "AddRole initiates role"
 	then
 		logger.trace("AddRole inserted HasRole(  " + $role + " , " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + " )"); 
 		insert( new HasRole( $role, $agent, $revision, $issue, $cluster ) );
+end
+
+rule "AddRole initiates NeedToSync"
+	when
+		AddRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
+		AddRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		Chosen( revision==$revision, $ballot : ballot, $value : value, issue==$issue, cluster==$cluster )
+	then
+		logger.trace("AddRole inserted NeedToSync(  " + $agent + " , " + $value + " , " + $revision + " , " + $issue + " , " + $cluster + " )"); 
+		insert( new NeedToSync( $agent, $value, $revision, $issue, $cluster ) );
 end
 
 rule "RemRole terminates role"

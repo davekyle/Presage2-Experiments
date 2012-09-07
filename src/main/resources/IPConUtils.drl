@@ -57,7 +57,7 @@ rule "holdsAt for possibleAddRevision"
 								// and didn't vote since the one you just got
 								not Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
 								, count( $b1 ) )
-		Number( $didntVotes : intValue, $forVotes == $notForVotes+$didntVotes ) from accumulate(
+		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
@@ -94,7 +94,7 @@ rule "holdsAt for possibleRemRevision"
 								// and didn't vote since the one you just got
 								not Voted( agent memberOf $agents, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
 								, count( $b1 ) ) and
-		Number( $didntVotes : intValue, $forVotes == $notForVotes+$didntVotes ) from accumulate(
+		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
