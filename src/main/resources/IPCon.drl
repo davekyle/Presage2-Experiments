@@ -107,6 +107,16 @@ rule "Submit2A initiates Open_Vote"
 		insert( new Open_Vote( $revision, $ballot, $value, $issue, $cluster ) );
 end
 
+rule "Submit2A terminates Pre_Vote"
+	when
+		Submit2A( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		SubmitPow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		$pv : Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
+	then
+		logger.trace("Submit2A retracted Pre_Vote : " + $pv );
+		retract( $pv );
+end
+
 rule "Vote initiates Voted and ReportedVote"
 	when
 		Vote2B( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
@@ -117,6 +127,25 @@ rule "Vote initiates Voted and ReportedVote"
 		insert( new Voted( $agent, $revision, $ballot, $value, $issue, $cluster ) );
 		insert( new ReportedVote( $agent, $revision, $ballot, $value, $revision, $ballot, $issue, $cluster ) );
 end
+
+rule "holdsAt for Chosen"
+	no-loop
+	when
+		Open_Vote( $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		// prevent multiples
+		not Chosen( issue==$issue, cluster==$cluster )
+		QuorumSize( $quorumSize : quorumSize, revision==$revision, issue==$issue, cluster==$cluster )
+		// if number of reportedVotes that arent out of date and are for the value are >= quorumSize, then chosen 
+		$reportedVotes : List(size >= $quorumSize) from accumulate (
+				$rVote : ReportedVote( $a : agent, voteRevision==$revision, voteBallot<=$ballot, voteValue==$value, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) and
+				not ReportedVote( agent==$a, voteRevision>$revision, issue==$issue, cluster==$cluster ) and
+				not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$ballot, issue==$issue, cluster==$cluster )
+				, collectList( $rVote ) ) 
+	then
+		logger.trace("Logically inserted Chosen( " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + " )");
+		insert( new Chosen( $revision, $ballot, $value, $issue, $cluster ) );
+end
+		
 
 rule "Arrogate initiates IsLeader"
 	when

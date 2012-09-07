@@ -10,7 +10,7 @@ import java.lang.Double
 import java.lang.Object
 import java.lang.Math
 import java.util.UUID
-import java.util.LinkedList
+import java.util.List
 //IPCon
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 //drls
@@ -41,7 +41,7 @@ rule "holdsAt for possibleAddRevision"
 		Sync( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
 		Chosen( revision==$revision, $ballot : ballot, value==$value, issue==$issue, cluster==$cluster )
 		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
-		Integer( $forVotes : intValue ) from accumulate( 
+		Number( $forVotes : intValue ) from accumulate( 
 								// find all the acceptors
 								 $a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted for the value
@@ -49,7 +49,7 @@ rule "holdsAt for possibleAddRevision"
 								// and didn't vote since the one you just got
 								not Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
-		Integer( $notForVotes : intValue ) from accumulate( 
+		Number( $notForVotes : intValue ) from accumulate( 
 								// find all the acceptors
 								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted against the value
@@ -57,7 +57,7 @@ rule "holdsAt for possibleAddRevision"
 								// and didn't vote since the one you just got
 								not Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
 								, count( $b1 ) )
-		Integer( $didntVotes : intValue, $forVotes == $notForVotes+$didntVotes ) from accumulate(
+		Number( $didntVotes : intValue, $forVotes == $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
@@ -78,23 +78,23 @@ rule "holdsAt for possibleRemRevision"
 		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
 		
 		// find all acceptors
-		$agents : LinkedList(size > 0) from accumulate(
+		$agents : List(size > 0) from accumulate(
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 								, collectList( $a.getAgent() ) )
 		
-		Integer( $forVotes : intValue ) from accumulate( 
+		Number( $forVotes : intValue ) from accumulate( 
 								// that voted for the value
 								$b : Voted( agent memberOf $agents, revision==$revision, value==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
 								not Voted( agent memberOf $agents, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
-		Integer( $notForVotes : intValue ) from accumulate(
+		Number( $notForVotes : intValue ) from accumulate(
 								// that voted against the value
 								$b1 : Voted( agent memberOf $agents, revision==$revision, value!=$value, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
 								not Voted( agent memberOf $agents, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
 								, count( $b1 ) ) and
-		Integer( $didntVotes : intValue, $forVotes == $notForVotes+$didntVotes ) from accumulate(
+		Number( $didntVotes : intValue, $forVotes == $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote

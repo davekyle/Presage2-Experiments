@@ -28,6 +28,8 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Response1B;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Submit2A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Vote2B;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.util.random.Random;
@@ -80,11 +82,11 @@ public class IPConDrlsTest {
 	
 	public void outputObjects() {
 		Collection<Object> objects = session.getObjects();
-		logger.info("Objects: " + objects.toString() + " are :");
+		logger.info("\nObjects: " + objects.toString() + " are :");
 		for (Object object : objects) {
 			logger.info(object);
 		}
-		logger.info("/objects");
+		logger.info("/objects\n");
 	}
 	
 	public final Collection<Object> assertFactCount(final String factTypeString, int count) {
@@ -102,7 +104,7 @@ public class IPConDrlsTest {
 	
 	@Test
 	public void basicTest() throws Exception {
-		logger.info("Starting basicTest()");
+		logger.info("\nStarting basicTest()");
 		IPConAgent agent = new IPConAgent();
 		Integer revision = 0;
 		String issue = "IssueString";
@@ -127,12 +129,26 @@ public class IPConDrlsTest {
 		Object hasRole = Arrays.asList(hasRoles.toArray()).get(0);
 		Role role = (Role) typeFromString("HasRole").get(hasRole, "role");
 		assertEquals(role.toString(), "LEADER");
-		logger.info("Finished basicTest()");
+		logger.info("Finished basicTest()\n");
 	}
 	
 	@Test
-	public void narrative1() throws Exception {
-		logger.info("Starting narrative1()");
+	public void narrative1Consensus() throws Exception {
+		narrative1(true);
+	}
+	
+	@Test
+	public void narrative1NoConsensus() throws Exception {
+		narrative1(false);
+	}
+	
+	
+	public void narrative1(Boolean pass) throws Exception {
+		if (pass) {
+			logger.info("\nStarting narrative1 with successful consensus");
+		} else {
+			logger.info("\nStarting narrative1 intending a sanction against leader");
+		}
 		// create agents
 		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1);
 		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2);
@@ -169,41 +185,24 @@ public class IPConDrlsTest {
 		votedType.set(a3Vote, "issue", issue);
 		votedType.set(a3Vote, "cluster", cluster);
 		session.insert(a3Vote);
-		Object a4Vote = votedType.newInstance();
-		votedType.set(a4Vote, "agent", a4);
-		votedType.set(a4Vote, "revision", revision);
-		votedType.set(a4Vote, "ballot", 2);
-		votedType.set(a4Vote, "value", 5);
-		votedType.set(a4Vote, "issue", issue);
-		votedType.set(a4Vote, "cluster", cluster);
-		session.insert(a4Vote);
-		
+		if (!pass) {
+			Object a4Vote = votedType.newInstance();
+			votedType.set(a4Vote, "agent", a4);
+			votedType.set(a4Vote, "revision", revision);
+			votedType.set(a4Vote, "ballot", 2);
+			votedType.set(a4Vote, "value", 5);
+			votedType.set(a4Vote, "issue", issue);
+			votedType.set(a4Vote, "cluster", cluster);
+			session.insert(a4Vote);
+		}
 		rules.incrementTime();
 		
 		// check there are the right number of roles
-		/*final FactType hasRoleType = typeFromString("HasRole");
-		
-		Collection<Object> hasRoles = session.getObjects(new ObjectFilter() {
-			@Override
-			public boolean accept(Object object) {
-				return assertFactType(object, hasRoleType);
-			}
-		});
 		// 5 acceptors, one leader, one proposer
-		assertEquals(7, hasRoles.size());*/
 		assertFactCount("HasRole", 7);
 		
 		// check theres only one agent can request (the proposer)
-		/*final FactType reqPerType = typeFromString("RequestPer");
-		
-		Collection<Object> reqPers = session.getObjects(new ObjectFilter() {
-			@Override
-			public boolean accept(Object object) {
-				return assertFactType(object, reqPerType);
-			}
-		});
 		// one proposer has permission
-		assertEquals(1, reqPers.size());*/
 		assertFactCount("RequestPer", 1);
 		
 		/*
@@ -218,16 +217,6 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// check no one can response
-		/*final FactType resPerType = typeFromString("ResponsePer");
-		
-		Collection<Object> resPers0 = session.getObjects(new ObjectFilter() {
-			@Override
-			public boolean accept(Object object) {
-				return assertFactType(object, resPerType);
-			}
-		});
-		// no one has permission
-		assertEquals(0, resPers0.size());*/
 		assertFactCount("ResponsePer", 0);
 		
 		/*
@@ -238,16 +227,7 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// check all acceptors can response
-		//final FactType resPerType = typeFromString("ResponsePer");
-		
-		/*Collection<Object> resPers5 = session.getObjects(new ObjectFilter() {
-			@Override
-			public boolean accept(Object object) {
-				return assertFactType(object, resPerType);
-			}
-		});
 		// 5 acceptors have permission
-		assertEquals(5, resPers5.size());*/
 		assertFactCount("ResponsePer", 5);
 		/*
 		 * Time step 3 :
@@ -256,17 +236,86 @@ public class IPConDrlsTest {
 		session.insert(new Response1B( a1, 1, 0, null, 1, 10, issue, cluster));
 		session.insert(new Response1B( a2, 1, 1, 4, 1, 10, issue, cluster));
 		session.insert(new Response1B( a3, 1, 1, 4, 1, 10, issue, cluster));
-		//session.insert(new Response1B( a4, 1, 0, null, 1, 10, issue, cluster));
-		session.insert(new Response1B( a4, 1, 2, 5, 1, 10, issue, cluster));
+		if (pass) {
+			session.insert(new Response1B( a4, 1, 0, null, 1, 10, issue, cluster));
+		} else {
+			session.insert(new Response1B( a4, 1, 2, 5, 1, 10, issue, cluster));
+		}
 		session.insert(new Response1B( a5, 1, 0, null, 1, 10, issue, cluster));
 		rules.incrementTime();
-		//assertFactCount("SubmitPer", 1);
-		assertFactCount("SubmitPer", 0);
-		assertFactCount("Obligation", 1);
+		if (pass) {
+			assertFactCount("SubmitPow", 1);
+			assertFactCount("SubmitPer", 1);
+			assertFactCount("Obligation", 1);
+		} else {
+			assertFactCount("SubmitPow", 1);
+			assertFactCount("SubmitPer", 0);
+			assertFactCount("Obligation", 0);
+		}
+		
+		/*
+		 * Time step 3
+		 * Leader submits. Check permission to vote for all agents.
+		 */
+		session.insert( new Submit2A(a1, revision, 10, 3, issue, cluster));
+		rules.incrementTime();
+		
+		// all acceptors can vote either way because leader had power
+		assertFactCount("VotePer", 5);
+		
+		/*
+		 * Time step 4
+		 * First 2 agents vote correctly, 3rd agent does not.
+		 * Check value is not chosen, and voted is not set for 3rd agent
+		 */
+		session.insert(new Vote2B(a1, 1, 10, 3, issue, cluster));
+		session.insert(new Vote2B(a2, 1, 10, 3, issue, cluster));
+		session.insert(new Vote2B(a3, 1, 10, 4, issue, cluster));
+		rules.incrementTime();
+		
+		if (pass) {
+			//voted count is 4 (2 from before, 2 now)
+			assertFactCount("Voted", 4);
+		} else {
+			// count ag4 for voted, but not reportedVote (since they had a nullvote before)
+			assertFactCount("Voted", 5);
+		}
+		//reportedVote count is 7 (5 from before due to nullvotes, 2 from now)
+		assertFactCount("ReportedVote", 7);
+		// value was not chosen
+		assertFactCount("Chosen", 0);
+		
+		/*
+		 * Time step 5
+		 * Remaining 3 agents vote correctly
+		 * Check vote counts and correct chosen
+		 */
+		session.insert( new Vote2B(a3, 1, 10, 3, issue, cluster));
+		session.insert( new Vote2B(a4, 1, 10, 3, issue, cluster));
+		session.insert( new Vote2B(a5, 1, 10, 3, issue, cluster));
+		rules.incrementTime();
+		
+		if (pass) {
+			//voted count is 7 (4 from before, 3 now)
+			assertFactCount("Voted", 7);
+		} else {
+			// count ag4's additional previous vote
+			assertFactCount("Voted", 8);
+		}
+		//reportedVote count is 10 (7 from before, 3 from now)
+		assertFactCount("ReportedVote", 10);
+		// value was chosen
+		assertFactCount("Chosen", 1);
+		
+		
 		
 		outputObjects();
-		logger.info("Finished narrative1()");
-		
+		if (pass) {
+			logger.info("Finished narrative1 with successful consensus\n");
+		}
+		else {
+			logger.info("Finished narrative1 with sanction against leader\n");
+		}
 	}
 	
 	private final FactType typeFromString(String factTypeString) {
