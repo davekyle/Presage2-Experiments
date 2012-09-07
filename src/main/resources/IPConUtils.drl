@@ -49,7 +49,7 @@ rule "holdsAt for possibleAddRevision"
 								// and didn't vote since the one you just got
 								not Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
-		Number( $notForVotes : intValue ) from accumulate( 
+		Number( $notForVotes : intValue, $notForVotes==$forVotes ) from accumulate( 
 								// find all the acceptors
 								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted against the value
@@ -57,13 +57,14 @@ rule "holdsAt for possibleAddRevision"
 								// and didn't vote since the one you just got
 								not Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
 								, count( $b1 ) )
+		/*
 		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
 								not Voted( agent==$a2.agent, revision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a2 ) )
-		
+		*/
 	then
 	logger.trace("possibleAddRevision fired");
 		insertLogical( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
@@ -88,18 +89,20 @@ rule "holdsAt for possibleRemRevision"
 								// and didn't vote since the one you just got
 								not Voted( agent memberOf $agents, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
-		Number( $notForVotes : intValue ) from accumulate(
+		Number( $notForVotes : intValue, $forVotes==$notForVotes ) from accumulate(
 								// that voted against the value
 								$b1 : Voted( agent memberOf $agents, revision==$revision, value!=$value, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
 								not Voted( agent memberOf $agents, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
-								, count( $b1 ) ) and
+								, count( $b1 ) ) //and
+		/*
 		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
 								not Voted( agent==$a2.agent, revision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a2 ) )
+								*/
 	then
 		logger.trace("possibleRemRevision fired");
 		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );

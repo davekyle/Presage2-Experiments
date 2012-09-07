@@ -5,6 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -84,6 +85,40 @@ public class IPConDrlsTest {
 			logger.info(object);
 		}
 		logger.info("/objects\n");
+	}
+	
+	public void initAgent(IPConAgent agent, Role role, Integer revision, String issue, UUID cluster) throws Exception {
+		ArrayList<Role> roles = new ArrayList<Role>();
+		roles.add(role);
+		initAgent(agent, roles, revision, issue, cluster);
+	}
+	
+	public void initAgent(IPConAgent agent, ArrayList<Role> roles, Integer revision, String issue, UUID cluster) throws Exception {
+		//IPConAgent agent = new IPConAgent();
+		//session.insert(agent);
+		
+		//Set roles
+		final FactType hasRoleType = typeFromString("HasRole");
+		for (Role role : roles) {
+			Object hasRole = hasRoleType.newInstance();
+			hasRoleType.set(hasRole, "role", role);
+			hasRoleType.set(hasRole, "agent", agent);
+			hasRoleType.set(hasRole, "revision", revision);
+			hasRoleType.set(hasRole, "issue", issue);
+			hasRoleType.set(hasRole, "cluster", cluster);
+		}
+		
+		
+		// Initially didn't vote
+		final FactType votedType = typeFromString("Voted");
+		Object v1Vote = votedType.newInstance();
+		votedType.set(v1Vote, "agent", agent);
+		votedType.set(v1Vote, "revision", revision);
+		votedType.set(v1Vote, "ballot", 0);
+		votedType.set(v1Vote, "value", null);
+		votedType.set(v1Vote, "issue", issue);
+		votedType.set(v1Vote, "cluster", cluster);
+		session.insert(v1Vote);
 	}
 	
 	@Test
@@ -454,149 +489,161 @@ public class IPConDrlsTest {
 	
 	@Test
 	public void testPossibleRevisionDetection() throws Exception {
+		//specify revision/issue/cluster
+		Integer revision = 1;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
 		// create agents
-				IPConAgent a1 = new IPConAgent("a1"); session.insert(a1);
-				IPConAgent a2 = new IPConAgent("a2"); session.insert(a2);
-				IPConAgent a3 = new IPConAgent("a3"); session.insert(a3);
-				//specify revision/issue/cluster
-				Integer revision = 1;
-				String issue = "IssueString";
-				UUID cluster = Random.randomUUID();
-				//set initially roles
-				session.insert(new ArrogateLeadership(a1, revision, issue, cluster));
-				session.insert(new AddRole(a1, a1, Role.PROPOSER, revision, issue, cluster));
-				session.insert(new AddRole(a1, a1, Role.ACCEPTOR, revision, issue, cluster));
-				session.insert(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
-				session.insert(new AddRole(a1, a3, Role.ACCEPTOR, revision, issue, cluster));
-				
-				// Increment now to stop all agents requiring Sync (because theyre being added at the same time)
-				rules.incrementTime();
-				
-				/*
-				 * Set Time step 1 (initially)
-				 */
-				// Agent voted in previous ballot
-				final FactType votedType = typeFromString("Voted");
-				Object v1Vote = votedType.newInstance();
-				votedType.set(v1Vote, "agent", a1);
-				votedType.set(v1Vote, "revision", revision);
-				votedType.set(v1Vote, "ballot", 1);
-				votedType.set(v1Vote, "value", "A");
-				votedType.set(v1Vote, "issue", issue);
-				votedType.set(v1Vote, "cluster", cluster);
-				session.insert(v1Vote);
-				Object v2Vote = votedType.newInstance();
-				votedType.set(v2Vote, "agent", a1);
-				votedType.set(v2Vote, "revision", revision);
-				votedType.set(v2Vote, "ballot", 1);
-				votedType.set(v2Vote, "value", "A");
-				votedType.set(v2Vote, "issue", issue);
-				votedType.set(v2Vote, "cluster", cluster);
-				session.insert(v2Vote);
-				
-				// Agent voted in previous ballot
-				final FactType reportedVoteType = typeFromString("ReportedVote");
-				Object v1RVote = reportedVoteType.newInstance();
-				reportedVoteType.set(v1RVote, "agent", a1);
-				reportedVoteType.set(v1RVote, "voteRevision", revision);
-				reportedVoteType.set(v1RVote, "voteBallot", 1);
-				reportedVoteType.set(v1RVote, "voteValue", "A");
-				reportedVoteType.set(v1RVote, "revision", revision);
-				reportedVoteType.set(v1RVote, "ballot", 1);
-				reportedVoteType.set(v1RVote, "issue", issue);
-				reportedVoteType.set(v1RVote, "cluster", cluster);
-				session.insert(v1RVote);
-				Object v2RVote = reportedVoteType.newInstance();
-				reportedVoteType.set(v2RVote, "agent", a1);
-				reportedVoteType.set(v2RVote, "voteRevision", revision);
-				reportedVoteType.set(v2RVote, "voteBallot", 1);
-				reportedVoteType.set(v2RVote, "voteValue", "A");
-				reportedVoteType.set(v2RVote, "revision", revision);
-				reportedVoteType.set(v2RVote, "ballot", 1);
-				reportedVoteType.set(v2RVote, "issue", issue);
-				reportedVoteType.set(v2RVote, "cluster", cluster);
-				session.insert(v2RVote);
-				
-				//insert Open_Vote to allow Chosen to kick in
-				final FactType openVoteType = typeFromString("Open_Vote");
-				Object openVote = openVoteType.newInstance();
-				openVoteType.set(openVote, "revision", revision);
-				openVoteType.set(openVote, "ballot", 1);
-				openVoteType.set(openVote, "value", "A");
-				openVoteType.set(openVote, "issue", issue);
-				openVoteType.set(openVote, "cluster", cluster);
-				session.insert(openVote);
-				
-				rules.incrementTime();
-				
-				assertFactCount("IPConAgent", 3);
-				assertFactCount("Voted", 2);
-				assertFactCount("ReportedVote", 2);
-				assertFactCount("HasRole", 5);
-				assertFactFieldValue("QuorumSize", "quorumSize", 2);
-				
-				// value was chosen
-				assertFactCount("Chosen", 1);
-				
-				// no risk from adding agents
-				assertFactCount("PossibleAddRevision", 0);
-				// risk from removing
-				assertFactCount("PossibleRemRevision", 1);
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1);
+		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2);
+		IPConAgent a3 = new IPConAgent("a3"); session.insert(a3);
+		ArrayList<Role> leaderRoles = new ArrayList<Role>();
+		leaderRoles.add(Role.LEADER);
+		leaderRoles.add(Role.PROPOSER);
+		leaderRoles.add(Role.ACCEPTOR);
+		initAgent(a1, leaderRoles, revision, issue, cluster);
+		initAgent(a2, Role.ACCEPTOR, revision, issue, cluster);
+		initAgent(a3, Role.ACCEPTOR, revision, issue, cluster);
+		
+		/**/
+		//set initially roles
+		/*session.insert(new ArrogateLeadership(a1, revision, issue, cluster));
+		session.insert(new AddRole(a1, a1, Role.PROPOSER, revision, issue, cluster));
+		session.insert(new AddRole(a1, a1, Role.ACCEPTOR, revision, issue, cluster));
+		session.insert(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
+		session.insert(new AddRole(a1, a3, Role.ACCEPTOR, revision, issue, cluster));*/
+		
+		// Increment now to stop all agents requiring Sync (because theyre being added at the same time)
+		rules.incrementTime();
+		
+		/*
+		 * Set Time step 1 (initially)
+		 */
+		// Agent voted in previous ballot
+		final FactType votedType = typeFromString("Voted");
+		Object v1Vote = votedType.newInstance();
+		votedType.set(v1Vote, "agent", a1);
+		votedType.set(v1Vote, "revision", revision);
+		votedType.set(v1Vote, "ballot", 1);
+		votedType.set(v1Vote, "value", "A");
+		votedType.set(v1Vote, "issue", issue);
+		votedType.set(v1Vote, "cluster", cluster);
+		session.insert(v1Vote);
+		Object v2Vote = votedType.newInstance();
+		votedType.set(v2Vote, "agent", a1);
+		votedType.set(v2Vote, "revision", revision);
+		votedType.set(v2Vote, "ballot", 1);
+		votedType.set(v2Vote, "value", "A");
+		votedType.set(v2Vote, "issue", issue);
+		votedType.set(v2Vote, "cluster", cluster);
+		session.insert(v2Vote);
+		
+		// Agent voted in previous ballot
+		final FactType reportedVoteType = typeFromString("ReportedVote");
+		Object v1RVote = reportedVoteType.newInstance();
+		reportedVoteType.set(v1RVote, "agent", a1);
+		reportedVoteType.set(v1RVote, "voteRevision", revision);
+		reportedVoteType.set(v1RVote, "voteBallot", 1);
+		reportedVoteType.set(v1RVote, "voteValue", "A");
+		reportedVoteType.set(v1RVote, "revision", revision);
+		reportedVoteType.set(v1RVote, "ballot", 1);
+		reportedVoteType.set(v1RVote, "issue", issue);
+		reportedVoteType.set(v1RVote, "cluster", cluster);
+		session.insert(v1RVote);
+		Object v2RVote = reportedVoteType.newInstance();
+		reportedVoteType.set(v2RVote, "agent", a1);
+		reportedVoteType.set(v2RVote, "voteRevision", revision);
+		reportedVoteType.set(v2RVote, "voteBallot", 1);
+		reportedVoteType.set(v2RVote, "voteValue", "A");
+		reportedVoteType.set(v2RVote, "revision", revision);
+		reportedVoteType.set(v2RVote, "ballot", 1);
+		reportedVoteType.set(v2RVote, "issue", issue);
+		reportedVoteType.set(v2RVote, "cluster", cluster);
+		session.insert(v2RVote);
+		
+		//insert Open_Vote to allow Chosen to kick in
+		final FactType openVoteType = typeFromString("Open_Vote");
+		Object openVote = openVoteType.newInstance();
+		openVoteType.set(openVote, "revision", revision);
+		openVoteType.set(openVote, "ballot", 1);
+		openVoteType.set(openVote, "value", "A");
+		openVoteType.set(openVote, "issue", issue);
+		openVoteType.set(openVote, "cluster", cluster);
+		session.insert(openVote);
+		
+		rules.incrementTime();
+		
+		assertFactCount("IPConAgent", 3);
+		// Remember the initial "didnt vote" facts
+		assertFactCount("Voted", 5);
+		assertFactCount("ReportedVote", 5);
+		// FIXME SORT OUT INITIAL DIDNTVOTE STUFF SO THAT POSSREV WORKS	
+		assertFactCount("HasRole", 5);
+		assertFactFieldValue("QuorumSize", "quorumSize", 2);
+		
+		// value was chosen
+		assertFactCount("Chosen", 1);
+		
+		// no risk from adding agents
+		assertFactCount("PossibleAddRevision", 0);
+		// no risk from removing (status quo holds)
+		assertFactCount("PossibleRemRevision", 0);
 
-				/*
-				 * Time step 2
-				 * Insert new agent
-				 * Check that there is an obligation to syncreq
-				 */
-				IPConAgent a4 = new IPConAgent("a4"); session.insert(a4);
-				session.insert(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
-				rules.incrementTime();
-				
-				// check obligation to sync the new agent
-				Object obl = Arrays.asList(assertFactCount("Obligation", 1).toArray()).get(0);
-				SyncReq fact = null;
-				if (typeFromString("Obligation").get(obl, "action") instanceof SyncReq ) {
-					fact = (SyncReq)typeFromString("Obligation").get(obl, "action");
-				}
-				else {
-					fail();
-				}
-				assertEquals(fact.getAgent(), a4);
+		/*
+		 * Time step 2
+		 * Insert new agent
+		 * Check that there is an obligation to syncreq
+		 */
+		IPConAgent a4 = new IPConAgent("a4"); session.insert(a4);
+		session.insert(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		// check obligation to sync the new agent
+		Object obl = Arrays.asList(assertFactCount("Obligation", 1).toArray()).get(0);
+		SyncReq fact = null;
+		if (typeFromString("Obligation").get(obl, "action") instanceof SyncReq ) {
+			fact = (SyncReq)typeFromString("Obligation").get(obl, "action");
+		}
+		else {
+			fail();
+		}
+		assertEquals(fact.getAgent(), a4);
 
-				assertFactFieldValue("QuorumSize", "quorumSize", 3);
-				
-				// value was chosen
-				assertFactCount("Chosen", 1);
-				
-				// no risk from adding agent because it's not being synched yet
-				assertFactCount("PossibleAddRevision", 0);
-				// still risk from removing
-				assertFactCount("PossibleRemRevision", 1);
-				
-				/*
-				 * Time step 3
-				 * Sync the new agent, check new risks
-				 */
-				session.insert(new SyncReq( a1, a4, "A", revision, issue, cluster));
-				rules.incrementTime();
-				
-				assertFactFieldValue("QuorumSize", "quorumSize", 3);
-				
-				// value was chosen
-				assertFactCount("Chosen", 1);
-				
-				// risk from current sync and from removing
-				assertFactCount("PossibleAddRevision", 1);
-				assertFactCount("PossibleRemRevision", 1);
-				
-				/*
-				 * Time step 4
-				 * Agent syncs no
-				 */
-				
-				
-				IPConAgent a5 = new IPConAgent("a5"); session.insert(a5);
-				session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		
+		// value was chosen
+		assertFactCount("Chosen", 1);
+		
+		// no risk from adding agent because status quo holds
+		assertFactCount("PossibleAddRevision", 0);
+		// still risk from removing
+		assertFactCount("PossibleRemRevision", 1);
+		
+		/*
+		 * Time step 3
+		 * Sync the new agent, check new risks
+		 */
+		session.insert(new SyncReq( a1, a4, "A", revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		
+		// value was chosen
+		assertFactCount("Chosen", 1);
+		
+		// still no risk from adding agent because status quo holds
+		assertFactCount("PossibleAddRevision", 0);
+		// still risk from removing
+		assertFactCount("PossibleRemRevision", 1);
+		
+		/*
+		 * Time step 4
+		 * Agent syncs no
+		 */
+		
+		
+		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5);
+		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
 	}
 	
 	private final FactType typeFromString(String factTypeString) {
