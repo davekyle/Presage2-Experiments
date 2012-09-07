@@ -27,6 +27,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Response1B;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.util.random.Random;
@@ -86,6 +87,19 @@ public class IPConDrlsTest {
 		logger.info("/objects");
 	}
 	
+	public final Collection<Object> assertFactCount(final String factTypeString, int count) {
+		final FactType factType = typeFromString(factTypeString);
+		
+		Collection<Object> facts = session.getObjects(new ObjectFilter() {
+			@Override
+			public boolean accept(Object object) {
+				return assertFactType(object, factType);
+			}
+		});
+		assertEquals(count, facts.size());
+		return facts;
+	}
+	
 	@Test
 	public void basicTest() throws Exception {
 		logger.info("Starting basicTest()");
@@ -100,7 +114,7 @@ public class IPConDrlsTest {
 		outputObjects();
 		
 		//String hasRoleTypeString = "HasRole";
-		final FactType hasRoleType = typeFromString("HasRole");
+		/*final FactType hasRoleType = typeFromString("HasRole");
 		
 		Collection<Object> hasRoles = session.getObjects(new ObjectFilter() {
 			@Override
@@ -108,9 +122,10 @@ public class IPConDrlsTest {
 				return assertFactType(object, hasRoleType);
 			}
 		});
-		assertEquals(1, hasRoles.size());
+		assertEquals(1, hasRoles.size());*/
+		Collection<Object> hasRoles = assertFactCount("HasRole", 1);
 		Object hasRole = Arrays.asList(hasRoles.toArray()).get(0);
-		Role role = (Role) hasRoleType.get(hasRole, "role");
+		Role role = (Role) typeFromString("HasRole").get(hasRole, "role");
 		assertEquals(role.toString(), "LEADER");
 		logger.info("Finished basicTest()");
 	}
@@ -119,13 +134,13 @@ public class IPConDrlsTest {
 	public void narrative1() throws Exception {
 		logger.info("Starting narrative1()");
 		// create agents
-		IPConAgent a1 = new IPConAgent(); session.insert(a1);
-		IPConAgent a2 = new IPConAgent(); session.insert(a2);
-		IPConAgent a3 = new IPConAgent(); session.insert(a3);
-		IPConAgent a4 = new IPConAgent(); session.insert(a4);
-		IPConAgent a5 = new IPConAgent(); session.insert(a5);
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1);
+		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2);
+		IPConAgent a3 = new IPConAgent("a3"); session.insert(a3);
+		IPConAgent a4 = new IPConAgent("a4"); session.insert(a4);
+		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5);
 		//specify revision/issue/cluster
-		Integer revision = 0;
+		Integer revision = 1;
 		String issue = "IssueString";
 		UUID cluster = Random.randomUUID();
 		//set initially roles
@@ -141,7 +156,7 @@ public class IPConDrlsTest {
 		Object a2Vote = votedType.newInstance();
 		votedType.set(a2Vote, "agent", a2);
 		votedType.set(a2Vote, "revision", revision);
-		votedType.set(a2Vote, "ballot", 0);
+		votedType.set(a2Vote, "ballot", 1);
 		votedType.set(a2Vote, "value", 4);
 		votedType.set(a2Vote, "issue", issue);
 		votedType.set(a2Vote, "cluster", cluster);
@@ -149,7 +164,7 @@ public class IPConDrlsTest {
 		Object a3Vote = votedType.newInstance();
 		votedType.set(a3Vote, "agent", a3);
 		votedType.set(a3Vote, "revision", revision);
-		votedType.set(a3Vote, "ballot", 0);
+		votedType.set(a3Vote, "ballot", 1);
 		votedType.set(a3Vote, "value", 4);
 		votedType.set(a3Vote, "issue", issue);
 		votedType.set(a3Vote, "cluster", cluster);
@@ -157,7 +172,7 @@ public class IPConDrlsTest {
 		Object a4Vote = votedType.newInstance();
 		votedType.set(a4Vote, "agent", a4);
 		votedType.set(a4Vote, "revision", revision);
-		votedType.set(a4Vote, "ballot", 1);
+		votedType.set(a4Vote, "ballot", 2);
 		votedType.set(a4Vote, "value", 5);
 		votedType.set(a4Vote, "issue", issue);
 		votedType.set(a4Vote, "cluster", cluster);
@@ -166,7 +181,7 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// check there are the right number of roles
-		final FactType hasRoleType = typeFromString("HasRole");
+		/*final FactType hasRoleType = typeFromString("HasRole");
 		
 		Collection<Object> hasRoles = session.getObjects(new ObjectFilter() {
 			@Override
@@ -175,10 +190,11 @@ public class IPConDrlsTest {
 			}
 		});
 		// 5 acceptors, one leader, one proposer
-		assertEquals(7, hasRoles.size());
+		assertEquals(7, hasRoles.size());*/
+		assertFactCount("HasRole", 7);
 		
 		// check theres only one agent can request (the proposer)
-		final FactType reqPerType = typeFromString("RequestPer");
+		/*final FactType reqPerType = typeFromString("RequestPer");
 		
 		Collection<Object> reqPers = session.getObjects(new ObjectFilter() {
 			@Override
@@ -187,7 +203,8 @@ public class IPConDrlsTest {
 			}
 		});
 		// one proposer has permission
-		assertEquals(1, reqPers.size());
+		assertEquals(1, reqPers.size());*/
+		assertFactCount("RequestPer", 1);
 		
 		/*
 		 * Begin the time steps.
@@ -201,7 +218,7 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// check no one can response
-		final FactType resPerType = typeFromString("ResponsePer");
+		/*final FactType resPerType = typeFromString("ResponsePer");
 		
 		Collection<Object> resPers0 = session.getObjects(new ObjectFilter() {
 			@Override
@@ -210,7 +227,8 @@ public class IPConDrlsTest {
 			}
 		});
 		// no one has permission
-		assertEquals(0, resPers0.size());
+		assertEquals(0, resPers0.size());*/
+		assertFactCount("ResponsePer", 0);
 		
 		/*
 		 * Time step 2 :
@@ -222,16 +240,30 @@ public class IPConDrlsTest {
 		// check all acceptors can response
 		//final FactType resPerType = typeFromString("ResponsePer");
 		
-		Collection<Object> resPers5 = session.getObjects(new ObjectFilter() {
+		/*Collection<Object> resPers5 = session.getObjects(new ObjectFilter() {
 			@Override
 			public boolean accept(Object object) {
 				return assertFactType(object, resPerType);
 			}
 		});
 		// 5 acceptors have permission
-		assertEquals(5, resPers5.size());
+		assertEquals(5, resPers5.size());*/
+		assertFactCount("ResponsePer", 5);
+		/*
+		 * Time step 3 :
+		 * All agents send a response, check the responsecount and per/obl to submit
+		 */
+		session.insert(new Response1B( a1, 1, 0, null, 1, 10, issue, cluster));
+		session.insert(new Response1B( a2, 1, 1, 4, 1, 10, issue, cluster));
+		session.insert(new Response1B( a3, 1, 1, 4, 1, 10, issue, cluster));
+		//session.insert(new Response1B( a4, 1, 0, null, 1, 10, issue, cluster));
+		session.insert(new Response1B( a4, 1, 2, 5, 1, 10, issue, cluster));
+		session.insert(new Response1B( a5, 1, 0, null, 1, 10, issue, cluster));
+		rules.incrementTime();
+		//assertFactCount("SubmitPer", 1);
+		assertFactCount("SubmitPer", 0);
+		assertFactCount("Obligation", 1);
 		
-				
 		outputObjects();
 		logger.info("Finished narrative1()");
 		
@@ -270,6 +302,9 @@ public class IPConDrlsTest {
 	private boolean assertFactType(Object obj, FactType factType) {
 		try {
 			return ( ( factType.newInstance().getClass() ).equals( ( obj.getClass() ) ) );
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+			return false;
 		} catch (InstantiationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

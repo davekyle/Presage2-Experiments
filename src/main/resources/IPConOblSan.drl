@@ -33,6 +33,7 @@ rule "holdsAt for obligation to prepare"
     then
     	//$ballot = Integer.NaN; // FIXME todo need to work out how to handle this...
     	Prepare1A $prepare = new Prepare1A( $agent, $revision, null, $issue, $cluster );
+    	logger.trace("Logically inserted obligation to " + $prepare );
         insertLogical( new Obligation( $agent, $prepare ) ); 
 end
 
@@ -45,7 +46,8 @@ rule "holdsAt for obligation to respond"
 		not ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
 		Response1B $response = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
-		insertLogical( new Obligation( $agent, $response ) );
+		logger.trace("Logically inserted obligation for " + $agent + "  to " + $response );
+        insertLogical( new Obligation( $agent, $response ) );
 end
 
 rule "holdsAt for obligation to submit"
@@ -55,21 +57,23 @@ rule "holdsAt for obligation to submit"
 		not Open_Vote( revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
 	then
 		Submit2A $submit = new Submit2A( $agent, $revision, $ballot, $value, $issue, $cluster );
-		insertLogical( new Obligation( $agent, $submit ) );
+		logger.trace("Logically inserted obligation for " + $agent + "  to " + $submit );
+        insertLogical( new Obligation( $agent, $submit ) );
 end
 
 rule "initiates for obligation to revise on leaveCluster"
 // if an agent leaves when they are an acceptor and voted and you have a permission to revise and there is a possRemRev
 	when
-		RemRole( $leader : leader, $agent : agent, role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster )
+		LeaveCluster( $agent : agent, $cluster : cluster )
 		//FIXME TODO check that this will actually work as the role will be modified by the remrole...
-		HasRole( role==Role.ACCEPTOR, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-		RevisePer( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster )
+		HasRole( role==Role.ACCEPTOR, agent==$agent, $revision : revision, $issue : issue, cluster==$cluster )
+		RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
 		PossibleRemRevision( $value : value, revision==$revision, issue==$issue, cluster==$cluster )
 		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
-		insert( new Obligation( $leader, $revise ) ); 
+		logger.trace("LeaveCluster inserted obligation for " + $leader + "  to " + $revise );
+        insert( new Obligation( $leader, $revise ) ); 
 end
 
  rule "initiates for obligation to revise on remRole"
@@ -84,7 +88,8 @@ end
 		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
-		insert( new Obligation( $leader, $revise ) ); 
+		logger.trace("RemRole inserted obligation for " + $leader + " to " + $revise );
+        insert( new Obligation( $leader, $revise ) ); 
 end
 
 rule "revise terminates obligation to revise"
@@ -94,7 +99,8 @@ rule "revise terminates obligation to revise"
 		$revise : Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
 		$obl : Obligation( agent==$agent, action==$revise )
 	then
-		retract( $obl );
+		logger.trace("Revise retracted obligation for " + $agent + " to " + $revise );
+        retract( $obl );
 end
 
 rule "holdsAt for obligation to syncReq"
@@ -103,7 +109,8 @@ rule "holdsAt for obligation to syncReq"
 		SyncReqPer( $leader : leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
 	then
 		SyncReq $syncReq = new SyncReq( $leader, $agent, $value, $revision, $issue, $cluster );
-		insertLogical( new Obligation( $leader, $syncReq ) );
+		logger.trace("Logically inserted obligation for " + $leader + " to " + $syncReq );
+        insertLogical( new Obligation( $leader, $syncReq ) );
 end
 
 rule "syncAck no initiates obligation to revise"
@@ -116,7 +123,8 @@ rule "syncAck no initiates obligation to revise"
 		PossibleAddRevision( value!=$answer, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
-		insert( new Obligation( $leader, $revise ) ); 
+		logger.trace("SyncAck inserted obligation for " + $leader + " to " + $revise );
+        insert( new Obligation( $leader, $revise ) ); 
 end
 
 rule "holdsAt for obligation to syncack"
@@ -128,8 +136,16 @@ rule "holdsAt for obligation to syncack"
 	then
 		//$answer = Integer.NaN; //FIXME TODO need to work out how to handle this...
 		SyncAck $syncAck = new SyncAck( $agent, "PLACEHOLDER", $revision, $issue, $cluster );
-		insertLogical( new Obligation( $agent, $syncAck ) );
+		logger.trace("Sync logically inserted obligation for " + $agent + " to " + $syncAck );
+        insertLogical( new Obligation( $agent, $syncAck ) );
 end
 
-
-
+rule "Generic obligation retraction"
+	when
+		$agent : IPConAgent( )
+		$action : IPConAction( )
+		$obl : Obligation( agent==$agent, action==$action ) 
+	then
+		logger.trace("Retracted obligation: " + $obl);
+		retract( $obl );
+end

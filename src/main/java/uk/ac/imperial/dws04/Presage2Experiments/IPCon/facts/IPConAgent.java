@@ -12,6 +12,7 @@ import uk.ac.imperial.presage2.core.util.random.Random;
  */
 public class IPConAgent {
 	
+	String name;
 	NetworkAddress address;
 
 	/**
@@ -20,6 +21,16 @@ public class IPConAgent {
 	public IPConAgent() {
 		super();
 		this.address = new NetworkAddress(Random.randomUUID());
+		this.name = address.toString();
+	}
+	
+	/**
+	 * @param name
+	 */
+	public IPConAgent(String name) {
+		super();
+		this.address = new NetworkAddress(Random.randomUUID());
+		this.name = name;
 	}
 	
 	/**
@@ -28,6 +39,17 @@ public class IPConAgent {
 	public IPConAgent(NetworkAddress address) {
 		super();
 		this.address = address;
+		this.name = address.toString();
+	}
+
+	/**
+	 * @param address
+	 * @param name
+	 */
+	public IPConAgent(NetworkAddress address, String name) {
+		super();
+		this.address = address;
+		this.name = name;
 	}
 
 	/* (non-Javadoc)
@@ -66,7 +88,7 @@ public class IPConAgent {
 	 */
 	@Override
 	public String toString() {
-		return "IPConAgent [address=" + address + "]";
+		return "IPConAgent [name=" + name + ", address=" + address + "]";
 	}
 	
 }

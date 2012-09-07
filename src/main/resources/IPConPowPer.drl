@@ -343,7 +343,7 @@ rule "holdsAt for permission to submit2a"
 		$reportedVotes : List(size >= $quorumSize) from accumulate (
 				$rVote : ReportedVote( $a : agent, voteRevision==$revision, voteBallot<=$ballot, (voteValue==$value || voteValue==null), revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) and
 				not ReportedVote( agent==$a, voteRevision>$revision, issue==$issue, cluster==$cluster ) and
-				not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$ballot, issue==$issue, cluster==$cluster ) // probably don't need this line due to <=$ballot in first one...
+				not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$ballot, issue==$issue, cluster==$cluster )
 				, collectList( $rVote ) ) 
 		// find all quorumSize'd sets of ReportedVote facts (done by size constraint on $reportedVotes)
 		// if all of the facts in the group you're looking at have the voteValue of null or $value, yay (done by conditional on voteValue)
@@ -351,6 +351,7 @@ rule "holdsAt for permission to submit2a"
 		
 	then
 		logger.trace("Logically inserting SubmitPer( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("RVotes is: " + $reportedVotes);
 		insertLogical( new SubmitPer( $agent, $revision, $ballot, $value, $issue, $cluster ) );
 end
 

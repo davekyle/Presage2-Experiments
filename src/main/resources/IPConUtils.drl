@@ -4,6 +4,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon
 //list any import classes here.
 //java
 import java.lang.String
+import java.lang.Number;
 import java.lang.Integer
 import java.lang.Double
 import java.lang.Object
@@ -127,15 +128,23 @@ rule "update quorumsize"
 	no-loop
 	when
 		$q : QuorumSize( $revision : revision, $issue : issue, $cluster : cluster )
-		$acceptors : Integer( ) from accumulate( 
+		$acceptors : Number( ) from accumulate( 
 								// find all the acceptors
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a ) )
 	then
+		/* logger.trace("0");
+		Integer acc = $acceptors.intValue();
+		double half = acc/2; logger.trace("1");
+		half = java.lang.Math.ceil( floor ); logger.trace("2");
+		Double floor = (Double)half; logger.trace("3");
+		Integer newQS = floor.intValue() + 1; logger.trace("4"); */
 		modify($q) {
-			Integer newQS = ((Double)(java.lang.Math.ceil( $acceptors / 2 ) )).intValue();
-			$q.setQuorumSize( newQS );
+			//Integer newQS = ((Double)(java.lang.Math.ceil( $acceptors / 2 ) )).intValue();
+			//setQuorumSize( newQS );
+			setQuorumSize( ((Double)(java.lang.Math.floor( $acceptors.intValue() / 2 ) )).intValue()+1 );
 		};
+		logger.trace("Updating quorumsize: " + $q);
 end
 
 
