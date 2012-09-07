@@ -380,6 +380,7 @@ rule "holdsAt for permission to arrogate"
 	when
 		$agent : IPConAgent( )
 		//Can't do checks for roles you already have easily, so HACKITY HACK
+		// (This is because you don't know the revision/issue/cluster in advance (you need to be able to bootstrap)
 	then
 		logger.trace("Logically inserting ArrogatePer( " + $agent + ")");
 		insertLogical( new ArrogatePer( $agent ) );
@@ -407,7 +408,13 @@ end
 
 rule "holdsAt for power to leave"
 	when
-		HasRole( $agent : agent, $cluster : cluster )
+		$agent : IPConAgent( )
+		HasRole( agent==$agent, $cluster : cluster )
+		// FIXME TODO to stop this occurring once for each role,
+		// need to create a Cluster factType and check for that, then do:
+		/*List( size > 0 ) from collect (
+			$r : HasRole( agent==$agent, $cluster : cluster )
+			)*/
 	then
 		logger.trace("Logically inserting LeavePow( " + $agent + " , " + $cluster + ")");
 		insertLogical( new LeavePow( $agent, $cluster ) );
