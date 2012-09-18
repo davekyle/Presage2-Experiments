@@ -237,10 +237,12 @@ rule "SyncReq initiates Sync"
 		SyncReqPow( leader==$leader, revision==$revision, issue==$issue, cluster==$cluster )
 		$needToSync : NeedToSync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("SyncReq inserted Sync( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + " ) and retracted NeedToSync : " + $needToSync);
+		logger.trace("Trying to Sync with agent:" + $agent + ", value:" + $value + ", revision:" + $revision + ", issue:" + $issue + ", cluster:" + $cluster );
 		insert( new Sync( $agent, $value, $revision, $issue, $cluster ) );
+		logger.trace("SyncReq inserted Sync( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + " )...");
 		// retract NeedtoSync indicator
 		retract( $needToSync );
+		logger.trace("...  and retracted NeedToSync : " + $needToSync);
 end
 
 rule "SyncAck initiates Voted and ReportedVote (if agree)"

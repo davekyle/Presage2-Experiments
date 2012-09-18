@@ -45,24 +45,24 @@ rule "holdsAt for possibleAddRevision"
 								// find all the acceptors
 								 $a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted for the value
-								$b : Voted( agent==$a.agent, revision==$revision, value==$value, issue==$issue, cluster==$cluster ) and
+								$b : ReportedVote( agent==$a.agent, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not Voted( agent==$a, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
+								not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
 		Number( $notForVotes : intValue, $notForVotes==$forVotes ) from accumulate( 
 								// find all the acceptors
 								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted against the value
-								$b1 : Voted( agent==$a1.agent, revision==$revision, value!=$value, issue==$issue, cluster==$cluster ) and
+								$b1 : ReportedVote( agent==$a1.agent, voteRevision==$revision, voteValue!=$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not Voted( agent==$a1, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
+								not ReportedVote( agent==$a1, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
 								, count( $b1 ) )
 		/*
 		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
-								not Voted( agent==$a2.agent, revision==$revision, issue==$issue, cluster==$cluster )
+								not ReportedVote( agent==$a2.agent, voteRevision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a2 ) )
 		*/
 	then
@@ -85,22 +85,22 @@ rule "holdsAt for possibleRemRevision"
 		
 		Number( $forVotes : intValue ) from accumulate( 
 								// that voted for the value
-								$b : Voted( agent memberOf $agents, revision==$revision, value==$value, issue==$issue, cluster==$cluster ) and
+								$b : ReportedVote( agent memberOf $agents, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not Voted( agent memberOf $agents, revision==$revision, ballot>$b.ballot, issue==$issue, cluster==$cluster )
+								not ReportedVote( agent memberOf $agents, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
 		Number( $notForVotes : intValue, $forVotes==$notForVotes ) from accumulate(
 								// that voted against the value
-								$b1 : Voted( agent memberOf $agents, revision==$revision, value!=$value, issue==$issue, cluster==$cluster ) and 
+								$b1 : ReportedVote( agent memberOf $agents, voteRevision==$revision, voteValue!=$value, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
-								not Voted( agent memberOf $agents, revision==$revision, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
+								not ReportedVote( agent memberOf $agents, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
 								, count( $b1 ) ) //and
 		/*
 		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
-								not Voted( agent==$a2.agent, revision==$revision, issue==$issue, cluster==$cluster )
+								not ReportedVote( agent==$a2.agent, voteRevision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a2 ) )
 								*/
 	then
@@ -131,21 +131,32 @@ rule "update quorumsize"
 	no-loop
 	when
 		$q : QuorumSize( $revision : revision, $issue : issue, $cluster : cluster )
-		$acceptors : Number( ) from accumulate( 
+		$acceptors : List( size >0 ) from accumulate( 
 								// find all the acceptors
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
-								, count( $a ) )
+								, collectList( $a.getAgent() ) )
+		$syncs : Number( ) from accumulate(
+								// find all the agents being synched
+								$b : Sync( agent memberOf $acceptors, revision==$revision, issue==$issue, cluster==$cluster )
+								, count( $b ) )
+		$needToSyncs : List( ) from accumulate(
+								// find all the agents that need to be synched
+								$c : NeedToSync( agent memberOf $acceptors, revision==$revision, issue==$issue, cluster==$cluster )
+								, collectList( $c ) )
 	then
 		/* logger.trace("0");
-		Integer acc = $acceptors.intValue();
+		Integer acc = $acceptors.size();
 		double half = acc/2; logger.trace("1");
-		half = java.lang.Math.ceil( floor ); logger.trace("2");
+		half = java.lang.Math.floor( half ); logger.trace("2");
 		Double floor = (Double)half; logger.trace("3");
-		Integer newQS = floor.intValue() + 1; logger.trace("4"); */
+		Integer newQS = floor.intValue() + 1; logger.trace("4");
+		Integer newQSadjusted = newQS - $syncs.size() - $needToSyncs.size(); logger.trace("5");*/
+		//Integer syncSize = $syncs.intValue();
+		//Integer needToSyncSize = $needToSyncs.size();
+		//logger.trace("BaseQS:" + (((Double)(java.lang.Math.floor( $acceptors.size() / 2 ) )).intValue()+1) + " / Syncs:" + syncSize + " / NeedToSyncs:" + needToSyncSize);
 		modify($q) {
-			//Integer newQS = ((Double)(java.lang.Math.ceil( $acceptors / 2 ) )).intValue();
-			//setQuorumSize( newQS );
-			setQuorumSize( ((Double)(java.lang.Math.floor( $acceptors.intValue() / 2 ) )).intValue()+1 );
+			//setQuorumSize( newQSadjusted );
+			setQuorumSize( ((Double)(java.lang.Math.floor( $acceptors.size() / 2 ) )).intValue()+1 - $syncs.intValue() - $needToSyncs.size()  );
 		};
 		logger.trace("Updating quorumsize: " + $q);
 end

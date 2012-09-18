@@ -591,7 +591,6 @@ public class IPConDrlsTest {
 		// Remember the initial "didnt vote" facts
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 5);
-		// FIXME SORT OUT INITIAL DIDNTVOTE STUFF SO THAT POSSREV WORKS	
 		assertFactCount("HasRole", 5);
 		assertFactFieldValue("QuorumSize", "quorumSize", 2);
 		
@@ -623,15 +622,20 @@ public class IPConDrlsTest {
 		}
 		assertEquals(fact.getAgent(), a4);
 
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("HasRole", 6);
+		assertFactCount("Sync", 0);
+		assertFactCount("NeedToSync", 1);
+		
+		//outputObjects();
+		
+		assertFactFieldValue("QuorumSize", "quorumSize", 2);
 		
 		// value was chosen
 		assertFactCount("Chosen", 1);
 		
-		// no risk from adding agent because status quo holds
+		// no risk from adding or removing agent because status quo holds
 		assertFactCount("PossibleAddRevision", 0);
-		// still risk from removing
-		assertFactCount("PossibleRemRevision", 1);
+		assertFactCount("PossibleRemRevision", 0);
 		
 		/*
 		 * Time step 3
@@ -640,21 +644,25 @@ public class IPConDrlsTest {
 		session.insert(new SyncReq( a1, a4, "A", revision, issue, cluster));
 		rules.incrementTime();
 		
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("HasRole", 6);
+		assertFactCount("Sync", 1);
+		assertFactCount("NeedToSync", 0);
+		
+		// quorumsize should still be 2 because the agent didn't complete the sync
+		assertFactFieldValue("QuorumSize", "quorumSize", 2);
 		
 		// value was chosen
 		assertFactCount("Chosen", 1);
 		
-		// still no risk from adding agent because status quo holds
+		// still no risk because status quo holds
 		assertFactCount("PossibleAddRevision", 0);
-		// still risk from removing
-		assertFactCount("PossibleRemRevision", 1);
+		assertFactCount("PossibleRemRevision", 0);
 		
 		/*
 		 * Time step 4
 		 * Agent syncs no
 		 */
-		
+		fail();
 		
 		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5);
 		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
@@ -763,7 +771,7 @@ public class IPConDrlsTest {
 		Object fact = Arrays.asList(facts.toArray()).get(0);
 		Object field = typeFromString(factTypeString).get(fact, fieldString);
 		// correct value was chosen
-		assertEquals(field, value);
+		assertEquals(value, field);
 		return field;
 	}
 
