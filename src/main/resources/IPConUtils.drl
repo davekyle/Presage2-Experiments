@@ -41,30 +41,31 @@ rule "holdsAt for possibleAddRevision"
 		Sync( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
 		Chosen( revision==$revision, $ballot : ballot, value==$value, issue==$issue, cluster==$cluster )
 		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
+		
+		// find all acceptors
+		$agents : List(size > 0) from accumulate(
+								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								, collectList( $a.getAgent() ) )
+		
 		Number( $forVotes : intValue ) from accumulate( 
-								// find all the acceptors
-								 $a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// that voted for the value
-								$b : ReportedVote( agent==$a.agent, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
+								$b : ReportedVote( agent memberOf $agents, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
+								not ReportedVote( agent memberOf $agents, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
 								, count( $b ) )
-		Number( $notForVotes : intValue, $notForVotes==$forVotes ) from accumulate( 
-								// find all the acceptors
-								$a1 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
+		Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
 								// that voted against the value
-								$b1 : ReportedVote( agent==$a1.agent, voteRevision==$revision, voteValue!=$value, issue==$issue, cluster==$cluster ) and
+								$b1 : ReportedVote( agent memberOf $agents, voteRevision==$revision, voteValue!=$value, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
-								not ReportedVote( agent==$a1, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
-								, count( $b1 ) )
-		/*
+								not ReportedVote( agent memberOf $agents, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
+								, count( $b1 ) ) //and
 		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
 								not ReportedVote( agent==$a2.agent, voteRevision==$revision, issue==$issue, cluster==$cluster )
 								, count( $a2 ) )
-		*/
+								
 	then
 		logger.trace("Logically toggling possibleAddRevision");
 		insertLogical( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
@@ -153,10 +154,10 @@ rule "update quorumsize"
 		Integer newQSadjusted = newQS - $syncs.size() - $needToSyncs.size(); logger.trace("5");*/
 		//Integer syncSize = $syncs.intValue();
 		//Integer needToSyncSize = $needToSyncs.size();
-		//logger.trace("BaseQS:" + (((Double)(java.lang.Math.floor( $acceptors.size() / 2 ) )).intValue()+1) + " / Syncs:" + syncSize + " / NeedToSyncs:" + needToSyncSize);
+		logger.trace("Acceptors:" + $acceptors.size() + " / Syncs:" + $syncs + " / NeedToSyncs:" + $needToSyncs.size() );
 		modify($q) {
 			//setQuorumSize( newQSadjusted );
-			setQuorumSize( ((Double)(java.lang.Math.floor( $acceptors.size() / 2 ) )).intValue()+1 - $syncs.intValue() - $needToSyncs.size()  );
+			setQuorumSize( ((Double)(java.lang.Math.floor( ( $acceptors.size()  - $syncs.intValue() - $needToSyncs.size() ) / 2 ) )).intValue()+1  );
 		};
 		logger.trace("Updating quorumsize: " + $q);
 end

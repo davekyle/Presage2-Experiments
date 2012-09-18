@@ -686,12 +686,45 @@ public class IPConDrlsTest {
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 6);
 		
-		
-		
-		fail();
+		/*
+		 * Time step 5
+		 * Ag5 joins
+		 */
 		
 		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5);
 		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", 7);
+		assertFactCount("Sync", 0);
+		assertFactCount("NeedToSync", 1);
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("Chosen", 1);
+		assertFactCount("PossibleAddRevision", 0); // they're not synching yet
+		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("Voted", 5);
+		assertFactCount("ReportedVote", 6);
+		
+		/*
+		 * Time step 6
+		 * Ag5 starts to sync
+		 */
+		
+		session.insert(new SyncReq( a1, a5, "A", revision, issue, cluster));
+		rules.incrementTime();
+		
+		outputObjects();
+		
+		assertFactCount("HasRole", 7);
+		assertFactCount("Sync", 1);
+		assertFactCount("NeedToSync", 0);
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("Chosen", 1);
+		assertFactCount("PossibleAddRevision", 1);
+		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("Voted", 5);
+		assertFactCount("ReportedVote", 6);
+		
 	}
 	
 	private final FactType typeFromString(String factTypeString) {
