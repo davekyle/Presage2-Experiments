@@ -106,6 +106,7 @@ public class IPConDrlsTest {
 			hasRoleType.set(hasRole, "revision", revision);
 			hasRoleType.set(hasRole, "issue", issue);
 			hasRoleType.set(hasRole, "cluster", cluster);
+			session.insert(hasRole);
 		}
 		
 		
@@ -119,6 +120,19 @@ public class IPConDrlsTest {
 		votedType.set(v1Vote, "issue", issue);
 		votedType.set(v1Vote, "cluster", cluster);
 		session.insert(v1Vote);
+		
+		// And the reportedvote for the initially
+		final FactType reportedVoteType = typeFromString("ReportedVote");
+		Object v1RVote = reportedVoteType.newInstance();
+		reportedVoteType.set(v1RVote, "agent", agent);
+		reportedVoteType.set(v1RVote, "voteRevision", revision);
+		reportedVoteType.set(v1RVote, "voteBallot", 0);
+		reportedVoteType.set(v1RVote, "voteValue", null);
+		reportedVoteType.set(v1RVote, "revision", revision);
+		reportedVoteType.set(v1RVote, "ballot", 0);
+		reportedVoteType.set(v1RVote, "issue", issue);
+		reportedVoteType.set(v1RVote, "cluster", cluster);
+		session.insert(v1RVote);
 	}
 	
 	@Test
@@ -530,7 +544,7 @@ public class IPConDrlsTest {
 		votedType.set(v1Vote, "cluster", cluster);
 		session.insert(v1Vote);
 		Object v2Vote = votedType.newInstance();
-		votedType.set(v2Vote, "agent", a1);
+		votedType.set(v2Vote, "agent", a2);
 		votedType.set(v2Vote, "revision", revision);
 		votedType.set(v2Vote, "ballot", 1);
 		votedType.set(v2Vote, "value", "A");
@@ -551,7 +565,7 @@ public class IPConDrlsTest {
 		reportedVoteType.set(v1RVote, "cluster", cluster);
 		session.insert(v1RVote);
 		Object v2RVote = reportedVoteType.newInstance();
-		reportedVoteType.set(v2RVote, "agent", a1);
+		reportedVoteType.set(v2RVote, "agent", a2);
 		reportedVoteType.set(v2RVote, "voteRevision", revision);
 		reportedVoteType.set(v2RVote, "voteBallot", 1);
 		reportedVoteType.set(v2RVote, "voteValue", "A");
