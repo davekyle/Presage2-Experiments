@@ -33,7 +33,7 @@ rule "holdsAt for obligation to prepare"
     then
     	//$ballot = Integer.NaN; // FIXME todo need to work out how to handle this...
     	Prepare1A $prepare = new Prepare1A( $agent, $revision, null, $issue, $cluster );
-    	logger.trace("Logically inserted obligation to " + $prepare );
+    	logger.trace("Logically toggling obligation to " + $prepare );
         insertLogical( new Obligation( $agent, $prepare ) ); 
 end
 
@@ -46,7 +46,7 @@ rule "holdsAt for obligation to respond"
 		not ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
 		Response1B $response = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
-		logger.trace("Logically inserted obligation for " + $agent + "  to " + $response );
+		logger.trace("Logically toggling obligation for " + $agent + "  to " + $response );
         insertLogical( new Obligation( $agent, $response ) );
 end
 
@@ -57,7 +57,7 @@ rule "holdsAt for obligation to submit"
 		not Open_Vote( revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
 	then
 		Submit2A $submit = new Submit2A( $agent, $revision, $ballot, $value, $issue, $cluster );
-		logger.trace("Logically inserted obligation for " + $agent + "  to " + $submit );
+		logger.trace("Logically toggling obligation for " + $agent + "  to " + $submit );
         insertLogical( new Obligation( $agent, $submit ) );
 end
 
@@ -109,7 +109,7 @@ rule "holdsAt for obligation to syncReq"
 		SyncReqPer( $leader : leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
 	then
 		SyncReq $syncReq = new SyncReq( $leader, $agent, $value, $revision, $issue, $cluster );
-		logger.trace("Logically inserted obligation for " + $leader + " to " + $syncReq );
+		logger.trace("Logically toggling obligation for " + $leader + " to " + $syncReq );
         insertLogical( new Obligation( $leader, $syncReq ) );
 end
 
@@ -136,7 +136,7 @@ rule "holdsAt for obligation to syncack"
 	then
 		//$answer = Integer.NaN; //FIXME TODO need to work out how to handle this...
 		SyncAck $syncAck = new SyncAck( $agent, "PLACEHOLDER", $revision, $issue, $cluster );
-		logger.trace("Sync logically inserted obligation for " + $agent + " to " + $syncAck );
+		logger.trace("Sync logically toggling obligation for " + $agent + " to " + $syncAck );
         insertLogical( new Obligation( $agent, $syncAck ) );
 end
 

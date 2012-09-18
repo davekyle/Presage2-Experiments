@@ -236,7 +236,7 @@ rule "holdsAt for power to request0a"
 	when
 		HasRole( role==Role.PROPOSER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting RequestPow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling RequestPow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new RequestPow( $agent, $revision, $issue, $cluster ) );
 end
 
@@ -244,7 +244,7 @@ rule "holdsAt for permission to request0a"
 	when
 		RequestPow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting RequestPer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling RequestPer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new RequestPer(  $agent, $revision, $issue, $cluster ) );
 end
 
@@ -252,7 +252,7 @@ rule "holdsAt for power to prepare1a"
 	when
 		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting PreparePow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling PreparePow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new PreparePow( $agent, $revision, $issue, $cluster ) );
 end
 
@@ -263,7 +263,7 @@ rule "holdsAt for permission to prepare1a"
 		// - put a placeholder in the obligation instead
 		PreparePow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting PreparePer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling PreparePer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new PreparePer( $agent, $revision, $issue, $cluster ) );
 end
 
@@ -272,7 +272,7 @@ rule "holdsAt for power to reponse1b"
 		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Pre_Vote( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting ResponsePow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling ResponsePow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new ResponsePow( $agent, $revision, $ballot, $issue, $cluster ) );
 end
 
@@ -281,7 +281,7 @@ rule "holdsAt for permission to response1b (if voted)"
 		ResponsePow( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Voted( agent==$agent, $voteRevision : revision, $voteBallot : ballot, $voteValue : value, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting ResponsePer( " + $agent + " , " + $voteRevision + " , " + $voteBallot + " , " + $voteValue + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling ResponsePer( " + $agent + " , " + $voteRevision + " , " + $voteBallot + " , " + $voteValue + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new ResponsePer( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster ) );
 end
 
@@ -291,7 +291,7 @@ rule "holdsAt for permission to response1b (with indicators if didn't vote in th
 		//ResponsePow( $agent : agent, voteRevision==$revision, voteBallot==0, voteValue==null, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		not Voted( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting ResponsePer( " + $agent + " , " + $revision + " , 0 , null , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling ResponsePer( " + $agent + " , " + $revision + " , 0 , null , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new ResponsePer( $agent, $revision, 0, null, $revision, $ballot, $issue, $cluster ) );
 end
 
@@ -300,7 +300,7 @@ rule "holdsAt for power to submit2a"
 		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Pre_Vote( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting SubmitPow( " + $agent + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SubmitPow( " + $agent + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new SubmitPow( $agent, $revision, $ballot, $issue, $cluster ) );
 end
 
@@ -350,7 +350,7 @@ rule "holdsAt for permission to submit2a"
 		
 		
 	then
-		logger.trace("Logically inserting SubmitPer( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SubmitPer( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + ")");
 		logger.trace("RVotes is: " + $reportedVotes);
 		insertLogical( new SubmitPer( $agent, $revision, $ballot, $value, $issue, $cluster ) );
 end
@@ -360,7 +360,7 @@ rule "holdsAt for power to vote"
 		HasRole( role==Role.ACCEPTOR, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Open_Vote( revision==$revision, $ballot : ballot, $value : value, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting VotePow( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling VotePow( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new VotePow( $agent, $revision, $ballot, $value, $issue, $cluster ) );
 end
 
@@ -372,7 +372,7 @@ rule "holdsAt for permission to vote"
 		// didn't vote in a higher revision
 		not Voted( agent==$agent, revision>$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting VotePer( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling VotePer( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new VotePer( $agent, $revision, $ballot, $value, $issue, $cluster ) );
 end
 
@@ -382,7 +382,7 @@ rule "holdsAt for permission to arrogate"
 		//Can't do checks for roles you already have easily, so HACKITY HACK
 		// (This is because you don't know the revision/issue/cluster in advance (you need to be able to bootstrap)
 	then
-		logger.trace("Logically inserting ArrogatePer( " + $agent + ")");
+		logger.trace("Logically toggling ArrogatePer( " + $agent + ")");
 		insertLogical( new ArrogatePer( $agent ) );
 end
 
@@ -393,7 +393,7 @@ rule "holdsAt for permission to arrogate"
 		//FIXME TODO Can't define new ones in 'not' constraints ?
 		not HasRole( role==Role.LEADER, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting ArrogatePer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling ArrogatePer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new ArrogatePer( $agent, $revision, $issue, $cluster ) );
 end
 */
@@ -402,7 +402,7 @@ rule "holdsAt for power to resign"
 	when
 		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting ResignPow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling ResignPow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new ResignPow( $agent, $revision, $issue, $cluster ) );
 end
 
@@ -416,7 +416,7 @@ rule "holdsAt for power to leave"
 			$r : HasRole( agent==$agent, $cluster : cluster )
 			)*/
 	then
-		logger.trace("Logically inserting LeavePow( " + $agent + " , " + $cluster + ")");
+		logger.trace("Logically toggling LeavePow( " + $agent + " , " + $cluster + ")");
 		insertLogical( new LeavePow( $agent, $cluster ) );
 end
 
@@ -428,7 +428,7 @@ rule "holdsAt for power to addRole"
 		$role : Role( )
 		not HasRole( role==$role, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting AddRolePow( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling AddRolePow( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new AddRolePow( $leader, $agent, $role, $revision, $issue, $cluster ) );
 end
 
@@ -436,7 +436,7 @@ rule "holdsAt for permission to addRole"
 	when
 		AddRolePow( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting AddRolePer( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling AddRolePer( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new AddRolePer( $leader, $agent, $role, $revision, $issue, $cluster ) );
 end
 
@@ -445,7 +445,7 @@ rule "holdsAt for power to remRole"
 		HasRole( role==Role.LEADER, $leader : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		HasRole( $role : role, $agent : agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting RemRolePow( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling RemRolePow( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new RemRolePow( $leader, $agent, $role, $revision, $issue, $cluster ) );
 end
 
@@ -453,7 +453,7 @@ rule "holdsAt for permission to remRole"
 	when
 		RemRolePow( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting RemRolePer( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling RemRolePer( " + $leader + " , " + $agent + " , " + $role + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new RemRolePer( $leader, $agent, $role, $revision, $issue, $cluster ) );
 end
 
@@ -461,7 +461,7 @@ rule "holdsAt for pow to revise"
 	when
 		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting RevisePow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling RevisePow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new RevisePow( $agent, $revision, $issue, $cluster ) );
 end
 
@@ -469,7 +469,7 @@ rule "holdsAt for per to revise"
 	when
 		RevisePow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting RevisePer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling RevisePer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new RevisePer( $agent, $revision, $issue, $cluster ) );
 end
 
@@ -479,7 +479,7 @@ rule "holdsAt for pow to SyncReq"
 		// added this check that wasn't in the prolog because it makes more sense, and constrains the amount of facts that are inserted :P
 		HasRole( role==Role.ACCEPTOR, $agent : agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting SyncReqPow( " + $leader + " , " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SyncReqPow( " + $leader + " , " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new SyncReqPow( $leader, $agent, $revision, $issue, $cluster ) );
 end
 
@@ -492,7 +492,7 @@ rule "holdsAt for per to SyncReq"
 		//using a signal fact rather than a temporal event to avoid having to use temporal operators
 		NeedToSync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically inserting SyncReqPer( " + $leader + " , " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SyncReqPer( " + $leader + " , " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new SyncReqPer( $leader, $agent, $value, $revision, $issue, $cluster ) );
 end
 
@@ -503,7 +503,7 @@ rule "holdsAt for pow to SyncAck (yes)"
 		// FIXME TODO work out how to do this
 		//( $answer==$value || $answer==null )
 	then
-		logger.trace("Logically inserting SyncAckPow( " + $agent + " , " + $value + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SyncAckPow( " + $agent + " , " + $value + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new SyncAckPow( $agent, $value, $revision, $issue, $cluster ) );
 end
 
@@ -514,7 +514,7 @@ rule "holdsAt for pow to SyncAck (no)"
 		// FIXME TODO work out how to do this
 		//( $answer==$value || $answer==null )
 	then
-		logger.trace("Logically inserting SyncAckPow( " + $agent + " , null , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SyncAckPow( " + $agent + " , null , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new SyncAckPow( $agent, null, $revision, $issue, $cluster ) );
 end
 
@@ -522,7 +522,7 @@ rule "holdsAt for per to SyncAck"
 	when
 		SyncAckPow( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
 	then
-		logger.trace("Logically inserting SyncAckPer( " + $agent + " , " + $value + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SyncAckPer( " + $agent + " , " + $value + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		insertLogical( new SyncAckPer( $agent, $value, $revision, $issue, $cluster ) );
 end
 		 

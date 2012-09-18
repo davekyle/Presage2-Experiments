@@ -132,7 +132,7 @@ rule "holdsAt for Chosen"
 	no-loop
 	when
 		Open_Vote( $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
-		// prevent multiples
+		// prevent multiples  
 		not Chosen( revision==$revision, issue==$issue, cluster==$cluster )
 		QuorumSize( $quorumSize : quorumSize, revision==$revision, issue==$issue, cluster==$cluster )
 		// if number of reportedVotes that arent out of date and are for the value are >= quorumSize, then chosen 
@@ -142,7 +142,7 @@ rule "holdsAt for Chosen"
 				not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$ballot, issue==$issue, cluster==$cluster )
 				, collectList( $rVote ) ) 
 	then
-		logger.trace("Logically inserted Chosen( " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + " )");
+		logger.trace("Inserting Chosen( " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + " )");
 		insert( new Chosen( $revision, $ballot, $value, $issue, $cluster ) );
 end
 		
@@ -248,13 +248,16 @@ end
 rule "SyncAck initiates Voted and ReportedVote (if agree)"
 	when
 		SyncAck( $agent : agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster )
+		$sync : Sync(agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
 		Chosen( revision==$revision, $ballot : ballot, value==$answer, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("SyncAck yes inserted Voted( " + $agent + " , " + $revision + " , " + $ballot + " , " + $answer + " , " + $issue + " , " + $cluster + " ) and " +
 		 " ReportedVote( " + $agent + " , " + $revision + " , " + $ballot + " , " + $answer + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
 		insert( new Voted( $agent, $revision, $ballot, $answer, $issue, $cluster ) );
-		insert( new ReportedVote( $agent, $revision, $ballot, $answer, $revision, $ballot, $issue, $cluster ) ); 
+		insert( new ReportedVote( $agent, $revision, $ballot, $answer, $revision, $ballot, $issue, $cluster ) );
+		retract( $sync ); 
+		logger.trace("...  and retracted Sync : " + $sync);
 end
 
 rule "SyncAck initiates null ReportedVote (if not agree)"
@@ -263,11 +266,14 @@ rule "SyncAck initiates null ReportedVote (if not agree)"
 	when
 		//$answer : null
 		SyncAck( $agent : agent, $answer : value, value==null, $revision : revision, $issue : issue, $cluster : cluster )
+		$sync : Sync(agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
 		Chosen( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("SyncAck no inserted ReportedVote( " + $agent + " , " + $revision + " , 0 , " + $answer + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
 		insert( new ReportedVote( $agent, $revision, 0, $answer, $revision, $ballot, $issue, $cluster ) );
+		retract( $sync ); 
+		logger.trace("...  and retracted Sync : " + $sync);
 end
 
 

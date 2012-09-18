@@ -27,6 +27,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Response1B;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Submit2A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncReq;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Vote2B;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -594,6 +595,8 @@ public class IPConDrlsTest {
 		assertFactCount("HasRole", 5);
 		assertFactFieldValue("QuorumSize", "quorumSize", 2);
 		
+		outputObjects();
+		
 		// value was chosen
 		assertFactCount("Chosen", 1);
 		
@@ -662,6 +665,29 @@ public class IPConDrlsTest {
 		 * Time step 4
 		 * Agent syncs no
 		 */
+		session.insert(new SyncAck( a4, null, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", 6);
+		assertFactCount("Sync", 0);
+		assertFactCount("NeedToSync", 0);
+		
+		// quorumsize should be 3 because the agent completed the sync
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		
+		// value chosen
+		assertFactCount("Chosen", 1);
+		
+		// still no risk because status quo holds
+		assertFactCount("PossibleAddRevision", 0);
+		assertFactCount("PossibleRemRevision", 0);
+		
+		// 5 votes but 6 reportedVotes because syncAck no doesn't count as a vote
+		assertFactCount("Voted", 5);
+		assertFactCount("ReportedVote", 6);
+		
+		
+		
 		fail();
 		
 		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5);
