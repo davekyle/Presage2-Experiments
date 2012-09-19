@@ -680,7 +680,7 @@ public class IPConDrlsTest {
 		
 		// still no risk because status quo holds
 		assertFactCount("PossibleAddRevision", 0);
-		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("PossibleRemRevision", 1);
 		
 		// 5 votes but 6 reportedVotes because syncAck no doesn't count as a vote
 		assertFactCount("Voted", 5);
@@ -701,7 +701,7 @@ public class IPConDrlsTest {
 		assertFactFieldValue("QuorumSize", "quorumSize", 3);
 		assertFactCount("Chosen", 1);
 		assertFactCount("PossibleAddRevision", 0); // they're not synching yet
-		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("PossibleRemRevision", 1);
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 6);
 		
@@ -720,10 +720,10 @@ public class IPConDrlsTest {
 		assertFactCount("NeedToSync", 0);
 		assertFactFieldValue("QuorumSize", "quorumSize", 3);
 		assertFactCount("Chosen", 1);
-		assertFactCount("PossibleAddRevision", 1);
-		assertFactCount("PossibleRemRevision", 0);
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 6);
+		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated
+		assertFactCount("PossibleRemRevision", 1); // if ag1 or 2 leave, safety is violated
 		
 	}
 	

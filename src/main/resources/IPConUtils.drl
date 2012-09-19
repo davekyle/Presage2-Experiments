@@ -47,27 +47,36 @@ rule "holdsAt for possibleAddRevision"
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 								, collectList( $a.getAgent() ) )
 		
-		Number( $forVotes : intValue ) from accumulate( 
+		//Number( $forVotes : intValue ) from accumulate(
+		$forVotes : List( ) from accumulate( 
 								// that voted for the value
-								$b : ReportedVote( agent memberOf $agents, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
+								$b : ReportedVote( $voteAgentFor: agent, $voteAgentFor memberOf $agents, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not ReportedVote( agent memberOf $agents, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
-								, count( $b ) )
-		Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
+								not ReportedVote( agent==$voteAgentFor, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
+								//, count( $b ) )
+								, collectList( $b ) )
+		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
+		$notForVotes : List( $forVotes.size() == $notForVotes.size() ) from accumulate(
 								// that voted against the value
-								$b1 : ReportedVote( agent memberOf $agents, voteRevision==$revision, voteValue!=$value, issue==$issue, cluster==$cluster ) and 
+								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==null, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
-								not ReportedVote( agent memberOf $agents, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
-								, count( $b1 ) ) //and
-		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
+								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
+								//, count( $b1 ) ) //and
+								, collectList( $b1 ) )
+		//Number( $didntVotes : intValue /*, $forVotes <= $notForVotes+$didntVotes*/ ) from accumulate(
+		/*
+		$didntVotes : List( $forVotes.size() <= $notForVotes.size() + $didntVotes.size() ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
 								not ReportedVote( agent==$a2.agent, voteRevision==$revision, issue==$issue, cluster==$cluster )
-								, count( $a2 ) )
-								
+								//, count( $a2 ) )
+								, collectList( $a2.getAgent() ) )
+		*/
 	then
-		logger.trace("Logically toggling possibleAddRevision");
+		//logger.trace("Agents:" + $agents);
+		//logger.trace("For:" + $forVotes + " / Against:" + $notForVotes /*+ " / Didn't:" + $didntVotes*/);
+		logger.trace("Logically toggling possibleAddRevision due to " + $agent + " syncing");
 		insertLogical( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
 end
 
@@ -84,26 +93,32 @@ rule "holdsAt for possibleRemRevision"
 								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 								, collectList( $a.getAgent() ) )
 		
-		Number( $forVotes : intValue ) from accumulate( 
+		//Number( $forVotes : intValue ) from accumulate(
+		$forVotes : List( ) from accumulate( 
 								// that voted for the value
-								$b : ReportedVote( agent memberOf $agents, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
+								$b : ReportedVote( $voteAgentFor: agent, $voteAgentFor memberOf $agents, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not ReportedVote( agent memberOf $agents, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
-								, count( $b ) )
-		Number( $notForVotes : intValue, $forVotes==$notForVotes ) from accumulate(
+								not ReportedVote( agent==$voteAgentFor, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
+								//, count( $b ) )
+								, collectList( $b ) )
+		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
+		$notForVotes : List( $forVotes.size() == $notForVotes.size() ) from accumulate(
 								// that voted against the value
-								$b1 : ReportedVote( agent memberOf $agents, voteRevision==$revision, voteValue!=$value, issue==$issue, cluster==$cluster ) and 
+								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==null, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
-								not ReportedVote( agent memberOf $agents, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
-								, count( $b1 ) ) //and
+								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
+								//, count( $b1 ) ) //and
+								, collectList( $b1 ) )
+		//Number( $didntVotes : intValue /*, $forVotes <= $notForVotes+$didntVotes*/ ) from accumulate(
 		/*
-		Number( $didntVotes : intValue, $forVotes <= $notForVotes+$didntVotes ) from accumulate(
+		$didntVotes : List( $forVotes.size() <= $notForVotes.size() + $didntVotes.size() ) from accumulate(
 								// find all the acceptors
 								$a2 : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) and
 								// who didnt vote
 								not ReportedVote( agent==$a2.agent, voteRevision==$revision, issue==$issue, cluster==$cluster )
-								, count( $a2 ) )
-								*/
+								//, count( $a2 ) )
+								, collectList( $a2.getAgent() ) )
+		*/
 	then
 		logger.trace("Logically toggling possibleRemRevision");
 		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );
