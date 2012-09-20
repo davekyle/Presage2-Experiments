@@ -22,6 +22,8 @@ global org.apache.log4j.Logger logger
 
 // fact indicating that if the person about to sync says no, there should be a revision after
 declare PossibleAddRevision
+	@role( event )
+	@expires( 1s )
 	value : Object
 	revision : Integer
 	issue : String
@@ -76,8 +78,8 @@ rule "holdsAt for possibleAddRevision"
 	then
 		//logger.trace("Agents:" + $agents);
 		//logger.trace("For:" + $forVotes + " / Against:" + $notForVotes /*+ " / Didn't:" + $didntVotes*/);
-		logger.trace("Logically toggling possibleAddRevision due to " + $agent + " syncing");
-		insertLogical( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
+		logger.trace("Inserting possibleAddRevision due to " + $agent + " syncing");
+		insert( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
 end
 
 
