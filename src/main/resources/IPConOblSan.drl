@@ -114,13 +114,13 @@ rule "holdsAt for obligation to syncReq"
 end
 
 rule "syncAck no initiates obligation to revise"
-// if syncAck is no and agent had permission to say so and leader has permission to revise and possibleAddRevision, leader must revise
+// if syncAck is no and agent had power to say so and leader has permission to revise and possibleAddRevision, leader must revise
 	when
 		//$answer==null 
-		SyncAck( $agent : agent, $answer : value, value==null, $revision : revision, $issue : issue, $cluster : cluster )
-		SyncAckPer( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
+		SyncAckPow( $agent : agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster )
+		SyncAck( agent==$agent, value==$answer, value==null, revision==$revision, issue==$issue, cluster==$cluster )
 		RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
-		PossibleAddRevision( value!=$answer, revision==$revision, issue==$issue, cluster==$cluster )
+		PossibleAddRevision( /*value!=$answer,*/ revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
 		logger.trace("SyncAck inserted obligation for " + $leader + " to " + $revise );
