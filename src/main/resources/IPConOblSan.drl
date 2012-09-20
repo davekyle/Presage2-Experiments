@@ -23,6 +23,13 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 //declare any global variables here
 global org.apache.log4j.Logger logger
 
+// obligation
+
+declare Obligation
+	agent : IPConAgent
+	action : IPConAction
+end
+
 
 rule "holdsAt for obligation to prepare"
 // if you have permission, a value has been proposed, and a pre_vote doesn't exist already

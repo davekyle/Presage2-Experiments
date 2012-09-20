@@ -75,6 +75,7 @@ declare Sync
 	cluster : UUID
 end
 
+// FIXME TODO probably don't need this anymore...
 // internal fact to get round having to do temporal checks on new acceptors
 declare NeedToSync
 	agent : IPConAgent
@@ -90,11 +91,6 @@ declare HasRole
 	revision : Integer
 	issue : String
 	cluster : UUID
-end
-
-declare Obligation
-	agent : IPConAgent
-	action : IPConAction
 end
 
 /*rule "Keep IPConAgent in memory when HasRole exists"
