@@ -18,8 +18,18 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.
 //declare any global variables here
 global org.apache.log4j.Logger logger
 
+declare Power
+	agent : IPConAgent
+	action : IPConAction
+end
+
+declare Permission
+	agent : IPConAgent
+	action : IPConAction
+end
+
 // power to make a request0a action
-declare RequestPow
+declare RequestPow extends Power
 	agent : IPConAgent
 	revision : Integer
 	issue : String
@@ -27,7 +37,7 @@ declare RequestPow
 end
 
 // permission to make a request0a action
-declare RequestPer
+declare RequestPer extends Permission
 	agent : IPConAgent
 	revision : Integer
 	issue : String
@@ -35,7 +45,7 @@ declare RequestPer
 end
 
 // power to make a prepare1a action
-declare PreparePow
+declare PreparePow extends Power
 	agent : IPConAgent
 	revision : Integer
 	issue : String
@@ -43,7 +53,7 @@ declare PreparePow
 end
 
 // permission to make a prepare1a action
-declare PreparePer
+declare PreparePer extends Permission
 	agent : IPConAgent
 	revision : Integer
 	issue : String
@@ -51,7 +61,7 @@ declare PreparePer
 end
 
 // power to make a response1b action
-declare ResponsePow
+declare ResponsePow extends Power
 	agent : IPConAgent
 //	voteRevision : Integer	// these aren't here because you always have *power* but not always permission
 //	voteBallot : Integer
@@ -63,7 +73,7 @@ declare ResponsePow
 end
 
 // permission to make a response1b action
-declare ResponsePer
+declare ResponsePer extends Permission
 	agent : IPConAgent
 	voteRevision : Integer
 	voteBallot : Integer
@@ -75,7 +85,7 @@ declare ResponsePer
 end
 
 // power to make a submit2a action
-declare SubmitPow
+declare SubmitPow extends Power
 	agent : IPConAgent
 	revision : Integer
 	ballot : Integer
@@ -85,7 +95,7 @@ declare SubmitPow
 end
 
 // permission to make a submit2a action
-declare SubmitPer
+declare SubmitPer extends Permission
 	agent : IPConAgent
 	revision : Integer
 	ballot : Integer
@@ -95,7 +105,7 @@ declare SubmitPer
 end
 
 // power to make a vote action
-declare VotePow
+declare VotePow extends Power
 	agent : IPConAgent
 	revision : Integer
 	ballot : Integer
@@ -105,7 +115,7 @@ declare VotePow
 end
 
 // permission to make a vote action
-declare VotePer
+declare VotePer extends Permission
 	agent : IPConAgent
 	revision : Integer
 	ballot : Integer
@@ -115,7 +125,7 @@ declare VotePer
 end
 
 // permission to make an arrogate action
-declare ArrogatePer
+declare ArrogatePer extends Permission
 	agent : IPConAgent
 end
 /*declare ArrogatePer
@@ -126,7 +136,7 @@ end
 end*/	
 
 // power to make a resign action
-declare ResignPow
+declare ResignPow extends Power
 	agent : IPConAgent
 	revision : Integer
 	issue : String
@@ -134,13 +144,13 @@ declare ResignPow
 end	
 
 // power to leave the cluster
-declare LeavePow
+declare LeavePow extends Power
 	agent : IPConAgent
 	cluster : UUID
 end
 
 //power to addRole
-declare AddRolePow
+declare AddRolePow extends Power
 	leader : IPConAgent
 	agent : IPConAgent
 	role : Role
@@ -150,7 +160,7 @@ declare AddRolePow
 end
 
 // permission to addRole
-declare AddRolePer
+declare AddRolePer extends Permission
 	leader : IPConAgent
 	agent : IPConAgent
 	role : Role
@@ -160,7 +170,7 @@ declare AddRolePer
 end	
 
 //power to remRole
-declare RemRolePow
+declare RemRolePow extends Power
 	leader : IPConAgent
 	agent : IPConAgent
 	role : Role
@@ -170,7 +180,7 @@ declare RemRolePow
 end	
 
 //permission to remRole
-declare RemRolePer
+declare RemRolePer extends Permission
 	leader : IPConAgent
 	agent : IPConAgent
 	role : Role
@@ -180,7 +190,7 @@ declare RemRolePer
 end	
 
 //power to revise
-declare RevisePow
+declare RevisePow extends Power
 	agent : IPConAgent
 	revision : Integer
 	issue : String
@@ -188,7 +198,7 @@ declare RevisePow
 end
 
 //permission to revise
-declare RevisePer
+declare RevisePer extends Permission
 	agent : IPConAgent
 	revision : Integer
 	issue : String
@@ -196,7 +206,7 @@ declare RevisePer
 end
 
 //power to SyncReq (value not included because it doesn't have an effect)
-declare SyncReqPow
+declare SyncReqPow extends Power
 	leader : IPConAgent
 	agent : IPConAgent
 	revision : Integer
@@ -205,7 +215,7 @@ declare SyncReqPow
 end
 
 //permission to SyncReq (value included this time)
-declare SyncReqPer
+declare SyncReqPer extends Permission
 	leader : IPConAgent
 	agent : IPConAgent
 	value : Object
@@ -215,7 +225,7 @@ declare SyncReqPer
 end
 
 // power to SyncAck
-declare SyncAckPow
+declare SyncAckPow extends Power
 	agent : IPConAgent
 	value : Object
 	revision : Integer
@@ -224,7 +234,7 @@ declare SyncAckPow
 end
 
 //permission to SyncAck
-declare SyncAckPer
+declare SyncAckPer extends Permission
 	agent : IPConAgent
 	value : Object
 	revision : Integer
