@@ -8,6 +8,7 @@ import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -26,6 +27,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Response1B;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Revise;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Submit2A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncReq;
@@ -144,6 +146,7 @@ public class IPConDrlsTest {
 		String issue = "IssueString";
 		UUID cluster = Random.randomUUID();
 		session.insert(agent);
+		//rules.incrementTime();
 		session.insert(new ArrogateLeadership(agent, revision, issue, cluster));
 		rules.incrementTime();
 		
@@ -502,8 +505,7 @@ public class IPConDrlsTest {
 		}
 	}
 	
-	@Test
-	public void testPossibleRevisionDetection() throws Exception {
+	public void testPossibleRevisionDetectionSetup(HashMap<String,Object> map) throws Exception {
 		//specify revision/issue/cluster
 		Integer revision = 1;
 		String issue = "IssueString";
@@ -519,6 +521,12 @@ public class IPConDrlsTest {
 		initAgent(a1, leaderRoles, revision, issue, cluster);
 		initAgent(a2, Role.ACCEPTOR, revision, issue, cluster);
 		initAgent(a3, Role.ACCEPTOR, revision, issue, cluster);
+		map.put("issue", issue);
+		map.put("revision", revision);
+		map.put("cluster", cluster);
+		map.put("a1", a1);
+		map.put("a2", a2);
+		map.put("a3", a3);
 		
 		/**/
 		//set initially roles
@@ -610,7 +618,7 @@ public class IPConDrlsTest {
 		 * Insert new agent
 		 * Check that there is an obligation to syncreq
 		 */
-		IPConAgent a4 = new IPConAgent("a4"); session.insert(a4);
+		IPConAgent a4 = new IPConAgent("a4"); session.insert(a4); map.put("a4", a4);
 		session.insert(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
 		rules.incrementTime();
 		
@@ -691,7 +699,7 @@ public class IPConDrlsTest {
 		 * Ag5 joins
 		 */
 		
-		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5);
+		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5); map.put("a5", a5);
 		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
 		rules.incrementTime();
 		
@@ -713,8 +721,6 @@ public class IPConDrlsTest {
 		session.insert(new SyncReq( a1, a5, "A", revision, issue, cluster));
 		rules.incrementTime();
 		
-		outputObjects();
-		
 		assertFactCount("HasRole", 7);
 		assertFactCount("Sync", 1);
 		assertFactCount("NeedToSync", 0);
@@ -722,8 +728,72 @@ public class IPConDrlsTest {
 		assertFactCount("Chosen", 1);
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 6);
-		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated
+		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
 		assertFactCount("PossibleRemRevision", 1); // if ag1 or 2 leave, safety is violated
+		
+	}
+	
+	@Test
+	public void testSyncAckNoSafetyViolation() throws Exception {
+		HashMap<String, Object> map = new HashMap<String,Object>();
+		testPossibleRevisionDetectionSetup(map);
+		
+		//get data out of map
+		IPConAgent a1 = (IPConAgent) map.get("a1");
+		IPConAgent a2 = (IPConAgent) map.get("a2");
+		IPConAgent a3 = (IPConAgent) map.get("a3");
+		IPConAgent a4 = (IPConAgent) map.get("a4");
+		IPConAgent a5 = (IPConAgent) map.get("a5");
+		Integer revision = (Integer) map.get("revision");
+		String issue = (String) map.get("issue");
+		UUID cluster = (UUID) map.get("cluster");
+		
+		
+		// Check things are right after Time step 6
+		assertFactCount("HasRole", 7);
+		assertFactCount("Sync", 1);
+		assertFactCount("NeedToSync", 0);
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("Chosen", 1);
+		assertFactCount("Voted", 5);
+		assertFactCount("ReportedVote", 6);
+		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
+		assertFactCount("PossibleRemRevision", 1);
+		//assertFactCount("Obligation", 2); // check no obligations
+		
+		outputObjects();
+		
+		/*
+		 * Time step 7
+		 * Ag5 says no
+		 * Safety should be violated
+		 */
+		session.insert(new SyncAck(a5, null, revision, issue, cluster));
+		outputObjects();
+		rules.incrementTime();
+		assertFactCount("HasRole", 7);
+		assertFactCount("Sync", 0);
+		assertFactCount("NeedToSync", 0);
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("Chosen", 1);
+		assertFactCount("Voted", 5); // null votes don't get created because it doesnt make any sense
+		assertFactCount("ReportedVote", 7); // add a null reportedvote
+		
+		outputObjects();
+		
+		// check obligation to revise
+		Object obl = Arrays.asList(assertFactCount("Obligation", 1).toArray()).get(0);
+		Revise fact = null;
+		if (typeFromString("Obligation").get(obl, "action") instanceof Revise ) {
+			fact = (Revise)typeFromString("Obligation").get(obl, "action");
+		}
+		else {
+			fail();
+		}
+		assertEquals(fact.getAgent(), a1);
+		
+		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
+		assertFactCount("PossibleRemRevision", 1);
 		
 	}
 	

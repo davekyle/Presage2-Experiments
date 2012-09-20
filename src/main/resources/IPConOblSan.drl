@@ -66,6 +66,7 @@ rule "initiates for obligation to revise on leaveCluster"
 	when
 		LeaveCluster( $agent : agent, $cluster : cluster )
 		//FIXME TODO check that this will actually work as the role will be modified by the remrole...
+		// it won't...
 		HasRole( role==Role.ACCEPTOR, agent==$agent, $revision : revision, $issue : issue, cluster==$cluster )
 		RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
 		PossibleRemRevision( $value : value, revision==$revision, issue==$issue, cluster==$cluster )
@@ -81,6 +82,7 @@ end
 	when
 		RemRole( $leader : leader, $agent : agent, role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster )
 		//FIXME TODO check that this will actually work as the permission will be modified by the remrole...
+		// FIXME TODO it doesn't :P Also should be pow...
 		RemRolePer( leader==$leader, agent==$agent, role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
 		//HasRole( role==Role.ACCEPTOR, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		RevisePer( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster )
