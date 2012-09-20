@@ -23,7 +23,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 //declare any global variables here
 global org.apache.log4j.Logger logger
 
-// drls stuff here
+// drls stuff here - 1s expiry makes them last 1 cycle
 
 declare Request0A
 	@role( event )
@@ -40,6 +40,51 @@ end
 declare Submit2A
 	@role( event )
 end
+
+declare Vote2B
+	@role( event )
+end
+
+declare AddRole
+	@role( event )
+	@expires( 1s )
+end
+
+declare ArrogateLeadership
+	@role( event )
+	@expires( 1s )
+end
+
+declare LeaveCluster
+	@role( event )
+	@expires( 1s )
+end
+
+declare RemRole
+	@role( event )
+	@expires( 1s )
+end
+
+declare ResignLeadership
+	@role( event )
+	@expires( 1s )
+end
+
+declare Revise
+	@role( event )
+	@expires( 1s )
+end
+
+declare SyncAck
+	@role( event )
+	@expires( 1s )
+end
+
+declare SyncReq
+	@role( event )
+	@expires( 1s )
+end
+	
 
 rule "Request0A initiates Proposed"
 
