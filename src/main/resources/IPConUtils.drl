@@ -60,7 +60,7 @@ rule "holdsAt for possibleAddRevision"
 		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
 		$notForVotes : List( $forVotes.size() == $notForVotes.size() ) from accumulate(
 								// that voted against the value
-								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==null, issue==$issue, cluster==$cluster ) and 
+								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV.val(), issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
 								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
 								//, count( $b1 ) ) //and
@@ -106,7 +106,7 @@ rule "holdsAt for possibleRemRevision"
 		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
 		$notForVotes : List( $forVotes.size() == $notForVotes.size() ) from accumulate(
 								// that voted against the value
-								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==null, issue==$issue, cluster==$cluster ) and 
+								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV.val(), issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
 								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
 								//, count( $b1 ) ) //and

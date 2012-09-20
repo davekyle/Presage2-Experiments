@@ -17,6 +17,20 @@ public class ResignLeadership extends IPConAction {
 	public String issue;
 	public UUID cluster;
 	
+	/**
+	 * @param agent
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 */
+	public ResignLeadership(IPConAgent agent, Integer revision, String issue,
+			UUID cluster) {
+		super();
+		this.agent = agent;
+		this.revision = revision;
+		this.issue = issue;
+		this.cluster = cluster;
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */

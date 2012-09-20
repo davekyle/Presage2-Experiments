@@ -1,0 +1,36 @@
+//created on: Sep 20, 2012
+package uk.ac.imperial.dws04.Presage2Experiments.IPCon
+
+//list any import classes here.
+// my presage2
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent
+
+
+//declare any global variables here
+global org.apache.log4j.Logger logger
+
+declare Power
+	agent : IPConAgent
+	action : IPConAction
+end
+
+declare Permission
+	agent : IPConAgent
+	action : IPConAction
+end
+
+declare Request0A
+	@role( event )
+end
+
+rule "test reqPer"
+	when
+		//RequestPow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		Power( $agent : agent,	$action : action )
+		Request0A( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster ) from $action
+	then
+		logger.trace("Logically toggling RequestPer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		insertLogical( new Permission(  $agent, $action ) );
+end

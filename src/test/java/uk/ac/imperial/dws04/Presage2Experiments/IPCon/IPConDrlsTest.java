@@ -56,11 +56,13 @@ public class IPConDrlsTest {
 	@Before
 	public void setUp() throws Exception {
 		injector = Guice.createInjector(new RuleModule()
+				//.addClasspathDrlFile("test.drl")
 				.addClasspathDrlFile("IPCon_Institutional_Facts.drl")
 				.addClasspathDrlFile("IPConUtils.drl")
 				.addClasspathDrlFile("IPConPowPer.drl")
 				.addClasspathDrlFile("IPConOblSan.drl")
-				.addClasspathDrlFile("IPCon.drl"));
+				.addClasspathDrlFile("IPCon.drl")
+				);
 		rules = injector.getInstance(RuleStorage.class);
 		session = injector.getInstance(StatefulKnowledgeSession.class);
 		initSession();
@@ -139,8 +141,8 @@ public class IPConDrlsTest {
 	}
 	
 	@Test
-	public void basicTest() throws Exception {
-		logger.info("\nStarting basicTest()");
+	public void arrogateLeadershipTest() throws Exception {
+		logger.info("\nStarting arrogateLeadershipTest()");
 		IPConAgent agent = new IPConAgent();
 		Integer revision = 0;
 		String issue = "IssueString";
@@ -166,7 +168,40 @@ public class IPConDrlsTest {
 		Object hasRole = Arrays.asList(hasRoles.toArray()).get(0);
 		Role role = (Role) typeFromString("HasRole").get(hasRole, "role");
 		assertEquals(role.toString(), "LEADER");
-		logger.info("Finished basicTest()\n");
+		logger.info("Finished arrogateLeadershipTest()\n");
+	}
+	
+	@Test
+	public void requestTest() throws Exception {
+		logger.info("\nStarting requestTest()");
+		
+		Integer revision = 0;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
+		
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1);
+		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2);
+		ArrayList<Role> a1Roles = new ArrayList<Role>();
+		ArrayList<Role> a2Roles = new ArrayList<Role>();
+		a1Roles.add(Role.LEADER);
+		a1Roles.add(Role.ACCEPTOR);
+		a2Roles.add(Role.PROPOSER);
+		a2Roles.add(Role.ACCEPTOR);
+		initAgent(a1, a1Roles, revision, issue, cluster);
+		initAgent(a2, a2Roles, revision, issue, cluster);
+		
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", 4);
+		assertFactCount("Proposed", 0);
+		
+		session.insert(new Request0A( a2, revision, "VALUE", issue, cluster ));
+		
+		rules.incrementTime();
+		
+		assertFactCount("Proposed", 1);
+		
+		logger.info("Finished requestTest()\n");
 	}
 	
 	/**
@@ -329,7 +364,7 @@ public class IPConDrlsTest {
 		 *  check some arbitrary fact counts
 		 */
 		// everyone can arrogate (leader could arrogate something else for example)
-		assertFactCount("ArrogatePer", 5);
+		assertFactCount("ArrogatePow", 5);
 		// only leader can resign
 		assertFactCount("ResignPow", 1);
 		// all can leave

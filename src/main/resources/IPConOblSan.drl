@@ -34,7 +34,9 @@ end
 rule "holdsAt for obligation to prepare"
 // if you have permission, a value has been proposed, and a pre_vote doesn't exist already
     when
-        PreparePer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+        //PreparePer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+        Permission( $agent : agent, $action : action )
+        Prepare1A( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster ) from $action
         Proposed( revision==$revision, issue==$issue, cluster==$cluster )
         not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
     then
@@ -48,7 +50,9 @@ rule "holdsAt for obligation to respond"
 // if you haven't responded when you have permission to do so, and have voted, you must respond
 // FIXME TODO possibly also send an indicator if you've responded higher to help the leader
 	when
-		ResponsePer( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		//ResponsePer( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+        Permission( $agent : agent, $action : action )
+        Response1B( agent==$agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster ) from $action
 		Voted( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, issue==$issue, cluster==$cluster )
 		not ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
@@ -60,7 +64,9 @@ end
 rule "holdsAt for obligation to submit"
 // if you have permission (which is pretty explicitly done) and haven't yet, you must
 	when
-		SubmitPer( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		//SubmitPer( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+        Permission( $agent : agent, $action : action )
+        Submit2A( agent==$agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster ) from $action
 		not Open_Vote( revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
 	then
 		Submit2A $submit = new Submit2A( $agent, $revision, $ballot, $value, $issue, $cluster );
@@ -75,7 +81,9 @@ rule "initiates for obligation to revise on leaveCluster"
 		//FIXME TODO check that this will actually work as the role will be modified by the remrole...
 		// it won't...
 		HasRole( role==Role.ACCEPTOR, agent==$agent, $revision : revision, $issue : issue, cluster==$cluster )
-		RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
+		//RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
+        Permission( $leader : agent, $action : action )
+        Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster ) from $action
 		PossibleRemRevision( $value : value, revision==$revision, issue==$issue, cluster==$cluster )
 		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
@@ -90,9 +98,13 @@ end
 		RemRole( $leader : leader, $agent : agent, role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster )
 		//FIXME TODO check that this will actually work as the permission will be modified by the remrole...
 		// FIXME TODO it doesn't :P Also should be pow...
-		RemRolePer( leader==$leader, agent==$agent, role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+		//RemRolePer( leader==$leader, agent==$agent, role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+        Permission( agent==$leader, $action : action )
+        RemRole( leader==$leader, agent==$agent, role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		//HasRole( role==Role.ACCEPTOR, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-		RevisePer( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster )
+		//RevisePer( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster )
+        Permission( agent==$leader, $revAction : action )
+        Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster ) from $revAction
 		PossibleRemRevision( $value : value, revision==$revision, issue==$issue, cluster==$cluster )
 		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
@@ -115,7 +127,9 @@ end
 rule "holdsAt for obligation to syncReq"
 // if you have permission, you must syncReq (syncreqper covers all the other requirements)
 	when
-		SyncReqPer( $leader : leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
+		//SyncReqPer( $leader : leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
+        Permission( $leader : agent, $action : action )
+        SyncReq( leader==$leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster ) from $action
 	then
 		SyncReq $syncReq = new SyncReq( $leader, $agent, $value, $revision, $issue, $cluster );
 		logger.trace("Logically toggling obligation for " + $leader + " to " + $syncReq );
@@ -126,9 +140,13 @@ rule "syncAck no initiates obligation to revise"
 // if syncAck is no and agent had power to say so and leader has permission to revise and possibleAddRevision, leader must revise
 	when
 		//$answer==null 
-		SyncAckPow( $agent : agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster )
-		SyncAck( agent==$agent, value==$answer, value==null, revision==$revision, issue==$issue, cluster==$cluster )
-		RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
+		//SyncAckPow( $agent : agent, pow$answer : value, $revision : revision, $issue : issue, $cluster : cluster )
+        Power( $agent : agent, $actionPow : action )
+        SyncAck( agent==$agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster ) from $actionPow
+		SyncAck( agent==$agent, value==$answer, value==IPCNV.val(), revision==$revision, issue==$issue, cluster==$cluster )
+		//RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
+        Permission( $leader : agent, $actionPer : action )
+        Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster ) from $actionPer
 		PossibleAddRevision( /*value!=$answer,*/ revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
@@ -140,11 +158,13 @@ rule "holdsAt for obligation to syncack"
 // if you can, you must
 	when
 		// FIXME TODO left out value since it can be one of 2 (the correct one, or null)
-		SyncAckPer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		//SyncAckPer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+        Permission( $agent : agent, $action : action )
+        SyncAck( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster ) from $action
 		Sync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		//$answer = Integer.NaN; //FIXME TODO need to work out how to handle this...
-		SyncAck $syncAck = new SyncAck( $agent, "PLACEHOLDER", $revision, $issue, $cluster );
+		SyncAck $syncAck = new SyncAck( $agent, null, $revision, $issue, $cluster );
 		logger.trace("Sync logically toggling obligation for " + $agent + " to " + $syncAck );
         insertLogical( new Obligation( $agent, $syncAck ) );
 end

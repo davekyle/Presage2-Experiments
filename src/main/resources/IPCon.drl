@@ -87,48 +87,49 @@ end
 	
 
 rule "Request0A initiates Proposed"
-
     when
-        Request0A( $agent : agent, $revision : revision, $value : value, $issue : issue, $cluster : cluster )
-        RequestPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-        //RequestPer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Request0A( $agent : agent, $revision : revision, $value : value, $issue : issue, $cluster : cluster )
+		//RequestPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action)
+		Request0A( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) from $action
     then
-    	logger.trace("Request0A inserted Proposed( " + $revision + " , " + $value + " , " + $issue + " , " + $cluster + " )");
-        insert( new Proposed( $revision, $value, $issue, $cluster ) );
+		logger.trace("Request0A inserted Proposed( " + $revision + " , " + $value + " , " + $issue + " , " + $cluster + " )");
+		insert( new Proposed( $revision, $value, $issue, $cluster ) );
 end
 
 rule "Prepare1A initiate Pre_Vote"
-    //include attributes such as "salience" here...
     when
-        Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-        //pow if role of leader, per if pow
-        PreparePow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-        //PreparePer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
+		//pow if role of leader, per if pow
+		//PreparePow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		Prepare1A( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) from $action
     then
-    	logger.trace("Prepare1A inserted Pre_Vote( " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
-        insert( new Pre_Vote( $revision, $ballot, $issue, $cluster ) );
-
+		logger.trace("Prepare1A inserted Pre_Vote( " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
+		insert( new Pre_Vote( $revision, $ballot, $issue, $cluster ) );
 end
 
 rule "Prepare1A terminates previous Pre_Votes on same issue (previous revision)"
 	when
 		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-        $pv : Pre_Vote( revision<$revision, issue==$issue, cluster==$cluster )
-        //pow if role of leader, per if pow
-        PreparePow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-        //PreparePer( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		$pv : Pre_Vote( revision<$revision, issue==$issue, cluster==$cluster )
+		//pow if role of leader, per if pow
+		//PreparePow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		Prepare1A( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) from $action
     then
-    	logger.trace("Prepare1A retracted prevote on previous revision : " + $pv);
-        retract( $pv );
+		logger.trace("Prepare1A retracted prevote on previous revision : " + $pv);
+		retract( $pv );
 end
 
 rule "Prepare1A terminates previous Pre_Votes on same issue (same revision, previous ballot)"
 	when
 		Prepare1A( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-        $pv : Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
-        //pow if role of leader, per if pow
-        PreparePow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-        //PreparePer( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		$pv : Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
+		//pow if role of leader, per if pow
+		//PreparePow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		Prepare1A( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) from $action
     then
     	logger.trace("Prepare1A retracted prevote on previous ballot : " + $pv);
         retract( $pv );
@@ -137,7 +138,9 @@ end
 rule "Response1B initiates Reported_Vote"
 	when
 		Response1B( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-		ResponsePow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		//ResponsePow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		Response1B( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) from $action
 	then
 		logger.trace("Response1B inserted ReportedVote( " + $agent + " , " + $voteRevision + " , " + $voteBallot + " , " + $voteValue + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
 		insert( new ReportedVote( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster ) );
@@ -146,7 +149,9 @@ end
 rule "Submit2A initiates Open_Vote"
 	when
 		Submit2A( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
-		SubmitPow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		//SubmitPow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		Submit2A( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) from $action
 	then
 		logger.trace("Submit2A inserted OpenVote( " + $revision + " , " + $ballot + " , " + " , " + $value + " , " + $issue + " , " + $cluster + " )");
 		insert( new Open_Vote( $revision, $ballot, $value, $issue, $cluster ) );
@@ -155,7 +160,9 @@ end
 rule "Submit2A terminates Pre_Vote"
 	when
 		Submit2A( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
-		SubmitPow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		//SubmitPow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		Submit2A( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) from $action
 		$pv : Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Submit2A retracted Pre_Vote : " + $pv );
@@ -165,7 +172,9 @@ end
 rule "Vote initiates Voted and ReportedVote"
 	when
 		Vote2B( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
-		VotePow( agent==$agent, revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster ) 
+		//VotePow( agent==$agent, revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action ) 
+		Vote2B( agent==$agent, revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster ) from $action
 	then
 		logger.trace("Vote inserted ReportedVote( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " ) and " + 
 			" Voted( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + " )");
@@ -195,8 +204,9 @@ end
 rule "Arrogate initiates IsLeader"
 	when
 		ArrogateLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
-		//ArrogatePer( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-		ArrogatePer( agent==$agent )
+		//ArrogatePow( agent==$agent )
+		Power( agent==$agent, $action : action)
+		ArrogateLeadership( agent==$agent ) from $action
 	then
 		logger.trace("Arrogate inserted HasRole( LEADER " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + " )");
 		insert( new HasRole( Role.LEADER, $agent, $revision, $issue, $cluster ) );
@@ -205,7 +215,9 @@ end
 rule "Resign terminates IsLeader"
 	when
 		ResignLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
-		ResignPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		//ResignPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		ResignLeadership( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		$role : HasRole( role==Role.LEADER, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Resign retracted role : " + $role );
@@ -215,7 +227,9 @@ end
 rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 	when
 		LeaveCluster( $agent : agent, $cluster : cluster )
-		LeavePow( agent==$agent, cluster==$cluster )
+		//LeavePow( agent==$agent, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		LeaveCluster( agent==$agent, cluster==$cluster ) from $action
 		$roles : HasRole( agent==$agent, cluster==$cluster )
 		$syncs : Sync( agent==$agent, cluster==$cluster )
 		$reportedVotes : ReportedVote( agent==$agent, cluster==$cluster )
@@ -232,7 +246,9 @@ end
 rule "AddRole initiates role"
 	when
 		AddRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
-		AddRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		//AddRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		AddRole( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 	then
 		logger.trace("AddRole inserted HasRole(  " + $role + " , " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + " )"); 
 		insert( new HasRole( $role, $agent, $revision, $issue, $cluster ) );
@@ -241,7 +257,9 @@ end
 rule "AddRole initiates NeedToSync"
 	when
 		AddRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
-		AddRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		//AddRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		AddRole( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		Chosen( revision==$revision, $ballot : ballot, $value : value, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("AddRole inserted NeedToSync(  " + $agent + " , " + $value + " , " + $revision + " , " + $issue + " , " + $cluster + " )"); 
@@ -251,7 +269,9 @@ end
 rule "RemRole terminates role"
 	when
 		RemRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
-		RemRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		//RemRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		RemRole( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		$roleToRem : HasRole( role==$role, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("RemRole retracted Role : " + $roleToRem );
@@ -279,7 +299,9 @@ end
 rule "SyncReq initiates Sync"
 	when
 		SyncReq( $leader : leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
-		SyncReqPow( leader==$leader, revision==$revision, issue==$issue, cluster==$cluster )
+		//SyncReqPow( leader==$leader, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		SyncReq( leader==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		$needToSync : NeedToSync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Trying to Sync with agent:" + $agent + ", value:" + $value + ", revision:" + $revision + ", issue:" + $issue + ", cluster:" + $cluster );
@@ -294,7 +316,9 @@ rule "SyncAck initiates Voted and ReportedVote (if agree)"
 	when
 		SyncAck( $agent : agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster )
 		$sync : Sync(agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-		SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
+		//SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		SyncAck( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		Chosen( revision==$revision, $ballot : ballot, value==$answer, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("SyncAck yes inserted Voted( " + $agent + " , " + $revision + " , " + $ballot + " , " + $answer + " , " + $issue + " , " + $cluster + " ) and " +
@@ -310,13 +334,15 @@ rule "SyncAck initiates null ReportedVote (if not agree)"
 	// this might not be needed, depending on implementation of Submit & Response...
 	when
 		//$answer : null
-		SyncAck( $agent : agent, $answer : value, value==null, $revision : revision, $issue : issue, $cluster : cluster )
+		SyncAck( $agent : agent, $answer : value, value==IPCNV.val(), $revision : revision, $issue : issue, $cluster : cluster )
 		$sync : Sync(agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
-		SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
+		//SyncAckPow( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		SyncAck( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		Chosen( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("SyncAck no inserted ReportedVote( " + $agent + " , " + $revision + " , 0 , " + $answer + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
-		insert( new ReportedVote( $agent, $revision, 0, $answer, $revision, $ballot, $issue, $cluster ) );
+		insert( new ReportedVote( $agent, $revision, 0, new IPCNV(), $revision, $ballot, $issue, $cluster ) );
 		retract( $sync ); 
 		logger.trace("...  and retracted Sync : " + $sync);
 end
