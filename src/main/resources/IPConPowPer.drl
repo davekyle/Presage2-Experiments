@@ -566,21 +566,18 @@ rule "holdsAt for per to SyncAck"
 		SyncAck $syncAck = new SyncAck( $agent, $value, $revision, $issue, $cluster );
 		insertLogical( new Permission( $agent, $syncAck ) );
 end
-		 
-		 
-query "agentPowers" (IPConAgent $agent)
+
+query "getPowers" (IPConAgent $agent)
 	Power( agent==$agent, $action : action )
 end
-		 
-query "agentPermissions" (IPConAgent $agent)
+
+query "getPermissions" (IPConAgent $agent)
 	Permission( agent==$agent, $action : action )
 end
 
-query "getPowers"
-	Power( $agent : agent, $action : action )
-end
-
-query "getPermissions"
-	Permission( $agent : agent, $action : action )
+// DO NOT USE WITH EMPTY ACTIONNAME !
+query "test"( IPConAgent $agent, String $actionName )
+	$power : Power( agent==$agent, $action : action, ($action.toString()).substring(0,$actionName.length()).equals($actionName) )
+	//$permission : Permission( agent==$agent, action==$action, ($action.toString()).substring(0,$actionName.length()).equals($actionName) )
 end
 

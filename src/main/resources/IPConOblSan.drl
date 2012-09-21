@@ -183,10 +183,6 @@ rule "Generic obligation retraction"
 		retract( $obl );
 end	 
 
-query "agentObligations" (IPConAgent $agent)
+query "getObligations" (IPConAgent $agent)
 	Obligation( agent==$agent, $action : action )
-end
-
-query "getObligations"
-	Obligation( $agent : agent, $action : action )
 end
