@@ -89,7 +89,8 @@ end
 // internal flag event for an empowered no syncAck
 declare SyncNo
 	@role( event )
-	// expires instantly
+	// expires instantly; we only want to use it in the same cycle
+	@expires( 0s )
 	agent : IPConAgent
 	revision : Integer
 	ballot : Integer
@@ -353,6 +354,7 @@ rule "SyncAck initiates null ReportedVote (if not agree)"
 		Power( agent==$agent, $action : action )
 		SyncAck( agent==$agent, value==$answer, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		Chosen( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
+		not SyncNo( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("SyncAck no inserted ReportedVote( " + $agent + " , " + $revision + " , 0 , " + $answer + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
 		insert( new ReportedVote( $agent, $revision, 0, IPCNV.val(), $revision, $ballot, $issue, $cluster ) );

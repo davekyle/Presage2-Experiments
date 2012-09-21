@@ -19,6 +19,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
+global Object IPCNV_val
 
 // fact indicating that if the person about to sync says no, there should be a revision after
 declare PossibleAddRevision
@@ -58,9 +59,9 @@ rule "holdsAt for possibleAddRevision"
 								//, count( $b ) )
 								, collectList( $b ) )
 		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
-		$notForVotes : List( $forVotes.size() == $notForVotes.size() ) from accumulate(
+		$notForVotes : List( $forVotes.size() <= $notForVotes.size() ) from accumulate(
 								// that voted against the value
-								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV.val(), issue==$issue, cluster==$cluster ) and 
+								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV_val, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
 								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
 								//, count( $b1 ) ) //and
@@ -104,9 +105,9 @@ rule "holdsAt for possibleRemRevision"
 								//, count( $b ) )
 								, collectList( $b ) )
 		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
-		$notForVotes : List( $forVotes.size() == $notForVotes.size() ) from accumulate(
+		$notForVotes : List( $forVotes.size() <= $notForVotes.size() ) from accumulate(
 								// that voted against the value
-								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV.val(), issue==$issue, cluster==$cluster ) and 
+								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV_val, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
 								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
 								//, count( $b1 ) ) //and

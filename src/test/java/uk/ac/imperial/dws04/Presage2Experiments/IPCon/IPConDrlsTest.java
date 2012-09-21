@@ -801,7 +801,7 @@ public class IPConDrlsTest {
 	}
 	
 	@Test
-	public void testSyncAckNoSafetyViolation() throws Exception {
+	public void testSyncAckSafetyViolation() throws Exception {
 		HashMap<String, Object> map = new HashMap<String,Object>();
 		testPossibleRevisionDetectionSetup(map);
 		
@@ -826,9 +826,7 @@ public class IPConDrlsTest {
 		assertFactCount("ReportedVote", 6);
 		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
 		assertFactCount("PossibleRemRevision", 1);
-		//assertFactCount("Obligation", 2); // check no obligations
 		
-		outputObjects();
 		
 		/*
 		 * Time step 7
@@ -836,7 +834,6 @@ public class IPConDrlsTest {
 		 * Safety should be violated
 		 */
 		session.insert(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
-		outputObjects();
 		rules.incrementTime();
 		assertFactCount("HasRole", 7);
 		assertFactCount("Sync", 0);
@@ -848,11 +845,90 @@ public class IPConDrlsTest {
 		
 		outputObjects();
 		
+		// Check safety was violated and an obligation to revise exists
 		assertCount("getObligations", "Revise", 1);
+		assertFactCount("PossibleAddRevision", 1);
+		assertFactCount("PossibleRemRevision", 1);
 		
+		/*
+		 * Time step 8
+		 * Leader revises
+		 * Check for clean slate
+		 */
+		session.insert(new Revise(a1, revision, issue, cluster));
+		rules.incrementTime();
+		
+		//FIXME TODO urgh now I need to improve all fns with RIC args :''(
+		
+		/*
+		assertFactCount("HasRole", 7);
+		
+		assertFactCount("Sync", 0);
+		assertFactCount("NeedToSync", 0);
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("Chosen", 1);
+		assertFactCount("Voted", 5); // null votes don't get created because it doesnt make any sense
+		assertFactCount("ReportedVote", 7); // add a null reportedvote
+		
+		// Check safety was violated and an obligation to revise exists
+		assertCount("getObligations", "Revise", 1);
+		assertFactCount("PossibleAddRevision", 1);
+		assertFactCount("PossibleRemRevision", 1);
+		*/
+		
+	}
+	
+	@Test
+	public void testSyncAckYes() throws Exception {
+		HashMap<String, Object> map = new HashMap<String,Object>();
+		testPossibleRevisionDetectionSetup(map);
+		
+		//get data out of map
+		IPConAgent a1 = (IPConAgent) map.get("a1");
+		IPConAgent a2 = (IPConAgent) map.get("a2");
+		IPConAgent a3 = (IPConAgent) map.get("a3");
+		IPConAgent a4 = (IPConAgent) map.get("a4");
+		IPConAgent a5 = (IPConAgent) map.get("a5");
+		Integer revision = (Integer) map.get("revision");
+		String issue = (String) map.get("issue");
+		UUID cluster = (UUID) map.get("cluster");
+		
+		
+		// Check things are right after Time step 6
+		assertFactCount("HasRole", 7);
+		assertFactCount("Sync", 1);
+		assertFactCount("NeedToSync", 0);
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("Chosen", 1);
+		assertFactCount("Voted", 5);
+		assertFactCount("ReportedVote", 6);
 		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
 		assertFactCount("PossibleRemRevision", 1);
 		
+		
+		/*
+		 * Time step 7
+		 * Ag5 says no
+		 * Safety should be violated
+		 */
+		session.insert(new SyncAck(a5, "A", revision, issue, cluster));
+		rules.incrementTime();
+		assertFactCount("HasRole", 7);
+		assertFactCount("Sync", 0);
+		assertFactCount("NeedToSync", 0);
+		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertFactCount("Chosen", 1);
+		assertFactCount("Voted", 6); // add a vote
+		assertFactCount("ReportedVote", 7); // add a reportedvote
+		
+		outputObjects();
+		
+		// Check safety was preserved and an obligation to revise does not exist
+		assertCount("getObligations", "Revise", 0);
+		// PAR still here because we now have 3 for, 2 notFor and QS of 3
+		assertFactCount("PossibleAddRevision", 1);
+		// PRR goes away because theres an additional "yes" vote
+		assertFactCount("PossibleRemRevision", 0);
 	}
 	
 	private final FactType typeFromString(String factTypeString) {
