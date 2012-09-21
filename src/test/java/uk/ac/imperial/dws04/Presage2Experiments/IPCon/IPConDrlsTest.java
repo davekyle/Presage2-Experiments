@@ -10,12 +10,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.drools.definition.type.FactType;
 import org.drools.runtime.ObjectFilter;
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.rule.QueryResults;
+import org.drools.runtime.rule.QueryResultsRow;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +28,8 @@ import org.junit.Test;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Response1B;
@@ -60,8 +66,8 @@ public class IPConDrlsTest {
 				.addClasspathDrlFile("IPCon_Institutional_Facts.drl")
 				.addClasspathDrlFile("IPConUtils.drl")
 				.addClasspathDrlFile("IPConPowPer.drl")
-				.addClasspathDrlFile("IPConOblSan.drl")
 				.addClasspathDrlFile("IPCon.drl")
+				.addClasspathDrlFile("IPConOblSan.drl")
 				);
 		rules = injector.getInstance(RuleStorage.class);
 		session = injector.getInstance(StatefulKnowledgeSession.class);
@@ -75,6 +81,7 @@ public class IPConDrlsTest {
 	
 	public void initSession() {
 		session.setGlobal("logger", this.logger);
+		session.setGlobal("IPCNV_val", IPCNV.val());
 		//session.setGlobal("session", session);
 		//session.setGlobal("storage", null);
 		
@@ -89,7 +96,23 @@ public class IPConDrlsTest {
 		for (Object object : objects) {
 			logger.info(object);
 		}
-		logger.info("/objects\n");
+		logger.info("/objects");
+		analyseDroolsUsage();
+		logger.info("/usage");
+	}
+	
+	private void analyseDroolsUsage() {
+		Map<Class<?>, Integer> typeCards = new HashMap<Class<?>, Integer>();
+		for (Object o : session.getObjects()) {
+				if (!typeCards.containsKey(o.getClass())) {
+					typeCards.put(o.getClass(), 0);
+				}
+				typeCards.put(o.getClass(), typeCards.get(o.getClass()) + 1);
+		}
+		logger.info("Drools memory usage:");
+		for (Map.Entry<Class<?>, Integer> entry : typeCards.entrySet()) {
+			logger.info(entry.getKey().getSimpleName() + " - " + entry.getValue());
+		}
 	}
 	
 	public void initAgent(IPConAgent agent, Role role, Integer revision, String issue, UUID cluster) throws Exception {
@@ -121,7 +144,7 @@ public class IPConDrlsTest {
 		votedType.set(v1Vote, "agent", agent);
 		votedType.set(v1Vote, "revision", revision);
 		votedType.set(v1Vote, "ballot", 0);
-		votedType.set(v1Vote, "value", null);
+		votedType.set(v1Vote, "value", IPCNV.val());
 		votedType.set(v1Vote, "issue", issue);
 		votedType.set(v1Vote, "cluster", cluster);
 		session.insert(v1Vote);
@@ -132,7 +155,7 @@ public class IPConDrlsTest {
 		reportedVoteType.set(v1RVote, "agent", agent);
 		reportedVoteType.set(v1RVote, "voteRevision", revision);
 		reportedVoteType.set(v1RVote, "voteBallot", 0);
-		reportedVoteType.set(v1RVote, "voteValue", null);
+		reportedVoteType.set(v1RVote, "voteValue", IPCNV.val());
 		reportedVoteType.set(v1RVote, "revision", revision);
 		reportedVoteType.set(v1RVote, "ballot", 0);
 		reportedVoteType.set(v1RVote, "issue", issue);
@@ -281,7 +304,7 @@ public class IPConDrlsTest {
 		assertFactCount("Voted", 3);
 		
 
-		session.insert(new Response1B( a1, 1, 0, null, 1, 10, issue, cluster));
+		session.insert(new Response1B( a1, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
 		
 	}
 	
@@ -357,19 +380,25 @@ public class IPConDrlsTest {
 		
 		// check theres only one agent can request (the proposer)
 		// one proposer has permission
-		assertFactCount("RequestPer", 1);
+		//assertFactCount("Request", 1);
+		assertCount("getPowers", "Request0A", 1);
 		
 		
 		/*
 		 *  check some arbitrary fact counts
 		 */
 		// everyone can arrogate (leader could arrogate something else for example)
-		assertFactCount("ArrogatePow", 5);
+		//assertFactCount("Arrogate", 5);
+		assertCount("getPowers", "ArrogateLeadership", 5);
 		// only leader can resign
-		assertFactCount("ResignPow", 1);
+		//assertFactCount("Resign", 1);
+		assertCount("getPowers", "ResignLeadership", 1);
 		// all can leave
-		// FIXME TODO need to fix this holdsAt so each role doesn't count
-		assertFactCount("LeavePow", 7);
+		// TODO need to fix this holdsAt so each role doesn't count
+		// inadvertantly fixed this by putting into a HashSet to remove dups :P
+		//assertFactCount("Leave", 7);
+		assertCount("getPowers", "LeaveCluster",5);
+		
 		/*
 		 * 5 roles in total
 		 * leader can add roles:
@@ -377,8 +406,8 @@ public class IPConDrlsTest {
 		 * (4 for others)*4 = 16
 		 * Total: 18
 		 */
-		assertFactCount("AddRolePow", 18);
-		assertFactCount("AddRolePer", 18);
+		assertCount("getPowers", "AddRole", 18);
+		assertCount("getPermissions", "AddRole", 18);
 		/*
 		 * 5 roles in total
 		 * leader can rem roles:
@@ -386,18 +415,18 @@ public class IPConDrlsTest {
 		 * (1 for others)*4 = 4
 		 * Total: 7
 		 */
-		assertFactCount("RemRolePow", 7);
-		assertFactCount("RemRolePer", 7);
+		assertCount("getPowers", "RemRole", 7);
+		assertCount("getPermissions", "RemRole", 7);
 		// leader can revise
-		assertFactCount("RevisePow", 1);
-		assertFactCount("RevisePer", 1);
+		assertCount("getPowers", "Revise", 1);
+		assertCount("getPermissions", "Revise", 1);
 		// leader has pow to syncreq all acceptors (incl himself)
-		assertFactCount("SyncReqPow", 5);
+		assertCount("getPowers", "SyncReq", 5);
 		// but not the permission
-		assertFactCount("SyncReqPer", 0);
+		assertCount("getPermissions", "SyncReq", 0);
 		//no one can syncack
-		assertFactCount("SyncAckPow", 0);
-		assertFactCount("SyncAckPer", 0);
+		assertCount("getPowers", "SyncAck", 0);
+		assertCount("getPermissions", "SyncAck", 0);
 		
 		/*
 		 * Begin the time steps.
@@ -411,7 +440,7 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// check no one can response
-		assertFactCount("ResponsePer", 0);
+		assertCount("getPermissions", "Response1B", 0);
 		
 		
 		/*
@@ -423,13 +452,13 @@ public class IPConDrlsTest {
 		
 		// check all acceptors can response
 		// 5 acceptors have permission
-		assertFactCount("ResponsePer", 5);
+		assertCount("getPermissions", "Response1B", 5);
 		if (pass) {
 			// 2 acceptors have to respond
-			assertFactCount("Obligation", 2);
+			assertCount("getObligations", "Response1B", 2);
 		}else {
 			// 3 have to
-			assertFactCount("Obligation", 3);
+			assertCount("getObligations", "Response1B", 3);
 		}
 		
 		
@@ -437,24 +466,24 @@ public class IPConDrlsTest {
 		 * Time step 3 :
 		 * All agents send a response, check the responsecount and per/obl to submit
 		 */
-		session.insert(new Response1B( a1, 1, 0, null, 1, 10, issue, cluster));
+		session.insert(new Response1B( a1, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
 		session.insert(new Response1B( a2, 1, 1, 4, 1, 10, issue, cluster));
 		session.insert(new Response1B( a3, 1, 1, 4, 1, 10, issue, cluster));
 		if (pass) {
-			session.insert(new Response1B( a4, 1, 0, null, 1, 10, issue, cluster));
+			session.insert(new Response1B( a4, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
 		} else {
 			session.insert(new Response1B( a4, 1, 2, 5, 1, 10, issue, cluster));
 		}
-		session.insert(new Response1B( a5, 1, 0, null, 1, 10, issue, cluster));
+		session.insert(new Response1B( a5, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
 		rules.incrementTime();
 		if (pass) {
-			assertFactCount("SubmitPow", 1);
-			assertFactCount("SubmitPer", 1);
-			assertFactCount("Obligation", 1);
+			assertCount("getPowers", "Submit2A", 1);
+			assertCount("getPermissions", "Submit2A", 1);
+			assertCount("getObligations", "Submit2A", 1);
 		} else {
-			assertFactCount("SubmitPow", 1);
-			assertFactCount("SubmitPer", 0);
-			assertFactCount("Obligation", 0);
+			assertCount("getPowers", "Submit2A", 1);
+			assertCount("getPermissions", "Submit2A", 0);
+			assertCount("getObligations", "Submit2A", 0);
 		}
 		
 		/*
@@ -465,7 +494,7 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// all acceptors can vote either way because leader had power
-		assertFactCount("VotePer", 5);
+		assertCount("getPermissions", "Vote2B", 5);
 		
 		/*
 		 * Time step 4
@@ -708,8 +737,10 @@ public class IPConDrlsTest {
 		 * Time step 4
 		 * Agent syncs no
 		 */
-		session.insert(new SyncAck( a4, null, revision, issue, cluster));
+		session.insert(new SyncAck( a4, IPCNV.val(), revision, issue, cluster));
 		rules.incrementTime();
+		
+		assertCount("getObligations", "SyncAck", 0);
 		
 		assertFactCount("HasRole", 6);
 		assertFactCount("Sync", 0);
@@ -718,16 +749,17 @@ public class IPConDrlsTest {
 		// quorumsize should be 3 because the agent completed the sync
 		assertFactFieldValue("QuorumSize", "quorumSize", 3);
 		
+		// 5 votes but 6 reportedVotes because syncAck no doesn't count as a vote
+		assertFactCount("Voted", 5);
+		assertFactCount("ReportedVote", 6);
+		
 		// value chosen
 		assertFactCount("Chosen", 1);
+		
 		
 		// still no risk because status quo holds
 		assertFactCount("PossibleAddRevision", 0);
 		assertFactCount("PossibleRemRevision", 1);
-		
-		// 5 votes but 6 reportedVotes because syncAck no doesn't count as a vote
-		assertFactCount("Voted", 5);
-		assertFactCount("ReportedVote", 6);
 		
 		/*
 		 * Time step 5
@@ -803,7 +835,7 @@ public class IPConDrlsTest {
 		 * Ag5 says no
 		 * Safety should be violated
 		 */
-		session.insert(new SyncAck(a5, null, revision, issue, cluster));
+		session.insert(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
 		outputObjects();
 		rules.incrementTime();
 		assertFactCount("HasRole", 7);
@@ -816,16 +848,7 @@ public class IPConDrlsTest {
 		
 		outputObjects();
 		
-		// check obligation to revise
-		Object obl = Arrays.asList(assertFactCount("Obligation", 1).toArray()).get(0);
-		Revise fact = null;
-		if (typeFromString("Obligation").get(obl, "action") instanceof Revise ) {
-			fact = (Revise)typeFromString("Obligation").get(obl, "action");
-		}
-		else {
-			fail();
-		}
-		assertEquals(fact.getAgent(), a1);
+		assertCount("getObligations", "Revise", 1);
 		
 		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
 		assertFactCount("PossibleRemRevision", 1);
@@ -922,6 +945,33 @@ public class IPConDrlsTest {
 		return facts;
 	}
 	
+	private final void assertCount( final String queryName, final String actionType, final int count) {
+		assertEquals(count, filterQueryByAction(queryName, actionType).size());
+	}
+	
+	private final Collection<IPConAction> filterQueryByAction( final String queryName, final String actionType) {	
+		HashSet<IPConAction> set = new HashSet<IPConAction>();
+		QueryResults results = session.getQueryResults(queryName);
+		for ( QueryResultsRow row : results ) {
+			set.add((IPConAction)row.get("$action"));
+		}
+		
+		HashSet<IPConAction> result = new HashSet<IPConAction>();
+		for (IPConAction action : set) {
+			if (action.getClass().getSimpleName().equals(actionType)) {
+				result.add(action);
+			}
+		}
+		return result;
+		
+	}
+	
+	private final Collection<IPConAction> assertPowerCount( final String actionType, int count) {
+		Collection<IPConAction> actions = matchPowers(actionType);
+		assertEquals(count, actions.size());
+		return actions;
+	}
+	
 	/**
 	 * Allows testing the field of the first AND ONLY fact of a specified type
 	 * Returns the field you tested, for convenience (?)
@@ -938,5 +988,88 @@ public class IPConDrlsTest {
 		assertEquals(value, field);
 		return field;
 	}
+	
+	private final ArrayList<IPConAction> getAgentPowers(IPConAgent agent) {
+		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
+		QueryResults results = session.getQueryResults("agentPowers", new Object[] { agent });
+		for ( QueryResultsRow row : results ) {
+			actions.add((IPConAction)row.get("$action"));
+		}
+		logger.info("Agent " + agent.getName() + " has the following powers: " + actions);
+		return actions;
+	}
+	
+	private final ArrayList<IPConAction> getAgentPermissions(IPConAgent agent) {
+		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
+		QueryResults results = session.getQueryResults("agentPermissions", new Object[] { agent });
+		for ( QueryResultsRow row : results ) {
+			actions.add((IPConAction)row.get("$action"));
+		}
+		logger.info("Agent " + agent.getName() + " has the following permissions: " + actions);
+		return actions;
+	}
+	
+	private final ArrayList<IPConAction> getAgentObligations(IPConAgent agent) {
+		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
+		QueryResults results = session.getQueryResults("agentObligations", new Object[] { agent });
+		for ( QueryResultsRow row : results ) {
+			actions.add((IPConAction)row.get("$action"));
+		}
+		logger.info("Agent " + agent.getName() + " has the following obligations: " + actions);
+		return actions;
+	}
+	
+	private final HashSet<IPConAction> getPowers() {
+		HashSet<IPConAction> set = new HashSet<IPConAction>();
+		QueryResults results = session.getQueryResults("getPowers");
+		for ( QueryResultsRow row : results ) {
+			set.add((IPConAction)row.get("$action"));
+		}
+		return set;
+	}
+
+	private final HashSet<IPConAction> matchPowers(String actionType) {
+		HashSet<IPConAction> result = new HashSet<IPConAction>();
+		for (IPConAction action : getPowers()) {
+			if (action.getClass().getSimpleName().equals(actionType)) {
+				result.add(action);
+			}
+		}
+		return result;
+	}
+	
+	private final HashMap<IPConAgent, ArrayList<IPConAction>> getPowersByAgent() {
+		HashMap<IPConAgent, ArrayList<IPConAction>> map = new HashMap<IPConAgent, ArrayList<IPConAction>>();
+		QueryResults results = session.getQueryResults("getPowers");
+		for ( QueryResultsRow row : results ) {
+			IPConAgent agent = (IPConAgent)row.get("$agent");
+			if (!map.containsKey(agent)) {
+				map.put(agent, new ArrayList<IPConAction>() );
+			}
+			map.get(agent).add((IPConAction)row.get("$action"));
+		}
+		return map;
+	}
+	
+	private final HashMap<IPConAgent, ArrayList<IPConAction>> matchPowersByAgent(String actionType) {
+		HashMap<IPConAgent, ArrayList<IPConAction>> result = new HashMap<IPConAgent, ArrayList<IPConAction>>();
+		for (Entry<IPConAgent, ArrayList<IPConAction>> entry : getPowersByAgent().entrySet()) {
+			logger.debug("Entry is : " + entry);
+			for (IPConAction action : entry.getValue()) {
+				logger.trace("Matching against class " + action.getClass().getSimpleName() + " from " + action);
+				if (action.getClass().getSimpleName().equals(actionType)) {
+					IPConAgent agent = entry.getKey();
+					if (!result.containsKey(agent)) {
+						result.put(agent, new ArrayList<IPConAction>() );
+					}
+					result.get(agent).add(action);
+				}
+			}
+		}
+		logger.info("Matched " + result.size() + " against " + actionType + " : " + result);
+		return result;
+	}
+	
+	
 
 }

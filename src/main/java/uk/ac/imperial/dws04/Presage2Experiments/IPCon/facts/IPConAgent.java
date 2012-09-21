@@ -90,5 +90,9 @@ public class IPConAgent {
 	public String toString() {
 		return "IPConAgent [name=" + name + ", address=" + address + "]";
 	}
+
+	public String getName() {
+		return this.name;
+	}
 	
 }

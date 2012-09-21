@@ -17,6 +17,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
+global Object IPCNV_val
 
 declare Power
 	agent : IPConAgent
@@ -312,7 +313,7 @@ rule "holdsAt for permission to response1b (with indicators if didn't vote in th
 		not Voted( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Logically toggling ResponsePer( " + $agent + " , " + $revision + " , 0 , " + IPCNV.val() + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
-		Response1B $response = new Response1B( $agent, $revision, 0, new IPCNV(), $revision, $ballot, $issue, $cluster );
+		Response1B $response = new Response1B( $agent, $revision, 0, IPCNV.val(), $revision, $ballot, $issue, $cluster );
 		insertLogical( new Permission( $agent, $response ) );
 end
 
@@ -551,7 +552,7 @@ rule "holdsAt for pow to SyncAck (no)"
 		//( $answer==$value || $answer==null )
 	then
 		logger.trace("Logically toggling SyncAckPow( " + $agent + " , null , " + $revision + " , " + $issue + " , " + $cluster + ")");
-		SyncAck $syncAck = new SyncAck( $agent, null, $revision, $issue, $cluster );
+		SyncAck $syncAck = new SyncAck( $agent, IPCNV_val, $revision, $issue, $cluster );
 		insertLogical( new Power( $agent, $syncAck ) );
 end
 
@@ -567,10 +568,19 @@ rule "holdsAt for per to SyncAck"
 end
 		 
 		 
+query "agentPowers" (IPConAgent $agent)
+	Power( agent==$agent, $action : action )
+end
 		 
-		 
-		 
+query "agentPermissions" (IPConAgent $agent)
+	Permission( agent==$agent, $action : action )
+end
 
+query "getPowers"
+	Power( $agent : agent, $action : action )
+end
 
-
+query "getPermissions"
+	Permission( $agent : agent, $action : action )
+end
 

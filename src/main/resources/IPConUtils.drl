@@ -122,6 +122,8 @@ rule "holdsAt for possibleRemRevision"
 								, collectList( $a2.getAgent() ) )
 		*/
 	then
+		logger.trace("Agents:" + $agents);
+		logger.trace("For:" + $forVotes + " / Against:" + $notForVotes /*+ " / Didn't:" + $didntVotes*/);
 		logger.trace("Logically toggling possibleRemRevision");
 		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );
 end

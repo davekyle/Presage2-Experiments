@@ -15,6 +15,7 @@ import java.util.UUID
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConUtils.*
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon.*
 
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
@@ -22,6 +23,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
+global Object IPCNV_val
 
 // obligation
 
@@ -140,14 +142,16 @@ rule "syncAck no initiates obligation to revise"
 // if syncAck is no and agent had power to say so and leader has permission to revise and possibleAddRevision, leader must revise
 	when
 		//$answer==null 
-		//SyncAckPow( $agent : agent, pow$answer : value, $revision : revision, $issue : issue, $cluster : cluster )
-        Power( $agent : agent, $actionPow : action )
-        SyncAck( agent==$agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster ) from $actionPow
-		SyncAck( agent==$agent, value==$answer, value==IPCNV.val(), revision==$revision, issue==$issue, cluster==$cluster )
+		//SyncAckPow( $agent : agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster )
+        //Power( $agent : agent, $actionPow : action )
+        //SyncAck( agent==$agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster ) from $actionPow
+		//SyncAck( agent==$agent, value==$answer, $answer==IPCNV_val, revision==$revision, issue==$issue, cluster==$cluster )
+		SyncNo( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		//RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
         Permission( $leader : agent, $actionPer : action )
-        Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster ) from $actionPer
+        $rev : Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster ) from $actionPer
 		PossibleAddRevision( /*value!=$answer,*/ revision==$revision, issue==$issue, cluster==$cluster )
+		not Obligation( agent==$leader, action==$rev )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
 		logger.trace("SyncAck inserted obligation for " + $leader + " to " + $revise );
@@ -177,4 +181,12 @@ rule "Generic obligation retraction"
 	then
 		logger.trace("Retracted obligation: " + $obl);
 		retract( $obl );
+end	 
+
+query "agentObligations" (IPConAgent $agent)
+	Obligation( agent==$agent, $action : action )
+end
+
+query "getObligations"
+	Obligation( $agent : agent, $action : action )
 end
