@@ -852,10 +852,8 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", 1);
 		assertFactCount("PossibleRemRevision", 1);
 		
-		logger.debug("Test:");test();
-		
-		logger.debug(filterQueryByAction("getPowers", "RemRole", a1));
-		logger.debug(filterQueryByActionRIC("getPowers", "RemRole", a1, revision, issue, cluster));
+		logger.debug(getQueryResults("getPowers", "RemRole", a1));
+		logger.debug(getQueryResultsForRIC("getPowers", "RemRole", a1, revision, issue, cluster));
 		fail();
 		
 		/*
@@ -987,6 +985,10 @@ public class IPConDrlsTest {
 		
 	}
 	
+	private final void assertCount( final String queryName, final String actionType, final IPConAgent agent, final int count) {
+		assertEquals(count, getQueryResults(queryName, actionType, agent).size());
+	}
+	
 	/**
 	 * @param factTypeString
 	 * @param count
@@ -1029,25 +1031,17 @@ public class IPConDrlsTest {
 		return facts;
 	}
 	
-	private final Collection<IPConAction> filterQueryByActionRIC(	final String queryName,
-																	final String actionType,
-																	final IPConAgent agent,
-																	final Integer revision,
-																	final String issue,
-																	final UUID cluster) {
+	/**
+	 * 
+	 * @param queryName should be "getPowers" "getPermissions" or "getObligations"
+	 * @param actionType type of action to filter by, or null to get all
+	 * @param agent agent to get filter by, or null to get all
+	 * @return Collection of IPConActions
+	 */
+	private final Collection<IPConAction> getQuery(final String queryName, final String actionType, final IPConAgent agent) {
 		HashSet<IPConAction> set = new HashSet<IPConAction>();
-		for (IPConAction action : filterQueryByAction(queryName, actionType, agent)) {
-			set.add((IPConAction)action);
-		}
-		return set;
-	}
-	
-	private final void assertCount( final String queryName, final String actionType, final IPConAgent agent, final int count) {
-		assertEquals(count, filterQueryByAction(queryName, actionType, agent).size());
-	}
-	
-	private final Collection<IPConAction> filterQueryByAction( final String queryName, final String actionType, final IPConAgent agent) {	
-		HashSet<IPConAction> set = new HashSet<IPConAction>();
+		QueryResults results = null;
+		// Set agent to look up
 		Object lookup = null;
 		if (agent==null) {
 			lookup = Variable.v;
@@ -1055,13 +1049,23 @@ public class IPConDrlsTest {
 		else {
 			lookup = agent;
 		}
-		QueryResults results = session.getQueryResults(queryName, new Object[]{ lookup });
+		// Add "Actions" to the string to get the other query
+		if (actionType!=null) {
+			results = session.getQueryResults(queryName+"Actions", new Object[]{ lookup, actionType });
+		}
+		else {
+			results = session.getQueryResults(queryName, new Object[]{ lookup });
+		}
 		for ( QueryResultsRow row : results ) {
 			set.add((IPConAction)row.get("$action"));
 		}
+		return set;
+	}
+	
+	private final Collection<IPConAction> getQueryResults( final String queryName, final String actionType, final IPConAgent agent) {	
 		
 		HashSet<IPConAction> result = new HashSet<IPConAction>();
-		for (IPConAction action : set) {
+		for (IPConAction action : getQuery(queryName, actionType, agent)) {
 			if (action.getClass().getSimpleName().equals(actionType)) {
 				result.add(action);
 			}
@@ -1070,19 +1074,17 @@ public class IPConDrlsTest {
 		
 	}
 	
-	private final void test() {
-		QueryResults results = session.getQueryResults("test", new Object[]{ Variable.v, "LeaveCluster" });
-		for ( QueryResultsRow row : results ) {
-			//logger.debug("Pow: " + row.get("$power"));
-			//logger.debug("Per: " + row.get("$permission"));
-			logger.debug("Act: " + (IPConAction)row.get("$action"));
+	private final Collection<IPConAction> getQueryResultsForRIC(	final String queryName,
+																	final String actionType,
+																	final IPConAgent agent,
+																	final Integer revision,
+																	final String issue,
+																	final UUID cluster) {
+		HashSet<IPConAction> set = new HashSet<IPConAction>();
+		for (IPConAction action : getQueryResults(queryName, actionType, agent)) {
+			set.add((IPConAction)action);
 		}
-	}
-	
-	private final Collection<IPConAction> assertPowerCount( final String actionType, int count) {
-		Collection<IPConAction> actions = matchPowers(actionType);
-		assertEquals(count, actions.size());
-		return actions;
+		return set;
 	}
 	
 	/**
@@ -1097,7 +1099,7 @@ public class IPConDrlsTest {
 		Collection<Object> facts = assertFactCount(factTypeString, 1);
 		Object fact = Arrays.asList(facts.toArray()).get(0);
 		Object field = typeFromString(factTypeString).get(fact, fieldString);
-		// correct value was chosen
+		// correct value was retrieved
 		assertEquals(value, field);
 		return field;
 	}
@@ -1132,59 +1134,6 @@ public class IPConDrlsTest {
 		return actions;
 	}
 
-	@Deprecated
-	private final HashSet<IPConAction> getPowers() {
-		HashSet<IPConAction> set = new HashSet<IPConAction>();
-		QueryResults results = session.getQueryResults("getPowers");
-		for ( QueryResultsRow row : results ) {
-			set.add((IPConAction)row.get("$action"));
-		}
-		return set;
-	}
-
-	private final HashSet<IPConAction> matchPowers(String actionType) {
-		HashSet<IPConAction> result = new HashSet<IPConAction>();
-		for (IPConAction action : getPowers()) {
-			if (action.getClass().getSimpleName().equals(actionType)) {
-				result.add(action);
-			}
-		}
-		return result;
-	}
-	
-	@Deprecated
-	private final HashMap<IPConAgent, ArrayList<IPConAction>> getPowersByAgent() {
-		HashMap<IPConAgent, ArrayList<IPConAction>> map = new HashMap<IPConAgent, ArrayList<IPConAction>>();
-		QueryResults results = session.getQueryResults("getPowers");
-		for ( QueryResultsRow row : results ) {
-			IPConAgent agent = (IPConAgent)row.get("$agent");
-			if (!map.containsKey(agent)) {
-				map.put(agent, new ArrayList<IPConAction>() );
-			}
-			map.get(agent).add((IPConAction)row.get("$action"));
-		}
-		return map;
-	}
-
-	@Deprecated
-	private final HashMap<IPConAgent, ArrayList<IPConAction>> matchPowersByAgent(String actionType) {
-		HashMap<IPConAgent, ArrayList<IPConAction>> result = new HashMap<IPConAgent, ArrayList<IPConAction>>();
-		for (Entry<IPConAgent, ArrayList<IPConAction>> entry : getPowersByAgent().entrySet()) {
-			logger.debug("Entry is : " + entry);
-			for (IPConAction action : entry.getValue()) {
-				logger.trace("Matching against class " + action.getClass().getSimpleName() + " from " + action);
-				if (action.getClass().getSimpleName().equals(actionType)) {
-					IPConAgent agent = entry.getKey();
-					if (!result.containsKey(agent)) {
-						result.put(agent, new ArrayList<IPConAction>() );
-					}
-					result.get(agent).add(action);
-				}
-			}
-		}
-		logger.info("Matched " + result.size() + " against " + actionType + " : " + result);
-		return result;
-	}
 	
 	
 

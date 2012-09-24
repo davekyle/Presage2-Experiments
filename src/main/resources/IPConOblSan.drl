@@ -186,3 +186,8 @@ end
 query "getObligations" (IPConAgent $agent)
 	Obligation( agent==$agent, $action : action )
 end
+
+// DO NOT USE WITH EMPTY ACTIONNAME !
+query "getObligationsActions"( IPConAgent $agent, String $actionName )
+	$obligation : Obligation( agent==$agent, $action : action, ($action.toString()).substring(0,$actionName.length()).equals($actionName) )
+end

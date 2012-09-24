@@ -576,8 +576,13 @@ query "getPermissions" (IPConAgent $agent)
 end
 
 // DO NOT USE WITH EMPTY ACTIONNAME !
-query "test"( IPConAgent $agent, String $actionName )
+query "getPowersActions"( IPConAgent $agent, String $actionName )
 	$power : Power( agent==$agent, $action : action, ($action.toString()).substring(0,$actionName.length()).equals($actionName) )
-	//$permission : Permission( agent==$agent, action==$action, ($action.toString()).substring(0,$actionName.length()).equals($actionName) )
 end
+
+// DO NOT USE WITH EMPTY ACTIONNAME !
+query "getPermissionsActions"( IPConAgent $agent, String $actionName )
+	$permission : Permission( agent==$agent, $action : action, ($action.toString()).substring(0,$actionName.length()).equals($actionName) )
+end
+
 
