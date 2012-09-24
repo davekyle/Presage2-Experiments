@@ -5,12 +5,15 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
 import static org.junit.Assert.*;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -852,9 +855,6 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", 1);
 		assertFactCount("PossibleRemRevision", 1);
 		
-		logger.debug(getQueryResults("getPowers", "RemRole", a1));
-		logger.debug(getQueryResultsForRIC("getPowers", "RemRole", a1, revision, issue, cluster));
-		fail();
 		
 		/*
 		 * Time step 8
@@ -863,6 +863,7 @@ public class IPConDrlsTest {
 		 */
 		session.insert(new Revise(a1, revision, issue, cluster));
 		rules.incrementTime();
+		logger.debug(getQueryResultsForRIC("getPowers", null, null, revision+1, issue, cluster));
 		
 		//FIXME TODO urgh now I need to improve all fns with RIC args :''(
 		
@@ -1038,7 +1039,7 @@ public class IPConDrlsTest {
 	 * @param agent agent to get filter by, or null to get all
 	 * @return Collection of IPConActions
 	 */
-	private final Collection<IPConAction> getQuery(final String queryName, final String actionType, final IPConAgent agent) {
+	private final Collection<IPConAction> getQueryResults(final String queryName, final String actionType, final IPConAgent agent) {
 		HashSet<IPConAction> set = new HashSet<IPConAction>();
 		QueryResults results = null;
 		// Set agent to look up
@@ -1062,10 +1063,10 @@ public class IPConDrlsTest {
 		return set;
 	}
 	
-	private final Collection<IPConAction> getQueryResults( final String queryName, final String actionType, final IPConAgent agent) {	
+	private final Collection<IPConAction> getQueryResultsOld( final String queryName, final String actionType, final IPConAgent agent) {	
 		
 		HashSet<IPConAction> result = new HashSet<IPConAction>();
-		for (IPConAction action : getQuery(queryName, actionType, agent)) {
+		for (IPConAction action : getQueryResults(queryName, actionType, agent)) {
 			if (action.getClass().getSimpleName().equals(actionType)) {
 				result.add(action);
 			}
@@ -1082,9 +1083,90 @@ public class IPConDrlsTest {
 																	final UUID cluster) {
 		HashSet<IPConAction> set = new HashSet<IPConAction>();
 		for (IPConAction action : getQueryResults(queryName, actionType, agent)) {
-			set.add((IPConAction)action);
+			Integer actionRev = null;
+			try {
+				actionRev = (Integer) action.getClass().getMethod("getRevision").invoke(action, (Object[])null);
+			} catch (Exception e) {
+				// do nothing - if it doesn't have such a method then stay null
+				//e.printStackTrace();
+			}
+			
+			String actionIssue = null;
+			try {
+				actionIssue = (String) actionIssue.getClass().getMethod("getIssue").invoke(action, (Object[])null);
+			} catch (Exception e) {
+				// do nothing
+			}
+			
+			UUID actionCluster = null;
+			try {
+				actionCluster = (UUID) actionIssue.getClass().getMethod("getCluster").invoke(action, (Object[])null);
+			} catch (Exception e) {
+				// do nothing
+			}
+			
+			if ( actionRev==null || actionRev.equals(revision) ) {
+				if ( actionIssue==null || actionIssue.equals(issue)) {
+					if ( actionCluster==null || actionCluster.equals(cluster)) {
+						//logger.debug("Adding action: " + (IPConAction)action);
+						set.add((IPConAction)action);
+					}
+				}
+			}
+
 		}
+		
+		
+		
 		return set;
+	}
+	
+	// Almost certainly horrific hack...
+	private boolean hasRevision(final IPConAction action) {
+		try {
+			action.getClass().getMethod("getRevision");
+			return true;
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			return false;
+		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			return false;
+		}
+	}
+
+	// Almost certainly horrific hack...
+	private boolean hasIssue(final IPConAction action) {
+		try {
+			action.getClass().getMethod("getIssue");
+			return true;
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			return false;
+		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			return false;
+		}
+	}
+
+	// Almost certainly horrific hack...
+	private boolean hasCluster(final IPConAction action) {
+		try {
+			action.getClass().getMethod("getCluster");
+			return true;
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			return false;
+		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			return false;
+		}
 	}
 	
 	/**
