@@ -294,7 +294,9 @@ end
 rule "Revise terminates all syncs"
 	when
 		Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
-		$x : Sync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		Revise( agent==$agent, oldRevision==$revision, issue==$issue, cluster==$cluster) from $action
+		$x : Sync( revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Revise retracted Sync : " + $x );
 		retract( $x );
@@ -303,7 +305,9 @@ end
 rule "Revise terminates all needtosyncs"
 	when
 		Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
-		$x : NeedToSync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $action : action )
+		Revise( agent==$agent, oldRevision==$revision, issue==$issue, cluster==$cluster) from $action
+		$x : NeedToSync( revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Revise retracted NeedToSync : " + $x );
 		retract( $x );
