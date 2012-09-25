@@ -77,7 +77,7 @@ public class NeedToSync extends IPConFact {
 	 */
 	@Override
 	public String toString() {
-		return "Sync [agent=" + agent + ", value=" + value + ", revision="
+		return "NeedToSync [agent=" + agent + ", value=" + value + ", revision="
 				+ revision + ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 	

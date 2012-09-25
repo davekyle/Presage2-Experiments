@@ -67,7 +67,7 @@ public class PossibleRemRevision extends IPConFact {
 	 */
 	@Override
 	public String toString() {
-		return "PossibleAddRevision [value=" + value + ", revision=" + revision
+		return "PossibleRemRevision [value=" + value + ", revision=" + revision
 				+ ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 	

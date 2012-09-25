@@ -192,7 +192,7 @@ public class IPConDrlsTest {
 			}
 		});
 		assertEquals(1, hasRoles.size());*/
-		Collection<Object> hasRoles = assertFactCount("HasRole", 1);
+		Collection<Object> hasRoles = assertFactCount("HasRole", revision, issue, cluster, 1);
 		HasRole hasRole = (HasRole)Arrays.asList(hasRoles.toArray()).get(0);
 		/*Role role = (Role) typeFromString("HasRole").get(hasRole, "role");
 		assertEquals(role.toString(), "LEADER");*/
@@ -221,14 +221,14 @@ public class IPConDrlsTest {
 		
 		rules.incrementTime();
 		
-		assertFactCount("HasRole", 4);
-		assertFactCount("Proposed", 0);
+		assertFactCount("HasRole", revision, issue, cluster, 4);
+		assertFactCount("Proposed", revision, issue, cluster, 0);
 		
 		session.insert(new Request0A( a2, revision, "VALUE", issue, cluster ));
 		
 		rules.incrementTime();
 		
-		assertFactCount("Proposed", 1);
+		assertFactCount("Proposed", revision, issue, cluster, 1);
 		
 		logger.info("Finished requestTest()\n");
 	}
@@ -305,10 +305,10 @@ public class IPConDrlsTest {
 		 * Make sure initially facts hold
 		 */
 		// agent is inserted
-		assertFactCount("IPConAgent", 1);
-		assertFactCount("HasRole", 1);
-		assertFactCount("Pre_Vote", 1);
-		assertFactCount("Voted", 3);
+		assertFactCount("IPConAgent", revision, issue, cluster, 1);
+		assertFactCount("HasRole", revision, issue, cluster, 1);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 3);
 		
 
 		session.insert(new Response1B( a1, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
@@ -382,13 +382,13 @@ public class IPConDrlsTest {
 		
 		// check there are the right number of roles
 		// 5 acceptors, one leader, one proposer
-		assertFactCount("IPConAgent", 5);
-		assertFactCount("HasRole", 7);
+		assertFactCount("IPConAgent", revision, issue, cluster, 5);
+		assertFactCount("HasRole", revision, issue, cluster, 7);
 		
 		// check theres only one agent can request (the proposer)
 		// one proposer has permission
 		//assertFactCount("Request", 1);
-		assertCount("getPowers", "Request0A", null, 1);
+		assertActionCount("getPowers", "Request0A", null, revision, issue, cluster, 1);
 		
 		
 		/*
@@ -396,16 +396,16 @@ public class IPConDrlsTest {
 		 */
 		// everyone can arrogate (leader could arrogate something else for example)
 		//assertFactCount("Arrogate", 5);
-		assertCount("getPowers", "ArrogateLeadership", null, 5);
+		assertActionCount("getPowers", "ArrogateLeadership", null, revision, issue, cluster, 5);
 		// only leader can resign
 		//assertFactCount("Resign", 1);
-		assertCount("getPowers", "ResignLeadership", null, 1);
+		assertActionCount("getPowers", "ResignLeadership", null, revision, issue, cluster, 1);
 		// all can leave
 		// TODO need to fix this holdsAt so each role doesn't count
 		// inadvertantly fixed this by putting into a HashSet to remove dups :P
 		//assertFactCount("Leave", 7);
 		//outputObjects();
-		assertCount("getPowers", "LeaveCluster",null, 5);
+		assertActionCount("getPowers", "LeaveCluster",null, revision, issue, cluster, 5);
 		
 		/*
 		 * 5 roles in total
@@ -414,8 +414,8 @@ public class IPConDrlsTest {
 		 * (4 for others)*4 = 16
 		 * Total: 18
 		 */
-		assertCount("getPowers", "AddRole", null, 18);
-		assertCount("getPermissions", "AddRole", null, 18);
+		assertActionCount("getPowers", "AddRole", null, revision, issue, cluster, 18);
+		assertActionCount("getPermissions", "AddRole", null, revision, issue, cluster, 18);
 		/*
 		 * 5 roles in total
 		 * leader can rem roles:
@@ -423,18 +423,18 @@ public class IPConDrlsTest {
 		 * (1 for others)*4 = 4
 		 * Total: 7
 		 */
-		assertCount("getPowers", "RemRole", null, 7);
-		assertCount("getPermissions", "RemRole", null, 7);
+		assertActionCount("getPowers", "RemRole", null, revision, issue, cluster, 7);
+		assertActionCount("getPermissions", "RemRole", null, revision, issue, cluster, 7);
 		// leader can revise
-		assertCount("getPowers", "Revise", null, 1);
-		assertCount("getPermissions", "Revise", null, 1);
+		assertActionCount("getPowers", "Revise", null, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Revise", null, revision, issue, cluster, 1);
 		// leader has pow to syncreq all acceptors (incl himself)
-		assertCount("getPowers", "SyncReq", null, 5);
+		assertActionCount("getPowers", "SyncReq", null, revision, issue, cluster, 5);
 		// but not the permission
-		assertCount("getPermissions", "SyncReq", null, 0);
+		assertActionCount("getPermissions", "SyncReq", null, revision, issue, cluster, 0);
 		//no one can syncack
-		assertCount("getPowers", "SyncAck", null, 0);
-		assertCount("getPermissions", "SyncAck", null, 0);
+		assertActionCount("getPowers", "SyncAck", null, revision, issue, cluster, 0);
+		assertActionCount("getPermissions", "SyncAck", null, revision, issue, cluster, 0);
 		
 		/*
 		 * Begin the time steps.
@@ -448,7 +448,7 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// check no one can response
-		assertCount("getPermissions", "Response1B", null, 0);
+		assertActionCount("getPermissions", "Response1B", null, revision, issue, cluster, 0);
 		
 		
 		/*
@@ -460,13 +460,13 @@ public class IPConDrlsTest {
 		
 		// check all acceptors can response
 		// 5 acceptors have permission
-		assertCount("getPermissions", "Response1B", null, 5);
+		assertActionCount("getPermissions", "Response1B", null, revision, issue, cluster, 5);
 		if (pass) {
 			// 2 acceptors have to respond
-			assertCount("getObligations", "Response1B", null, 2);
+			assertActionCount("getObligations", "Response1B", null, revision, issue, cluster, 2);
 		}else {
 			// 3 have to
-			assertCount("getObligations", "Response1B", null, 3);
+			assertActionCount("getObligations", "Response1B", null, revision, issue, cluster, 3);
 		}
 		
 		
@@ -485,13 +485,13 @@ public class IPConDrlsTest {
 		session.insert(new Response1B( a5, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
 		rules.incrementTime();
 		if (pass) {
-			assertCount("getPowers", "Submit2A", null, 1);
-			assertCount("getPermissions", "Submit2A", null, 1);
-			assertCount("getObligations", "Submit2A", null, 1);
+			assertActionCount("getPowers", "Submit2A", null, revision, issue, cluster, 1);
+			assertActionCount("getPermissions", "Submit2A", null, revision, issue, cluster, 1);
+			assertActionCount("getObligations", "Submit2A", null, revision, issue, cluster, 1);
 		} else {
-			assertCount("getPowers", "Submit2A", null, 1);
-			assertCount("getPermissions", "Submit2A", null, 0);
-			assertCount("getObligations", "Submit2A", null, 0);
+			assertActionCount("getPowers", "Submit2A", null, revision, issue, cluster, 1);
+			assertActionCount("getPermissions", "Submit2A", null, revision, issue, cluster, 0);
+			assertActionCount("getObligations", "Submit2A", null, revision, issue, cluster, 0);
 		}
 		
 		/*
@@ -502,7 +502,7 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// all acceptors can vote either way because leader had power
-		assertCount("getPermissions", "Vote2B", null, 5);
+		assertActionCount("getPermissions", "Vote2B", null, revision, issue, cluster, 5);
 		
 		/*
 		 * Time step 4
@@ -516,15 +516,15 @@ public class IPConDrlsTest {
 		
 		if (pass) {
 			//voted count is 4 (2 from before, 2 now)
-			assertFactCount("Voted", 4);
+			assertFactCount("Voted", revision, issue, cluster, 4);
 		} else {
 			// count ag4 for voted, but not reportedVote (since they had a nullvote before)
-			assertFactCount("Voted", 5);
+			assertFactCount("Voted", revision, issue, cluster, 5);
 		}
 		//reportedVote count is 7 (5 from before due to nullvotes, 2 from now)
-		assertFactCount("ReportedVote", 7);
+		assertFactCount("ReportedVote", revision, issue, cluster, 7);
 		// value was not chosen
-		assertFactCount("Chosen", 0);
+		assertFactCount("Chosen", revision, issue, cluster, 0);
 		
 		
 		/*
@@ -535,7 +535,7 @@ public class IPConDrlsTest {
 		session.insert( new Vote2B(a3, 1, 10, 3, issue, cluster));
 		rules.incrementTime();
 		// value was chosen
-		Collection<Object> chosens = assertFactCount("Chosen", 1);
+		Collection<Object> chosens = assertFactCount("Chosen", revision, issue, cluster, 1);
 		Chosen chosen = (Chosen)Arrays.asList(chosens.toArray()).get(0);
 		//Object value = typeFromString("Chosen").get(chosen, "value");
 		// correct value was chosen
@@ -554,19 +554,19 @@ public class IPConDrlsTest {
 		
 		if (pass) {
 			//voted count is 7 (4 from before, 3 now)
-			assertFactCount("Voted", 7);
+			assertFactCount("Voted", revision, issue, cluster, 7);
 		} else {
 			// count ag4's additional previous vote
-			assertFactCount("Voted", 8);
+			assertFactCount("Voted", revision, issue, cluster, 8);
 		}
 		//reportedVote count is 10 (7 from before, 3 from now)
-		assertFactCount("ReportedVote", 10);
+		assertFactCount("ReportedVote", revision, issue, cluster, 10);
 		// value was chosen
-		assertFactCount("Chosen", 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
 		
 		// no risk from adding or removing agents
-		assertFactCount("PossibleAddRevision", 0);
-		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
 		
 		
 		outputObjects();
@@ -669,22 +669,24 @@ public class IPConDrlsTest {
 		
 		rules.incrementTime();
 		
-		assertFactCount("IPConAgent", 3);
+		assertFactCount("IPConAgent", revision, issue, cluster, 3);
 		// Remember the initial "didnt vote" facts
-		assertFactCount("Voted", 5);
-		assertFactCount("ReportedVote", 5);
-		assertFactCount("HasRole", 5);
+		assertFactCount("Voted", revision, issue, cluster, 5);
+		assertFactCount("ReportedVote", revision, issue, cluster, 5);
+		assertFactCount("HasRole", revision, issue, cluster, 5);
 		assertQuorumSize(revision, issue, cluster, 2);
 		
 		outputObjects();
 		
 		// value was chosen
-		assertFactCount("Chosen", 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
 		
 		// no risk from adding agents
-		assertFactCount("PossibleAddRevision", 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
 		// no risk from removing (status quo holds)
-		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 
 		/*
 		 * Time step 2
@@ -696,30 +698,34 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		
 		// check obligation to sync the new agent
-		Object obl = Arrays.asList(assertFactCount("Obligation", 1).toArray()).get(0);
+		Collection<IPConAction> oblColl = getActionQueryResultsForRIC("getObligations", "SyncReq", null, revision, issue, cluster);
+		assertEquals(1, oblColl.size());
+		Object action = Arrays.asList(oblColl.toArray()).get(0);
 		SyncReq fact = null;
-		if (typeFromString("Obligation").get(obl, "action") instanceof SyncReq ) {
-			fact = (SyncReq)typeFromString("Obligation").get(obl, "action");
+		if (action instanceof SyncReq ) {
+			fact = (SyncReq)action;
 		}
 		else {
 			fail();
 		}
 		assertEquals(fact.getAgent(), a4);
 
-		assertFactCount("HasRole", 6);
-		assertFactCount("Sync", 0);
-		assertFactCount("NeedToSync", 1);
+		assertFactCount("HasRole", revision, issue, cluster, 6);
+		outputObjects();
+		assertObjectCount("SyncReq", 0);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 1);
 		
 		//outputObjects();
 		
 		assertQuorumSize(revision, issue, cluster, 2);
 		
 		// value was chosen
-		assertFactCount("Chosen", 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
 		
 		// no risk from adding or removing agent because status quo holds
-		assertFactCount("PossibleAddRevision", 0);
-		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
 		
 		/*
 		 * Time step 3
@@ -728,19 +734,19 @@ public class IPConDrlsTest {
 		session.insert(new SyncReq( a1, a4, "A", revision, issue, cluster));
 		rules.incrementTime();
 		
-		assertFactCount("HasRole", 6);
-		assertFactCount("Sync", 1);
-		assertFactCount("NeedToSync", 0);
+		assertFactCount("HasRole", revision, issue, cluster, 6);
+		assertFactCount("Sync", revision, issue, cluster, 1);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		
 		// quorumsize should still be 2 because the agent didn't complete the sync
 		assertQuorumSize(revision, issue, cluster, 2);
 		
 		// value was chosen
-		assertFactCount("Chosen", 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
 		
 		// still no risk because status quo holds
-		assertFactCount("PossibleAddRevision", 0);
-		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
 		
 		/*
 		 * Time step 4
@@ -749,26 +755,26 @@ public class IPConDrlsTest {
 		session.insert(new SyncAck( a4, IPCNV.val(), revision, issue, cluster));
 		rules.incrementTime();
 		
-		assertCount("getObligations", "SyncAck", null, 0);
+		assertActionCount("getObligations", "SyncAck", null, revision, issue, cluster, 0);
 		
-		assertFactCount("HasRole", 6);
-		assertFactCount("Sync", 0);
-		assertFactCount("NeedToSync", 0);
+		assertFactCount("HasRole", revision, issue, cluster, 6);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		
 		// quorumsize should be 3 because the agent completed the sync
 		assertQuorumSize(revision, issue, cluster, 3);
 		
 		// 5 votes but 6 reportedVotes because syncAck no doesn't count as a vote
-		assertFactCount("Voted", 5);
-		assertFactCount("ReportedVote", 6);
+		assertFactCount("Voted", revision, issue, cluster, 5);
+		assertFactCount("ReportedVote", revision, issue, cluster, 6);
 		
 		// value chosen
-		assertFactCount("Chosen", 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
 		
 		
 		// still no risk because status quo holds
-		assertFactCount("PossibleAddRevision", 0);
-		assertFactCount("PossibleRemRevision", 1);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
 		/*
 		 * Time step 5
@@ -779,15 +785,15 @@ public class IPConDrlsTest {
 		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
 		rules.incrementTime();
 		
-		assertFactCount("HasRole", 7);
-		assertFactCount("Sync", 0);
-		assertFactCount("NeedToSync", 1);
+		assertFactCount("HasRole", revision, issue, cluster, 7);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 1);
 		assertQuorumSize(revision, issue, cluster, 3);
-		assertFactCount("Chosen", 1);
-		assertFactCount("PossibleAddRevision", 0); // they're not synching yet
-		assertFactCount("PossibleRemRevision", 1);
-		assertFactCount("Voted", 5);
-		assertFactCount("ReportedVote", 6);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // they're not synching yet
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 5);
+		assertFactCount("ReportedVote", revision, issue, cluster, 6);
 		
 		/*
 		 * Time step 6
@@ -797,15 +803,15 @@ public class IPConDrlsTest {
 		session.insert(new SyncReq( a1, a5, "A", revision, issue, cluster));
 		rules.incrementTime();
 		
-		assertFactCount("HasRole", 7);
-		assertFactCount("Sync", 1);
-		assertFactCount("NeedToSync", 0);
+		assertFactCount("HasRole", revision, issue, cluster, 7);
+		assertFactCount("Sync", revision, issue, cluster, 1);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		assertQuorumSize(revision, issue, cluster, 3);
-		assertFactCount("Chosen", 1);
-		assertFactCount("Voted", 5);
-		assertFactCount("ReportedVote", 6);
-		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
-		assertFactCount("PossibleRemRevision", 1); // if ag1 or 2 leave, safety is violated
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 5);
+		assertFactCount("ReportedVote", revision, issue, cluster, 6);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // if ag1 or 2 leave, safety is violated
 		
 	}
 	
@@ -826,15 +832,15 @@ public class IPConDrlsTest {
 		
 		
 		// Check things are right after Time step 6
-		assertFactCount("HasRole", 7);
-		assertFactCount("Sync", 1);
-		assertFactCount("NeedToSync", 0);
+		assertFactCount("HasRole", revision, issue, cluster, 7);
+		assertFactCount("Sync", revision, issue, cluster, 1);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		assertQuorumSize(revision, issue, cluster, 3);
-		assertFactCount("Chosen", 1);
-		assertFactCount("Voted", 5);
-		assertFactCount("ReportedVote", 6);
-		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
-		assertFactCount("PossibleRemRevision", 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 5);
+		assertFactCount("ReportedVote", revision, issue, cluster, 6);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
 		
 		/*
@@ -844,20 +850,20 @@ public class IPConDrlsTest {
 		 */
 		session.insert(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
 		rules.incrementTime();
-		assertFactCount("HasRole", 7);
-		assertFactCount("Sync", 0);
-		assertFactCount("NeedToSync", 0);
+		assertFactCount("HasRole", revision, issue, cluster, 7);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		assertQuorumSize(revision, issue, cluster, 3);
-		assertFactCount("Chosen", 1);
-		assertFactCount("Voted", 5); // null votes don't get created because it doesnt make any sense
-		assertFactCount("ReportedVote", 7); // add a null reportedvote
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 5); // null votes don't get created because it doesnt make any sense
+		assertFactCount("ReportedVote", revision, issue, cluster, 7); // add a null reportedvote
 		
 		outputObjects();
 		
 		// Check safety was violated and an obligation to revise exists
-		assertCount("getObligations", "Revise", null, 1);
-		assertFactCount("PossibleAddRevision", 1);
-		assertFactCount("PossibleRemRevision", 1);
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
 		
 		/*
@@ -871,21 +877,19 @@ public class IPConDrlsTest {
 		
 		//FIXME TODO urgh now I need to improve all fns with RIC args :''(
 		
-		/*
-		assertFactCount("HasRole", 7);
+		assertFactCount("HasRole", revision, issue, cluster, 7);
 		
-		assertFactCount("Sync", 0);
-		assertFactCount("NeedToSync", 0);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		assertQuorumSize(revision, issue, cluster, 3);
-		assertFactCount("Chosen", 1);
-		assertFactCount("Voted", 5); // null votes don't get created because it doesnt make any sense
-		assertFactCount("ReportedVote", 7); // add a null reportedvote
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 5); // null votes don't get created because it doesnt make any sense
+		assertFactCount("ReportedVote", revision, issue, cluster, 7); // add a null reportedvote
 		
-		// Check safety was violated and an obligation to revise exists
-		assertCount("getObligations", "Revise", 1);
-		assertFactCount("PossibleAddRevision", 1);
-		assertFactCount("PossibleRemRevision", 1);
-		*/
+		// Check safety is not violated (nothing chosen) and an obligation to revise does not exist
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
 	}
 	
@@ -906,15 +910,15 @@ public class IPConDrlsTest {
 		
 		
 		// Check things are right after Time step 6
-		assertFactCount("HasRole", 7);
-		assertFactCount("Sync", 1);
-		assertFactCount("NeedToSync", 0);
+		assertFactCount("HasRole", revision, issue, cluster, 7);
+		assertFactCount("Sync", revision, issue, cluster, 1);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		assertQuorumSize(revision, issue, cluster, 3);
-		assertFactCount("Chosen", 1);
-		assertFactCount("Voted", 5);
-		assertFactCount("ReportedVote", 6);
-		assertFactCount("PossibleAddRevision", 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
-		assertFactCount("PossibleRemRevision", 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 5);
+		assertFactCount("ReportedVote", revision, issue, cluster, 6);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
 		
 		/*
@@ -924,22 +928,22 @@ public class IPConDrlsTest {
 		 */
 		session.insert(new SyncAck(a5, "A", revision, issue, cluster));
 		rules.incrementTime();
-		assertFactCount("HasRole", 7);
-		assertFactCount("Sync", 0);
-		assertFactCount("NeedToSync", 0);
+		assertFactCount("HasRole", revision, issue, cluster, 7);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		assertQuorumSize(revision, issue, cluster, 3);
-		assertFactCount("Chosen", 1);
-		assertFactCount("Voted", 6); // add a vote
-		assertFactCount("ReportedVote", 7); // add a reportedvote
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 6); // add a vote
+		assertFactCount("ReportedVote", revision, issue, cluster, 7); // add a reportedvote
 		
 		outputObjects();
 		
 		// Check safety was preserved and an obligation to revise does not exist
-		assertCount("getObligations", "Revise", null, 0);
+		assertActionCount("getObligations", "Revise", null, revision, issue, cluster, 0);
 		// PAR still here because we now have 3 for, 2 notFor and QS of 3
-		assertFactCount("PossibleAddRevision", 1);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
 		// PRR goes away because theres an additional "yes" vote
-		assertFactCount("PossibleRemRevision", 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
 	}
 	
 	private final FactType typeFromString(String factTypeString) {
@@ -1020,29 +1024,54 @@ public class IPConDrlsTest {
 		return set;
 	}
 	
-	private final void assertCount( final String queryName, final String actionType, final IPConAgent agent, final int count) {
-		assertEquals(count, getActionQueryResults(queryName, actionType, agent).size());
+	private final void assertActionCount( final String queryName, final String actionType, final IPConAgent agent, Integer revision, String issue, UUID cluster, final int count) {
+		//assertEquals(count, getActionQueryResults(queryName, actionType, agent).size());
+		assertEquals(count, getActionQueryResultsForRIC(queryName, actionType, agent, revision, issue, cluster).size());
 	}
 	
 	/**
 	 * @param factTypeString
+	 * @param revision TODO
+	 * @param issue TODO
+	 * @param cluster TODO
 	 * @param count
 	 * @return the collection of facts that matched the query
 	 */
-	private final Collection<Object> assertFactCount(final String factTypeString, int count) {
-		final FactType factType = typeFromString(factTypeString);
-		
-		// try drls fact types
+	private final Collection<Object> assertFactCount(final String factTypeString, Integer revision, String issue, UUID cluster, int count) {
+
 		Collection<Object> facts = new HashSet<Object>();
-		facts.addAll(session.getObjects(new ObjectFilter() {
-			@Override
-			public boolean accept(Object object) {
-				return assertFactType(object, factType);
-			}
-		}));
+		facts.addAll(getFactQueryResults(factTypeString, revision, issue, cluster));
 		if (facts.size()==0) {
-			// try java classes
-			//Collection<Object> facts = new HashSet<Object>();
+			facts.addAll(assertObjectCount(factTypeString, count));
+		}
+		assertEquals(count, facts.size());
+		return facts;
+	}
+	
+	/**
+	 * For compatibility with things I haven't updated to the new ways...
+	 * @param factTypeString
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 * @param count
+	 * @return
+	 */
+	private final Collection<Object> assertObjectCount(final String factTypeString, final int count) {
+		Collection<Object> facts = new HashSet<Object>();
+		// try drls fact types
+		final FactType factType = typeFromString(factTypeString);
+		if (facts.size()==0) {
+			facts.addAll(session.getObjects(new ObjectFilter() {
+				@Override
+				public boolean accept(Object object) {
+					return assertFactType(object, factType);
+				}
+			}));
+		}
+		// try java classes
+		//FIXME TODO remove this... only being used by IPConAgent lookups atm
+		if (facts.size()==0) {
 			facts.addAll(session.getObjects(new ObjectFilter() {
 		
 				@Override
@@ -1162,15 +1191,15 @@ public class IPConDrlsTest {
 	 * @param value
 	 * @return field
 	 */
-	@Deprecated
+	/*@Deprecated
 	private final Object assertFactFieldValue(String factTypeString, String fieldString, Object value) {
-		Collection<Object> facts = assertFactCount(factTypeString, 1);
+		Collection<Object> facts = assertFactCount(factTypeString, revision, issue, cluster, 1);
 		Object fact = Arrays.asList(facts.toArray()).get(0);
 		Object field = typeFromString(factTypeString).get(fact, fieldString);
 		// correct value was retrieved
 		assertEquals(value, field);
 		return field;
-	}
+	}*/
 	
 	private final void assertQuorumSize(Integer revision, String issue, UUID cluster, Integer quorumSize) {
 		ArrayList<IPConFact> obj = new ArrayList<IPConFact>();
