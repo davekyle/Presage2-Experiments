@@ -1004,13 +1004,13 @@ public class IPConDrlsTest {
 		HashSet<IPConFact> set = new HashSet<IPConFact>();
 		ArrayList<Object> lookup = new ArrayList<Object>();
 		lookup.addAll(Arrays.asList(new Object[]{revision, issue, cluster}));
-		if (revision!=null) {
+		if (revision==null) {
 			lookup.set(0, Variable.v);
 		}
-		if (issue!=null) {
+		if (issue==null) {
 			lookup.set(1, Variable.v);
 		}
-		if (cluster!=null) {
+		if (cluster==null) {
 			lookup.set(2, Variable.v);
 		}
 		if (factType!=null) {
