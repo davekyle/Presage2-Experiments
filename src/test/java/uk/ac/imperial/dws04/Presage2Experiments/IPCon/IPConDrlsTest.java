@@ -712,7 +712,7 @@ public class IPConDrlsTest {
 
 		assertFactCount("HasRole", revision, issue, cluster, 6);
 		outputObjects();
-		assertObjectCount("SyncReq", 0);
+		assertObjectCount("SyncReq", revision, issue, cluster, 0);
 		assertFactCount("Sync", revision, issue, cluster, 0);
 		assertFactCount("NeedToSync", revision, issue, cluster, 1);
 		
@@ -873,24 +873,35 @@ public class IPConDrlsTest {
 		 */
 		session.insert(new Revise(a1, revision, issue, cluster));
 		rules.incrementTime();
-		logger.debug(getActionQueryResultsForRIC("getPowers", null, null, revision+1, issue, cluster));
+		//logger.debug(getActionQueryResultsForRIC("getPowers", null, null, revision+1, issue, cluster));
 		
 		//FIXME TODO urgh now I need to improve all fns with RIC args :''(
 		
+		// Check nothing changed in the old revision
 		assertFactCount("HasRole", revision, issue, cluster, 7);
-		
 		assertFactCount("Sync", revision, issue, cluster, 0);
 		assertFactCount("NeedToSync", revision, issue, cluster, 0);
 		assertQuorumSize(revision, issue, cluster, 3);
 		assertFactCount("Chosen", revision, issue, cluster, 1);
-		assertFactCount("Voted", revision, issue, cluster, 5); // null votes don't get created because it doesnt make any sense
-		assertFactCount("ReportedVote", revision, issue, cluster, 7); // add a null reportedvote
-		
-		// Check safety is not violated (nothing chosen) and an obligation to revise does not exist
+		assertFactCount("Voted", revision, issue, cluster, 5);
+		assertFactCount("ReportedVote", revision, issue, cluster, 7);
+		// except this because obligation was discharged
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
+		Integer newRevision = revision+1;
+		// check new revision
+		assertFactCount("HasRole", newRevision, issue, cluster, 7);
+		assertFactCount("Sync", newRevision, issue, cluster, 0);
+		assertFactCount("NeedToSync", newRevision, issue, cluster, 0);
+		assertQuorumSize(newRevision, issue, cluster, 3);
+		assertFactCount("Chosen", newRevision, issue, cluster, 0);
+		assertFactCount("Voted", newRevision, issue, cluster, 0);
+		assertFactCount("ReportedVote", newRevision, issue, cluster, 0);
+		assertActionCount("getObligations", "Revise", a1, newRevision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", newRevision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", newRevision, issue, cluster, 0);
 	}
 	
 	@Test
@@ -978,7 +989,7 @@ public class IPConDrlsTest {
 	 * @return
 	 */
 	@Deprecated
-	private final boolean assertFactType(Object obj, FactType factType) {
+	private final boolean isFactType(Object obj, FactType factType) {
 		try {
 			return ( ( factType.newInstance().getClass() ).equals( ( obj.getClass() ) ) );
 		} catch (NullPointerException e) {
@@ -1042,7 +1053,7 @@ public class IPConDrlsTest {
 		Collection<Object> facts = new HashSet<Object>();
 		facts.addAll(getFactQueryResults(factTypeString, revision, issue, cluster));
 		if (facts.size()==0) {
-			facts.addAll(assertObjectCount(factTypeString, count));
+			facts.addAll(assertObjectCount(factTypeString, revision, issue, cluster, count));
 		}
 		assertEquals(count, facts.size());
 		return facts;
@@ -1051,13 +1062,16 @@ public class IPConDrlsTest {
 	/**
 	 * For compatibility with things I haven't updated to the new ways...
 	 * @param factTypeString
+	 * @param revision TODO
+	 * @param issue TODO
+	 * @param cluster TODO
+	 * @param count
 	 * @param revision
 	 * @param issue
 	 * @param cluster
-	 * @param count
 	 * @return
 	 */
-	private final Collection<Object> assertObjectCount(final String factTypeString, final int count) {
+	private final Collection<Object> assertObjectCount(final String factTypeString, final Integer revision, final String issue, final UUID cluster, final int count) {
 		Collection<Object> facts = new HashSet<Object>();
 		// try drls fact types
 		final FactType factType = typeFromString(factTypeString);
@@ -1065,7 +1079,7 @@ public class IPConDrlsTest {
 			facts.addAll(session.getObjects(new ObjectFilter() {
 				@Override
 				public boolean accept(Object object) {
-					return assertFactType(object, factType);
+					return (isFactType(object, factType) && matchesRIC(object, revision, issue, cluster) );
 				}
 			}));
 		}
@@ -1080,7 +1094,7 @@ public class IPConDrlsTest {
 					try {
 						c = Class.forName("uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts." + factTypeString);
 						//logger.trace("Testing " + object + " which is a " + object.getClass());
-						return c.isInstance(object);
+						return ( c.isInstance(object)  && matchesRIC(object, revision, issue, cluster) );
 					} catch (NullPointerException e) {
 						//e.printStackTrace();
 						return false;
@@ -1148,40 +1162,50 @@ public class IPConDrlsTest {
 																	final UUID cluster) {
 		HashSet<IPConAction> set = new HashSet<IPConAction>();
 		for (IPConAction action : getActionQueryResults(queryName, actionType, agent)) {
-			Integer actionRev = null;
-			try {
-				actionRev = (Integer) action.getClass().getMethod("getRevision").invoke(action, (Object[])null);
-			} catch (Exception e) {
-				// do nothing - if it doesn't have such a method then stay null
-				//e.printStackTrace();
-			}
 			
-			String actionIssue = null;
-			try {
-				actionIssue = (String) action.getClass().getMethod("getIssue").invoke(action, (Object[])null);
-			} catch (Exception e) {
-				// do nothing
+			if (matchesRIC(action, revision, issue, cluster)) {
+				set.add((IPConAction)action);
 			}
-			
-			UUID actionCluster = null;
-			try {
-				actionCluster = (UUID) action.getClass().getMethod("getCluster").invoke(action, (Object[])null);
-			} catch (Exception e) {
-				// do nothing
-			}
-			
-			if ( actionRev==null || actionRev.equals(revision) ) {
-				if ( actionIssue==null || actionIssue.equals(issue)) {
-					if ( actionCluster==null || actionCluster.equals(cluster)) {
-						//logger.debug("Adding action: " + (IPConAction)action);
-						set.add((IPConAction)action);
-					}
-				}
-			}
-
 		}
 		return set;
 	}
+	
+	/**
+	 * Utility function to check if an object either has-equal, or does not have, the given RIC
+	 * @param object
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 * @return
+	 */
+	private final boolean matchesRIC(Object object, Integer revision, String issue, UUID cluster) {
+		Integer actionRev = null;
+		try {
+			actionRev = (Integer) object.getClass().getMethod("getRevision").invoke(object, (Object[])null);
+		} catch (Exception e) {
+			// do nothing - if it doesn't have such a method then stay null
+			//e.printStackTrace();
+		}
+		
+		String actionIssue = null;
+		try {
+			actionIssue = (String) object.getClass().getMethod("getIssue").invoke(object, (Object[])null);
+		} catch (Exception e) {
+			// do nothing
+		}
+		
+		UUID actionCluster = null;
+		try {
+			actionCluster = (UUID) object.getClass().getMethod("getCluster").invoke(object, (Object[])null);
+		} catch (Exception e) {
+			// do nothing
+		}
+		
+		return 	( ( actionRev==null || actionRev.equals(revision) ) &&
+				( actionIssue==null || actionIssue.equals(issue)) &&
+				( actionCluster==null || actionCluster.equals(cluster)) );
+	}
+				
 	
 	/**
 	 * Allows testing the field of the first AND ONLY fact of a specified type
