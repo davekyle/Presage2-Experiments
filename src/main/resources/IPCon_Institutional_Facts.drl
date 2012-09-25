@@ -17,8 +17,12 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC
 global org.apache.log4j.Logger logger
 
 // IPCon institutional facts
+
+// Fact to indicate a revision/issue/cluster triple exists
 declare IPConRIC
 end
+
+
 
 declare Proposed
 	revision : Integer
