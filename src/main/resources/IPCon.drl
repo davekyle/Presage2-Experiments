@@ -19,12 +19,16 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConUtils.*
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
 global Object IPCNV_val
 
 // drls stuff here - 1s expiry makes them last 1 cycle
+
+declare IPConRIC
+end
 
 declare Request0A
 	@role( event )
@@ -225,6 +229,19 @@ rule "Arrogate initiates IsLeader"
 		insert( new HasRole( Role.LEADER, $agent, $revision, $issue, $cluster ) );
 end
 
+rule "Arrogate creates new RIC"
+// "not exists()" doesn't work for some reason...
+	when
+		ArrogateLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		not IPConRIC( revision==$revision, issue==$issue, cluster==$cluster ) 
+		//ArrogatePow( agent==$agent )
+		Power( agent==$agent, $action : action)
+		ArrogateLeadership( agent==$agent ) from $action
+	then
+		logger.trace("Arrogate inserted new RIC: " + $revision + " , " + $issue + " , " + $cluster);
+		insert( new IPConRIC( $revision, $issue, $cluster ) );
+end
+
 rule "Resign terminates IsLeader"
 	when
 		ResignLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
@@ -289,6 +306,17 @@ rule "RemRole terminates role"
 	then
 		logger.trace("RemRole retracted Role : " + $roleToRem );
 		retract( $roleToRem );
+end
+
+rule "Revise initiates new RIC"
+	when
+		Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
+		Power( agent==$agent, $action : action )
+		Revise( agent==$agent, oldRevision==$revision, issue==$issue, cluster==$cluster) from $action
+	then
+		Integer $newRevision = ($revision+1);
+		logger.trace("Revise inserted new RIC: " + $newRevision + " , " + $issue + " , " + $cluster);
+		insert( new IPConRIC( $newRevision, $issue, $cluster ) );
 end
 
 rule "Revise terminates all syncs"

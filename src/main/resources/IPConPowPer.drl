@@ -428,14 +428,12 @@ rule "holdsAt for power to resign"
 end
 
 rule "holdsAt for power to leave"
+// Can't use an exists() on this because the cluster is declared in it...
+// Would need to make explicit Cluster fact (IPConRIC won't work because would be many
+// and then the same exists() problem occurs...)
 	when
 		$agent : IPConAgent( )
 		HasRole( agent==$agent, $cluster : cluster )
-		// FIXME TODO to stop this occurring once for each role,
-		// need to create a Cluster factType and check for that, then do:
-		/*List( size > 0 ) from collect (
-			$r : HasRole( agent==$agent, $cluster : cluster )
-			)*/
 	then
 		logger.trace("Logically toggling LeavePow( " + $agent + " , " + $cluster + ")");
 		LeaveCluster $leave = new LeaveCluster( $agent, $cluster );
