@@ -13,8 +13,9 @@ import java.util.UUID
 import java.util.List
 //IPCon
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
 //drls
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*
+//import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*
 //import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer.*
 
 //declare any global variables here
@@ -25,19 +26,28 @@ global Object IPCNV_val
 declare PossibleAddRevision
 	@role( event )
 	@expires( 1s )
-	value : Object
+	/*value : Object
 	revision : Integer
 	issue : String
-	cluster : UUID
+	cluster : UUID*/
 end
 
 // fact indicating that if someone leaves, there may need to be a revision after
-declare PossibleRemRevision
+/*declare PossibleRemRevision
 	value : Object
 	revision : Integer
 	issue : String
 	cluster : UUID
-end
+end*/
+
+
+
+/*declare QuorumSize
+	quorumSize : Integer
+	revision : Integer
+	issue : String
+	cluster : UUID
+end*/
 
 rule "holdsAt for possibleAddRevision"
 	when
@@ -127,14 +137,6 @@ rule "holdsAt for possibleRemRevision"
 		logger.trace("For:" + $forVotes + " / Against:" + $notForVotes /*+ " / Didn't:" + $didntVotes*/);
 		logger.trace("Logically toggling possibleRemRevision");
 		insertLogical( new PossibleRemRevision( $value, $revision, $issue, $cluster ) );
-end
-
-
-declare QuorumSize
-	quorumSize : Integer
-	revision : Integer
-	issue : String
-	cluster : UUID
 end
 
 rule "create new quorumsize fact"

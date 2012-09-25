@@ -43,7 +43,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Submit2A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncReq;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Vote2B;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
 import uk.ac.imperial.presage2.rules.RuleStorage;
@@ -68,7 +68,7 @@ public class IPConDrlsTest {
 	public void setUp() throws Exception {
 		injector = Guice.createInjector(new RuleModule()
 				//.addClasspathDrlFile("test.drl")
-				.addClasspathDrlFile("IPCon_Institutional_Facts.drl")
+				//.addClasspathDrlFile("IPCon_Institutional_Facts.drl")
 				.addClasspathDrlFile("IPConUtils.drl")
 				.addClasspathDrlFile("IPConPowPer.drl")
 				.addClasspathDrlFile("IPCon.drl")
@@ -131,31 +131,31 @@ public class IPConDrlsTest {
 		//session.insert(agent);
 		
 		//Set roles
-		final FactType hasRoleType = typeFromString("HasRole");
+		//final FactType hasRoleType = typeFromString("HasRole");
 		for (Role role : roles) {
-			Object hasRole = hasRoleType.newInstance();
+			/*Object hasRole = hasRoleType.newInstance();
 			hasRoleType.set(hasRole, "role", role);
 			hasRoleType.set(hasRole, "agent", agent);
 			hasRoleType.set(hasRole, "revision", revision);
 			hasRoleType.set(hasRole, "issue", issue);
-			hasRoleType.set(hasRole, "cluster", cluster);
-			session.insert(hasRole);
+			hasRoleType.set(hasRole, "cluster", cluster);*/
+			session.insert(new HasRole(role, agent, revision, issue, cluster));
 		}
 		
 		
 		// Initially didn't vote
-		final FactType votedType = typeFromString("Voted");
+		/*final FactType votedType = typeFromString("Voted");
 		Object v1Vote = votedType.newInstance();
 		votedType.set(v1Vote, "agent", agent);
 		votedType.set(v1Vote, "revision", revision);
 		votedType.set(v1Vote, "ballot", 0);
 		votedType.set(v1Vote, "value", IPCNV.val());
 		votedType.set(v1Vote, "issue", issue);
-		votedType.set(v1Vote, "cluster", cluster);
-		session.insert(v1Vote);
+		votedType.set(v1Vote, "cluster", cluster);*/
+		session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
 		
 		// And the reportedvote for the initially
-		final FactType reportedVoteType = typeFromString("ReportedVote");
+		/*final FactType reportedVoteType = typeFromString("ReportedVote");
 		Object v1RVote = reportedVoteType.newInstance();
 		reportedVoteType.set(v1RVote, "agent", agent);
 		reportedVoteType.set(v1RVote, "voteRevision", revision);
@@ -164,8 +164,8 @@ public class IPConDrlsTest {
 		reportedVoteType.set(v1RVote, "revision", revision);
 		reportedVoteType.set(v1RVote, "ballot", 0);
 		reportedVoteType.set(v1RVote, "issue", issue);
-		reportedVoteType.set(v1RVote, "cluster", cluster);
-		session.insert(v1RVote);
+		reportedVoteType.set(v1RVote, "cluster", cluster);*/
+		session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
 	}
 	
 	@Test
@@ -193,9 +193,10 @@ public class IPConDrlsTest {
 		});
 		assertEquals(1, hasRoles.size());*/
 		Collection<Object> hasRoles = assertFactCount("HasRole", 1);
-		Object hasRole = Arrays.asList(hasRoles.toArray()).get(0);
-		Role role = (Role) typeFromString("HasRole").get(hasRole, "role");
-		assertEquals(role.toString(), "LEADER");
+		HasRole hasRole = (HasRole)Arrays.asList(hasRoles.toArray()).get(0);
+		/*Role role = (Role) typeFromString("HasRole").get(hasRole, "role");
+		assertEquals(role.toString(), "LEADER");*/
+		assertEquals(Role.LEADER, hasRole.getRole());
 		logger.info("Finished arrogateLeadershipTest()\n");
 	}
 	
@@ -254,48 +255,49 @@ public class IPConDrlsTest {
 		session.insert(a1);
 		// Insert intially facts:
 		// Agent is acceptor
-		FactType roleType = typeFromString("HasRole");
+		/*FactType roleType = typeFromString("HasRole");
 		Object role = roleType.newInstance();
 		roleType.set(role, "role", Role.ACCEPTOR);
 		roleType.set(role, "agent", a1);
 		roleType.set(role, "revision", revision);
 		roleType.set(role, "issue", issue);
-		roleType.set(role, "cluster", cluster);
-		session.insert(role);
+		roleType.set(role, "cluster", cluster);*/
+		session.insert(new HasRole(Role.ACCEPTOR, a1, revision, issue, cluster));
 		// PreVote exists
-		FactType preVoteType = typeFromString("Pre_Vote");
+		/*FactType preVoteType = typeFromString("Pre_Vote");
 		Object preVote = preVoteType.newInstance();
 		preVoteType.set(preVote, "revision", revision);
 		preVoteType.set(preVote, "ballot", ballot);
 		preVoteType.set(preVote, "issue", issue);
-		preVoteType.set(preVote, "cluster", cluster);
+		preVoteType.set(preVote, "cluster", cluster);*/
+		Pre_Vote preVote = new Pre_Vote(revision, ballot, issue, cluster);
 		session.insert(preVote);
 		// Agent voted in 3 previous ballots
-		final FactType votedType = typeFromString("Voted");
+		/*final FactType votedType = typeFromString("Voted");
 		Object v1Vote = votedType.newInstance();
 		votedType.set(v1Vote, "agent", a1);
 		votedType.set(v1Vote, "revision", revision);
 		votedType.set(v1Vote, "ballot", ballot-5);
 		votedType.set(v1Vote, "value", v1);
 		votedType.set(v1Vote, "issue", issue);
-		votedType.set(v1Vote, "cluster", cluster);
-		session.insert(v1Vote);
-		Object v2Vote = votedType.newInstance();
+		votedType.set(v1Vote, "cluster", cluster);*/
+		session.insert(new Voted(a1, revision, ballot-5, v1, issue, cluster));
+		/*Object v2Vote = votedType.newInstance();
 		votedType.set(v2Vote, "agent", a1);
 		votedType.set(v2Vote, "revision", revision);
 		votedType.set(v2Vote, "ballot", ballot-3);
 		votedType.set(v2Vote, "value", v2);
 		votedType.set(v2Vote, "issue", issue);
-		votedType.set(v2Vote, "cluster", cluster);
-		session.insert(v2Vote);
-		Object v3Vote = votedType.newInstance();
+		votedType.set(v2Vote, "cluster", cluster);*/
+		session.insert(new Voted(a1, revision, ballot-3, v2, issue, cluster));
+		/*Object v3Vote = votedType.newInstance();
 		votedType.set(v3Vote, "agent", a1);
 		votedType.set(v3Vote, "revision", revision);
 		votedType.set(v3Vote, "ballot", ballot-2);
 		votedType.set(v3Vote, "value", v3);
 		votedType.set(v3Vote, "issue", issue);
-		votedType.set(v3Vote, "cluster", cluster);
-		session.insert(v3Vote);
+		votedType.set(v3Vote, "cluster", cluster);*/
+		session.insert(new Voted(a1, revision, ballot-2, v3, issue, cluster));
 		
 		rules.incrementTime();
 		
@@ -349,32 +351,32 @@ public class IPConDrlsTest {
 		session.insert(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
 		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
 		//set initially voted
-		final FactType votedType = typeFromString("Voted");
+		/*final FactType votedType = typeFromString("Voted");
 		Object a2Vote = votedType.newInstance();
 		votedType.set(a2Vote, "agent", a2);
 		votedType.set(a2Vote, "revision", revision);
 		votedType.set(a2Vote, "ballot", 1);
 		votedType.set(a2Vote, "value", 4);
 		votedType.set(a2Vote, "issue", issue);
-		votedType.set(a2Vote, "cluster", cluster);
-		session.insert(a2Vote);
-		Object a3Vote = votedType.newInstance();
+		votedType.set(a2Vote, "cluster", cluster);*/
+		session.insert(new Voted(a2, revision, 1, 4, issue, cluster));
+		/*Object a3Vote = votedType.newInstance();
 		votedType.set(a3Vote, "agent", a3);
 		votedType.set(a3Vote, "revision", revision);
 		votedType.set(a3Vote, "ballot", 1);
 		votedType.set(a3Vote, "value", 4);
 		votedType.set(a3Vote, "issue", issue);
-		votedType.set(a3Vote, "cluster", cluster);
-		session.insert(a3Vote);
+		votedType.set(a3Vote, "cluster", cluster);*/
+		session.insert(new Voted(a3, revision, 1, 4, issue, cluster));
 		if (!pass) {
-			Object a4Vote = votedType.newInstance();
+			/*Object a4Vote = votedType.newInstance();
 			votedType.set(a4Vote, "agent", a4);
 			votedType.set(a4Vote, "revision", revision);
 			votedType.set(a4Vote, "ballot", 2);
 			votedType.set(a4Vote, "value", 5);
 			votedType.set(a4Vote, "issue", issue);
-			votedType.set(a4Vote, "cluster", cluster);
-			session.insert(a4Vote);
+			votedType.set(a4Vote, "cluster", cluster);*/
+			session.insert(new Voted(a4, revision, 2, 5, issue, cluster));
 		}
 		rules.incrementTime();
 		
@@ -533,10 +535,11 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		// value was chosen
 		Collection<Object> chosens = assertFactCount("Chosen", 1);
-		Object chosen = Arrays.asList(chosens.toArray()).get(0);
-		Object value = typeFromString("Chosen").get(chosen, "value");
+		Chosen chosen = (Chosen)Arrays.asList(chosens.toArray()).get(0);
+		//Object value = typeFromString("Chosen").get(chosen, "value");
 		// correct value was chosen
-		assertEquals(value, 3);
+		//assertEquals(value, 3);
+		assertEquals(3, chosen.getValue());
 		
 		
 		/*
@@ -612,26 +615,26 @@ public class IPConDrlsTest {
 		 * Set Time step 1 (initially)
 		 */
 		// Agent voted in previous ballot
-		final FactType votedType = typeFromString("Voted");
+		/*final FactType votedType = typeFromString("Voted");
 		Object v1Vote = votedType.newInstance();
 		votedType.set(v1Vote, "agent", a1);
 		votedType.set(v1Vote, "revision", revision);
 		votedType.set(v1Vote, "ballot", 1);
 		votedType.set(v1Vote, "value", "A");
 		votedType.set(v1Vote, "issue", issue);
-		votedType.set(v1Vote, "cluster", cluster);
-		session.insert(v1Vote);
-		Object v2Vote = votedType.newInstance();
+		votedType.set(v1Vote, "cluster", cluster);*/
+		session.insert(new Voted(a1, revision, 1, "A", issue, cluster));
+		/*Object v2Vote = votedType.newInstance();
 		votedType.set(v2Vote, "agent", a2);
 		votedType.set(v2Vote, "revision", revision);
 		votedType.set(v2Vote, "ballot", 1);
 		votedType.set(v2Vote, "value", "A");
 		votedType.set(v2Vote, "issue", issue);
-		votedType.set(v2Vote, "cluster", cluster);
-		session.insert(v2Vote);
+		votedType.set(v2Vote, "cluster", cluster);*/
+		session.insert(new Voted(a2, revision, 1, "A", issue, cluster));
 		
 		// Agent voted in previous ballot
-		final FactType reportedVoteType = typeFromString("ReportedVote");
+		/*final FactType reportedVoteType = typeFromString("ReportedVote");
 		Object v1RVote = reportedVoteType.newInstance();
 		reportedVoteType.set(v1RVote, "agent", a1);
 		reportedVoteType.set(v1RVote, "voteRevision", revision);
@@ -640,9 +643,9 @@ public class IPConDrlsTest {
 		reportedVoteType.set(v1RVote, "revision", revision);
 		reportedVoteType.set(v1RVote, "ballot", 1);
 		reportedVoteType.set(v1RVote, "issue", issue);
-		reportedVoteType.set(v1RVote, "cluster", cluster);
-		session.insert(v1RVote);
-		Object v2RVote = reportedVoteType.newInstance();
+		reportedVoteType.set(v1RVote, "cluster", cluster);*/
+		session.insert(new ReportedVote(a1, revision, 1, "A", revision, 1, issue, cluster));
+		/*Object v2RVote = reportedVoteType.newInstance();
 		reportedVoteType.set(v2RVote, "agent", a2);
 		reportedVoteType.set(v2RVote, "voteRevision", revision);
 		reportedVoteType.set(v2RVote, "voteBallot", 1);
@@ -650,18 +653,18 @@ public class IPConDrlsTest {
 		reportedVoteType.set(v2RVote, "revision", revision);
 		reportedVoteType.set(v2RVote, "ballot", 1);
 		reportedVoteType.set(v2RVote, "issue", issue);
-		reportedVoteType.set(v2RVote, "cluster", cluster);
-		session.insert(v2RVote);
+		reportedVoteType.set(v2RVote, "cluster", cluster);*/
+		session.insert(new ReportedVote(a2, revision, 1, "A", revision, 1, issue, cluster));
 		
 		//insert Open_Vote to allow Chosen to kick in
-		final FactType openVoteType = typeFromString("Open_Vote");
+		/*final FactType openVoteType = typeFromString("Open_Vote");
 		Object openVote = openVoteType.newInstance();
 		openVoteType.set(openVote, "revision", revision);
 		openVoteType.set(openVote, "ballot", 1);
 		openVoteType.set(openVote, "value", "A");
 		openVoteType.set(openVote, "issue", issue);
-		openVoteType.set(openVote, "cluster", cluster);
-		session.insert(openVote);
+		openVoteType.set(openVote, "cluster", cluster);*/
+		session.insert(new Open_Vote(revision, 1, "A", issue, cluster));
 		
 		rules.incrementTime();
 		
@@ -670,7 +673,7 @@ public class IPConDrlsTest {
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 5);
 		assertFactCount("HasRole", 5);
-		assertFactFieldValue("QuorumSize", "quorumSize", 2);
+		assertQuorumSize(revision, issue, cluster, 2);
 		
 		outputObjects();
 		
@@ -708,7 +711,7 @@ public class IPConDrlsTest {
 		
 		//outputObjects();
 		
-		assertFactFieldValue("QuorumSize", "quorumSize", 2);
+		assertQuorumSize(revision, issue, cluster, 2);
 		
 		// value was chosen
 		assertFactCount("Chosen", 1);
@@ -729,7 +732,7 @@ public class IPConDrlsTest {
 		assertFactCount("NeedToSync", 0);
 		
 		// quorumsize should still be 2 because the agent didn't complete the sync
-		assertFactFieldValue("QuorumSize", "quorumSize", 2);
+		assertQuorumSize(revision, issue, cluster, 2);
 		
 		// value was chosen
 		assertFactCount("Chosen", 1);
@@ -752,7 +755,7 @@ public class IPConDrlsTest {
 		assertFactCount("NeedToSync", 0);
 		
 		// quorumsize should be 3 because the agent completed the sync
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertQuorumSize(revision, issue, cluster, 3);
 		
 		// 5 votes but 6 reportedVotes because syncAck no doesn't count as a vote
 		assertFactCount("Voted", 5);
@@ -778,7 +781,7 @@ public class IPConDrlsTest {
 		assertFactCount("HasRole", 7);
 		assertFactCount("Sync", 0);
 		assertFactCount("NeedToSync", 1);
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertQuorumSize(revision, issue, cluster, 3);
 		assertFactCount("Chosen", 1);
 		assertFactCount("PossibleAddRevision", 0); // they're not synching yet
 		assertFactCount("PossibleRemRevision", 1);
@@ -796,7 +799,7 @@ public class IPConDrlsTest {
 		assertFactCount("HasRole", 7);
 		assertFactCount("Sync", 1);
 		assertFactCount("NeedToSync", 0);
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertQuorumSize(revision, issue, cluster, 3);
 		assertFactCount("Chosen", 1);
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 6);
@@ -825,7 +828,7 @@ public class IPConDrlsTest {
 		assertFactCount("HasRole", 7);
 		assertFactCount("Sync", 1);
 		assertFactCount("NeedToSync", 0);
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertQuorumSize(revision, issue, cluster, 3);
 		assertFactCount("Chosen", 1);
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 6);
@@ -843,7 +846,7 @@ public class IPConDrlsTest {
 		assertFactCount("HasRole", 7);
 		assertFactCount("Sync", 0);
 		assertFactCount("NeedToSync", 0);
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertQuorumSize(revision, issue, cluster, 3);
 		assertFactCount("Chosen", 1);
 		assertFactCount("Voted", 5); // null votes don't get created because it doesnt make any sense
 		assertFactCount("ReportedVote", 7); // add a null reportedvote
@@ -863,7 +866,7 @@ public class IPConDrlsTest {
 		 */
 		session.insert(new Revise(a1, revision, issue, cluster));
 		rules.incrementTime();
-		logger.debug(getQueryResultsForRIC("getPowers", null, null, revision+1, issue, cluster));
+		logger.debug(getActionQueryResultsForRIC("getPowers", null, null, revision+1, issue, cluster));
 		
 		//FIXME TODO urgh now I need to improve all fns with RIC args :''(
 		
@@ -872,7 +875,7 @@ public class IPConDrlsTest {
 		
 		assertFactCount("Sync", 0);
 		assertFactCount("NeedToSync", 0);
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertQuorumSize(revision, issue, cluster, 3);
 		assertFactCount("Chosen", 1);
 		assertFactCount("Voted", 5); // null votes don't get created because it doesnt make any sense
 		assertFactCount("ReportedVote", 7); // add a null reportedvote
@@ -905,7 +908,7 @@ public class IPConDrlsTest {
 		assertFactCount("HasRole", 7);
 		assertFactCount("Sync", 1);
 		assertFactCount("NeedToSync", 0);
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertQuorumSize(revision, issue, cluster, 3);
 		assertFactCount("Chosen", 1);
 		assertFactCount("Voted", 5);
 		assertFactCount("ReportedVote", 6);
@@ -923,7 +926,7 @@ public class IPConDrlsTest {
 		assertFactCount("HasRole", 7);
 		assertFactCount("Sync", 0);
 		assertFactCount("NeedToSync", 0);
-		assertFactFieldValue("QuorumSize", "quorumSize", 3);
+		assertQuorumSize(revision, issue, cluster, 3);
 		assertFactCount("Chosen", 1);
 		assertFactCount("Voted", 6); // add a vote
 		assertFactCount("ReportedVote", 7); // add a reportedvote
@@ -948,6 +951,7 @@ public class IPConDrlsTest {
 	 * @param factTypeName
 	 * @return
 	 */
+	@Deprecated
 	private final boolean assertFactType(Object obj, String factTypeName) {
 		try {
 			return ( ( typeFromString(factTypeName).newInstance().getClass() ).equals( ( obj.getClass() ) ) );
@@ -968,6 +972,7 @@ public class IPConDrlsTest {
 	 * @param factTypeName
 	 * @return
 	 */
+	@Deprecated
 	private final boolean assertFactType(Object obj, FactType factType) {
 		try {
 			return ( ( factType.newInstance().getClass() ).equals( ( obj.getClass() ) ) );
@@ -987,7 +992,7 @@ public class IPConDrlsTest {
 	}
 	
 	private final void assertCount( final String queryName, final String actionType, final IPConAgent agent, final int count) {
-		assertEquals(count, getQueryResults(queryName, actionType, agent).size());
+		assertEquals(count, getActionQueryResults(queryName, actionType, agent).size());
 	}
 	
 	/**
@@ -1008,8 +1013,9 @@ public class IPConDrlsTest {
 		}));
 		if (facts.size()==0) {
 			// try java classes
+			//Collection<Object> facts = new HashSet<Object>();
 			facts.addAll(session.getObjects(new ObjectFilter() {
-	
+		
 				@Override
 				public boolean accept(Object object) {
 					Class<?> c;
@@ -1039,7 +1045,7 @@ public class IPConDrlsTest {
 	 * @param agent agent to get filter by, or null to get all
 	 * @return Collection of IPConActions
 	 */
-	private final Collection<IPConAction> getQueryResults(final String queryName, final String actionType, final IPConAgent agent) {
+	private final Collection<IPConAction> getActionQueryResults(final String queryName, final String actionType, final IPConAgent agent) {
 		HashSet<IPConAction> set = new HashSet<IPConAction>();
 		QueryResults results = null;
 		// Set agent to look up
@@ -1062,11 +1068,12 @@ public class IPConDrlsTest {
 		}
 		return set;
 	}
-	
+
+	@Deprecated
 	private final Collection<IPConAction> getQueryResultsOld( final String queryName, final String actionType, final IPConAgent agent) {	
 		
 		HashSet<IPConAction> result = new HashSet<IPConAction>();
-		for (IPConAction action : getQueryResults(queryName, actionType, agent)) {
+		for (IPConAction action : getActionQueryResults(queryName, actionType, agent)) {
 			if (action.getClass().getSimpleName().equals(actionType)) {
 				result.add(action);
 			}
@@ -1075,14 +1082,14 @@ public class IPConDrlsTest {
 		
 	}
 	
-	private final Collection<IPConAction> getQueryResultsForRIC(	final String queryName,
+	private final Collection<IPConAction> getActionQueryResultsForRIC(	final String queryName,
 																	final String actionType,
 																	final IPConAgent agent,
 																	final Integer revision,
 																	final String issue,
 																	final UUID cluster) {
 		HashSet<IPConAction> set = new HashSet<IPConAction>();
-		for (IPConAction action : getQueryResults(queryName, actionType, agent)) {
+		for (IPConAction action : getActionQueryResults(queryName, actionType, agent)) {
 			Integer actionRev = null;
 			try {
 				actionRev = (Integer) action.getClass().getMethod("getRevision").invoke(action, (Object[])null);
@@ -1093,14 +1100,14 @@ public class IPConDrlsTest {
 			
 			String actionIssue = null;
 			try {
-				actionIssue = (String) actionIssue.getClass().getMethod("getIssue").invoke(action, (Object[])null);
+				actionIssue = (String) action.getClass().getMethod("getIssue").invoke(action, (Object[])null);
 			} catch (Exception e) {
 				// do nothing
 			}
 			
 			UUID actionCluster = null;
 			try {
-				actionCluster = (UUID) actionIssue.getClass().getMethod("getCluster").invoke(action, (Object[])null);
+				actionCluster = (UUID) action.getClass().getMethod("getCluster").invoke(action, (Object[])null);
 			} catch (Exception e) {
 				// do nothing
 			}
@@ -1115,58 +1122,7 @@ public class IPConDrlsTest {
 			}
 
 		}
-		
-		
-		
 		return set;
-	}
-	
-	// Almost certainly horrific hack...
-	private boolean hasRevision(final IPConAction action) {
-		try {
-			action.getClass().getMethod("getRevision");
-			return true;
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-			return false;
-		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-			return false;
-		}
-	}
-
-	// Almost certainly horrific hack...
-	private boolean hasIssue(final IPConAction action) {
-		try {
-			action.getClass().getMethod("getIssue");
-			return true;
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-			return false;
-		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-			return false;
-		}
-	}
-
-	// Almost certainly horrific hack...
-	private boolean hasCluster(final IPConAction action) {
-		try {
-			action.getClass().getMethod("getCluster");
-			return true;
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-			return false;
-		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			//e.printStackTrace();
-			return false;
-		}
 	}
 	
 	/**
@@ -1177,6 +1133,7 @@ public class IPConDrlsTest {
 	 * @param value
 	 * @return field
 	 */
+	@Deprecated
 	private final Object assertFactFieldValue(String factTypeString, String fieldString, Object value) {
 		Collection<Object> facts = assertFactCount(factTypeString, 1);
 		Object fact = Arrays.asList(facts.toArray()).get(0);
@@ -1186,6 +1143,21 @@ public class IPConDrlsTest {
 		return field;
 	}
 	
+	private final void assertQuorumSize(Integer revision, String issue, UUID cluster, Integer quorumSize) {
+		//FIXME TODO clean this ?
+		ArrayList<QuorumSize> obj = new ArrayList<QuorumSize>();
+		QueryResults facts = session.getQueryResults("getFacts", new Object[]{ revision, issue, cluster });
+		for (QueryResultsRow row : facts) {
+			if (row.get("$fact") instanceof QuorumSize ) {
+				logger.trace("Adding qs row: " + row);
+				obj.add((QuorumSize)row.get("$fact"));
+			}
+		}
+		assertEquals(1, obj.size());
+		assertEquals(quorumSize, obj.get(0).getQuorumSize());
+	}
+
+	@Deprecated
 	private final ArrayList<IPConAction> getAgentPowers(IPConAgent agent) {
 		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
 		QueryResults results = session.getQueryResults("agentPowers", new Object[] { agent });
@@ -1195,7 +1167,8 @@ public class IPConDrlsTest {
 		logger.info("Agent " + agent.getName() + " has the following powers: " + actions);
 		return actions;
 	}
-	
+
+	@Deprecated
 	private final ArrayList<IPConAction> getAgentPermissions(IPConAgent agent) {
 		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
 		QueryResults results = session.getQueryResults("agentPermissions", new Object[] { agent });
@@ -1205,7 +1178,8 @@ public class IPConDrlsTest {
 		logger.info("Agent " + agent.getName() + " has the following permissions: " + actions);
 		return actions;
 	}
-	
+
+	@Deprecated
 	private final ArrayList<IPConAction> getAgentObligations(IPConAgent agent) {
 		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
 		QueryResults results = session.getQueryResults("agentObligations", new Object[] { agent });

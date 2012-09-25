@@ -10,8 +10,10 @@ import java.util.UUID
 //IPCon
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
+//import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent
+//import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact
+//import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC
 
 //declare any global variables here
 global org.apache.log4j.Logger logger
@@ -19,43 +21,44 @@ global org.apache.log4j.Logger logger
 // IPCon institutional facts
 
 // Fact to indicate a revision/issue/cluster triple exists
-declare IPConRIC
-end
+//declare IPConRIC
+//end
 
+//declare IPConFact
+//end
 
+//declare Proposed extends IPConFact
+	//revision : Integer
+	//value : Object
+	//issue : String
+	//cluster : UUID
+//end
 
-declare Proposed
+//declare Pre_Vote extends IPConFact
+	//revision : Integer
+	//ballot : Integer
+	//issue : String
+	//cluster : UUID
+//end
+
+/*declare Open_Vote
 	revision : Integer
+	ballot : Integer
 	value : Object
 	issue : String
 	cluster : UUID
-end
+end*/
 
-declare Pre_Vote
-	revision : Integer
-	ballot : Integer
-	issue : String
-	cluster : UUID
-end
-
-declare Open_Vote
-	revision : Integer
-	ballot : Integer
-	value : Object
-	issue : String
-	cluster : UUID
-end
-
-declare Voted
+/*declare Voted
 	agent : IPConAgent
 	revision : Integer
 	ballot : Integer
 	value : Object
 	issue : String
 	cluster : UUID
-end
+end*/
 
-declare ReportedVote
+/*declare ReportedVote
 	agent : IPConAgent
 	voteRevision : Integer
 	voteBallot : Integer
@@ -64,41 +67,41 @@ declare ReportedVote
 	ballot : Integer
 	issue : String
 	cluster : UUID
-end
+end*/
 
-declare Chosen
+/*declare Chosen
 	revision : Integer
 	ballot : Integer
 	value : Object
 	issue : String
 	cluster : UUID
-end
+end*/
 
-declare Sync
+/*declare Sync
 	agent : IPConAgent
 	value : Object
 	revision : Integer
 	issue : String
 	cluster : UUID
-end
+end*/
 
 // FIXME TODO probably don't need this anymore...
 // internal fact to get round having to do temporal checks on new acceptors
-declare NeedToSync
+/*declare NeedToSync
 	agent : IPConAgent
 	value : Object
 	revision : Integer
 	issue : String
 	cluster : UUID
-end	
+end	*/
 
-declare HasRole
+/*declare HasRole
 	role : Role
 	agent : IPConAgent
 	revision : Integer
 	issue : String
 	cluster : UUID
-end
+end*/
 
 /*rule "Keep IPConAgent in memory when HasRole exists"
 	when
