@@ -417,11 +417,15 @@ end
 		logger.trace("SyncAck retracted Sync : " + $sync );
 end*/
 
+
 query "getFacts" ( Integer $revision, String $issue, UUID $cluster )
 	$fact : IPConFact( revision==$revision, issue==$issue, cluster==$cluster )
 end
 
-
+// DO NOT USE WITH EMPTY FACTNAME
+query "getFactsNamed" ( Integer $revision, String $issue, UUID $cluster, String $factName )
+	$fact : IPConFact( revision==$revision, issue==$issue, cluster==$cluster, (($fact.toString()).substring(0, $factName.length())).equals($factName) ) 
+end
 
 
 

@@ -404,6 +404,7 @@ public class IPConDrlsTest {
 		// TODO need to fix this holdsAt so each role doesn't count
 		// inadvertantly fixed this by putting into a HashSet to remove dups :P
 		//assertFactCount("Leave", 7);
+		//outputObjects();
 		assertCount("getPowers", "LeaveCluster",null, 5);
 		
 		/*
@@ -991,6 +992,34 @@ public class IPConDrlsTest {
 		
 	}
 	
+	private final Collection<IPConFact> getFactQueryResults(	final String factType,
+																final Integer revision,
+																final String issue,
+																final UUID cluster) {
+		String queryString = "getFacts";
+		HashSet<IPConFact> set = new HashSet<IPConFact>();
+		ArrayList<Object> lookup = new ArrayList<Object>();
+		lookup.addAll(Arrays.asList(new Object[]{revision, issue, cluster}));
+		if (revision!=null) {
+			lookup.set(0, Variable.v);
+		}
+		if (issue!=null) {
+			lookup.set(1, Variable.v);
+		}
+		if (cluster!=null) {
+			lookup.set(2, Variable.v);
+		}
+		if (factType!=null) {
+			queryString = queryString+"Named";
+			lookup.add(factType);
+		}
+		QueryResults facts = session.getQueryResults(queryString, lookup.toArray());
+		for (QueryResultsRow row : facts) {
+			set.add((IPConFact)row.get("$fact"));
+		}
+		return set;
+	}
+	
 	private final void assertCount( final String queryName, final String actionType, final IPConAgent agent, final int count) {
 		assertEquals(count, getActionQueryResults(queryName, actionType, agent).size());
 	}
@@ -1144,17 +1173,10 @@ public class IPConDrlsTest {
 	}
 	
 	private final void assertQuorumSize(Integer revision, String issue, UUID cluster, Integer quorumSize) {
-		//FIXME TODO clean this ?
-		ArrayList<QuorumSize> obj = new ArrayList<QuorumSize>();
-		QueryResults facts = session.getQueryResults("getFacts", new Object[]{ revision, issue, cluster });
-		for (QueryResultsRow row : facts) {
-			if (row.get("$fact") instanceof QuorumSize ) {
-				logger.trace("Adding qs row: " + row);
-				obj.add((QuorumSize)row.get("$fact"));
-			}
-		}
+		ArrayList<IPConFact> obj = new ArrayList<IPConFact>();
+		obj.addAll(getFactQueryResults("QuorumSize", revision, issue, cluster));
 		assertEquals(1, obj.size());
-		assertEquals(quorumSize, obj.get(0).getQuorumSize());
+		assertEquals(quorumSize, ((QuorumSize)obj.get(0)).getQuorumSize());
 	}
 
 	@Deprecated
