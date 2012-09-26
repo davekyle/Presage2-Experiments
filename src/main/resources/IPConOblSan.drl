@@ -77,6 +77,23 @@ rule "holdsAt for obligation to submit"
         insertLogical( new Obligation( $agent, $submit ) );
 end
 
+rule "initiates for obligation to revise when an acceptor leaves"
+// FIXME TODO I hate the order this is done in... AgentLeft should be at the top with the bindings...
+	when
+		PossibleRemRevision( $value : value, $revision : revision, $issue : issue, $cluster : cluster )
+		ReportedVote( $agent : agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
+		exists AgentLeft( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Permission( $leader : agent, $action : action )
+        Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $action
+		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
+		logger.trace("AgentLeft inserted obligation for " + $leader + "  to " + $revise );
+        insert( new Obligation( $leader, $revise ) ); 
+end
+
+
+/*
 rule "initiates for obligation to revise on leaveCluster"
 // if an agent leaves when they are an acceptor and voted and you have a permission to revise and there is a possRemRev
 	when
@@ -115,6 +132,7 @@ end
 		logger.trace("RemRole inserted obligation for " + $leader + " to " + $revise );
         insert( new Obligation( $leader, $revise ) ); 
 end
+*/
 
 rule "revise terminates obligation to revise"
 // TODO will this work ? :S If it does, how about more general Action terminates obligation to Action ?

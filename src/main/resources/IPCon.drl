@@ -101,6 +101,17 @@ declare SyncNo
 	issue : String
 	cluster : UUID
 end
+
+// internal flag event for an acceptor leaving
+declare AgentLeft
+	@role( event )
+	// expires instantly; we only want to use it in the same cycle
+	@expires( 0s )
+	agent : IPConAgent
+	revision : Integer
+	issue : String
+	cluster : UUID
+end
 	
 
 rule "Request0A initiates Proposed"
@@ -262,6 +273,7 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 	when
 		LeaveCluster( $agent : agent, $cluster : cluster )
 		//LeavePow( agent==$agent, cluster==$cluster )
+		
 		Power( agent==$agent, $action : action )
 		LeaveCluster( agent==$agent, cluster==$cluster ) from $action
 		$roles : List( ) from accumulate ( 
@@ -277,7 +289,7 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 					$n2Sync : NeedToSync( agent==$agent, cluster==$cluster )
 					, collectList( $n2Sync ) )
 	then
-		logger.trace("LeaveCluster retracted lots from agent " + $agent + " ... ");
+		logger.trace("LeaveCluster inserted AgentLeft(s) and retracted lots from agent " + $agent + " ... ");
 		logger.trace("Roles: " + $roles);
 		logger.trace("Syncs: " + $syncs);
 		logger.trace("rVotes: " + $reportedVotes);
@@ -286,6 +298,7 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 		// switch to an Object[] from the unmodifiable list...
 			for (Object role : $roles.toArray()) {
 				logger.trace(" ... " + role );
+				insert( new AgentLeft( $agent, ((HasRole)role).getRevision(), ((HasRole)role).getIssue(), ((HasRole)role).getCluster() ) );
 				retract( role );
 			}
 		}
@@ -345,6 +358,17 @@ rule "RemRole terminates role"
 	then
 		logger.trace("RemRole retracted Role : " + $roleToRem );
 		retract( $roleToRem );
+end
+
+rule "RemRole initiates AgentLeft flag fact"
+	when
+		RemRole( $leader : leader, $agent : agent, $role : role, $role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster )
+		//RemRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$leader, $action : action )
+		RemRole( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster ) from $action
+	then
+		logger.trace("RemRole inserted AgentLeft: " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster );
+		insert( new AgentLeft( $agent, $revision, $issue, $cluster ) );
 end
 
 rule "Revise initiates new RIC"
