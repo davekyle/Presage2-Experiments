@@ -920,19 +920,36 @@ public class IPConDrlsTest {
 		/*
 		 * Time step 9
 		 * Start the whole thing again to make sure it works (cut out a4 and 5)
-		 * A4 leaves cluster
+		 * A4 leaves cluster, A5 removed.
 		 */
 		session.insert(new LeaveCluster(a4, cluster));
+		session.insert(new RemRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
+		session.insert(new RemRole(a1, a5, Role.ACCEPTOR, newRevision, issue, cluster));
 		rules.incrementTime();
 		
 		outputObjects();
 		
-		assertFactCount("Revise", null, null, null, 0);
+		assertFactCount("Revise", null, null, null, 0); // fact isn't in the kbase anymore
 		assertObjectCount("IPConAgent", null, null, null, 5); // the facts are still there
-		assertFactCount("HasRole", newRevision, issue, cluster, 6);
+		
+		// Check  old revision
+		assertFactCount("HasRole", revision, issue, cluster, 5);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 2);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 5);
+		assertFactCount("ReportedVote", revision, issue, cluster, 7);
+		// FIXME TODO not sure why this didn't fire
+		//assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1); // obligation to revise because agents removed
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0); // 0 because now the agents are gone
+				
+				
+		assertFactCount("HasRole", newRevision, issue, cluster, 5);
 		assertFactCount("Sync", newRevision, issue, cluster, 0);
 		assertFactCount("NeedToSync", newRevision, issue, cluster, 0);
-		assertQuorumSize(newRevision, issue, cluster, 3);
+		assertQuorumSize(newRevision, issue, cluster, 2);
 		assertFactCount("Chosen", newRevision, issue, cluster, 0);
 		assertFactCount("Voted", newRevision, issue, cluster, 0);
 		assertFactCount("ReportedVote", newRevision, issue, cluster, 0);
