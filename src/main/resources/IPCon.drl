@@ -255,22 +255,59 @@ rule "Resign terminates IsLeader"
 end
 
 rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
+	agenda-group "exit"
+	auto-focus true
+	lock-on-active true
+	no-loop
 	when
 		LeaveCluster( $agent : agent, $cluster : cluster )
 		//LeavePow( agent==$agent, cluster==$cluster )
 		Power( agent==$agent, $action : action )
 		LeaveCluster( agent==$agent, cluster==$cluster ) from $action
-		$roles : HasRole( agent==$agent, cluster==$cluster )
-		$syncs : Sync( agent==$agent, cluster==$cluster )
-		$reportedVotes : ReportedVote( agent==$agent, cluster==$cluster )
-		$needToSyncs : NeedToSync( agent==$agent, cluster==$cluster )
+		$roles : List( ) from accumulate ( 
+					$role: HasRole( agent==$agent, cluster==$cluster )
+					, collectList( $role ) )
+		$syncs : List( ) from accumulate ( 
+					$sync: Sync( agent==$agent, cluster==$cluster )
+					, collectList( $sync ) )
+		$reportedVotes : List( ) from accumulate ( 
+					$rVote : ReportedVote( agent==$agent, cluster==$cluster )
+					, collectList( $rVote ) )
+		$needToSyncs : List( ) from accumulate ( 
+					$n2Sync : NeedToSync( agent==$agent, cluster==$cluster )
+					, collectList( $n2Sync ) )
 	then
-		logger.trace("LeaceCluster retracted lots from agent " + $agent );
-		retract( $roles );
-		retract( $syncs );
-		retract( $reportedVotes );
-		retract( $needToSyncs );
-		// FIXME what about Voted's ?
+		logger.trace("LeaveCluster retracted lots from agent " + $agent + " ... ");
+		logger.trace("Roles: " + $roles);
+		logger.trace("Syncs: " + $syncs);
+		logger.trace("rVotes: " + $reportedVotes);
+		logger.trace("n2Syncs: " + $needToSyncs);
+		if ($roles.size()!=0) {
+		// switch to an Object[] from the unmodifiable list...
+			for (Object role : $roles.toArray()) {
+				logger.trace(" ... " + role );
+				retract( role );
+			}
+		}
+		if ($syncs.size()!=0) {
+			for (Object sync : $syncs.toArray()) {
+				logger.trace(" ... " + sync );
+				retract( sync );
+			}
+		}
+		if ($reportedVotes.size()!=0) {
+			for (Object rVote : $reportedVotes.toArray()) {
+				logger.trace(" ... " + rVote );
+				retract( rVote );
+			}
+		}
+		if ($needToSyncs.size()!=0) {
+			for (Object n2Sync : $needToSyncs.toArray()) {
+				logger.trace(" ... " + n2Sync );
+				retract( n2Sync );
+			}
+		}
+		// FIXME what about Voted facts - they affect Chosen, but not possRemRev ? 
 end
 
 rule "AddRole initiates role"

@@ -35,7 +35,9 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.LeaveCluster;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.RemRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Response1B;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Revise;
@@ -197,6 +199,15 @@ public class IPConDrlsTest {
 		/*Role role = (Role) typeFromString("HasRole").get(hasRole, "role");
 		assertEquals(role.toString(), "LEADER");*/
 		assertEquals(Role.LEADER, hasRole.getRole());
+		
+		/*
+		 * Check that leader can add roles (Invalid, Learner, Acceptor, Proposer)
+		 * Also that AddRole action isnt inserted by the pow/per
+		 */
+		assertActionCount("getPowers", "AddRole", null, null, null, null, 4);
+		assertActionCount("getPermissions", "AddRole", null, null, null, null, 4);
+		assertFactCount("AddRole", null, null, null, 0);
+		
 		logger.info("Finished arrogateLeadershipTest()\n");
 	}
 	
@@ -902,6 +913,37 @@ public class IPConDrlsTest {
 		assertActionCount("getObligations", "Revise", a1, newRevision, issue, cluster, 0);
 		assertFactCount("PossibleAddRevision", newRevision, issue, cluster, 0);
 		assertFactCount("PossibleRemRevision", newRevision, issue, cluster, 0);
+		// FactCount would work too, but would drop into objectcount anyway...
+		assertObjectCount("IPConAgent", null, null, null, 5);
+		assertActionCount("getPowers", "LeaveCluster", a4, null, null, null, 1); 
+		
+		/*
+		 * Time step 9
+		 * Start the whole thing again to make sure it works (cut out a4 and 5)
+		 * A4 leaves cluster
+		 */
+		session.insert(new LeaveCluster(a4, cluster));
+		rules.incrementTime();
+		
+		outputObjects();
+		
+		assertFactCount("Revise", null, null, null, 0);
+		assertObjectCount("IPConAgent", null, null, null, 5); // the facts are still there
+		assertFactCount("HasRole", newRevision, issue, cluster, 6);
+		assertFactCount("Sync", newRevision, issue, cluster, 0);
+		assertFactCount("NeedToSync", newRevision, issue, cluster, 0);
+		assertQuorumSize(newRevision, issue, cluster, 3);
+		assertFactCount("Chosen", newRevision, issue, cluster, 0);
+		assertFactCount("Voted", newRevision, issue, cluster, 0);
+		assertFactCount("ReportedVote", newRevision, issue, cluster, 0);
+		assertActionCount("getObligations", "Revise", a1, newRevision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", newRevision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", newRevision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, a4, null, null, null, 0);
+		assertActionCount("getPowers", null, a4, null, null, null, 1); // can always arrogate
+		assertActionCount("getPermissions", null, a4, null, null, null, 0);
+		
 	}
 	
 	@Test
