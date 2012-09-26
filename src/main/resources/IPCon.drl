@@ -257,7 +257,7 @@ end
 rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 	agenda-group "exit"
 	auto-focus true
-	lock-on-active true
+	//lock-on-active true
 	no-loop
 	when
 		LeaveCluster( $agent : agent, $cluster : cluster )
@@ -334,6 +334,8 @@ rule "AddRole initiates NeedToSync"
 end
 
 rule "RemRole terminates role"
+	agenda-group "exit"
+	auto-focus true
 	when
 		RemRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
 		//RemRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
