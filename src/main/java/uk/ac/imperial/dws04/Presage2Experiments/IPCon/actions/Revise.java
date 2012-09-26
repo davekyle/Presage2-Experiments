@@ -13,7 +13,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
  */
 public class Revise extends IPConAction {
 	public IPConAgent agent;
-	public Integer oldRevision;
+	public Integer revision;
 	public String issue;
 	public UUID cluster;
 	
@@ -23,11 +23,11 @@ public class Revise extends IPConAction {
 	 * @param issue
 	 * @param cluster
 	 */
-	public Revise(IPConAgent agent, Integer oldRevision, String issue,
+	public Revise(IPConAgent agent, Integer revision, String issue,
 			UUID cluster) {
 		super();
 		this.agent = agent;
-		this.oldRevision = oldRevision;
+		this.revision = revision;
 		this.issue = issue;
 		this.cluster = cluster;
 	}
@@ -42,7 +42,7 @@ public class Revise extends IPConAction {
 		result = prime * result + ((cluster == null) ? 0 : cluster.hashCode());
 		result = prime * result + ((issue == null) ? 0 : issue.hashCode());
 		result = prime * result
-				+ ((oldRevision == null) ? 0 : oldRevision.hashCode());
+				+ ((revision == null) ? 0 : revision.hashCode());
 		return result;
 	}
 	/* (non-Javadoc)
@@ -72,10 +72,10 @@ public class Revise extends IPConAction {
 				return false;
 		} else if (!issue.equals(other.issue))
 			return false;
-		if (oldRevision == null) {
-			if (other.oldRevision != null)
+		if (revision == null) {
+			if (other.revision != null)
 				return false;
-		} else if (!oldRevision.equals(other.oldRevision))
+		} else if (!revision.equals(other.revision))
 			return false;
 		return true;
 	}
@@ -94,14 +94,14 @@ public class Revise extends IPConAction {
 	/**
 	 * @return the oldRevision
 	 */
-	public Integer getOldRevision() {
-		return oldRevision;
+	public Integer getRevision() {
+		return revision;
 	}
 	/**
 	 * @param oldRevision the oldRevision to set
 	 */
-	public void setOldRevision(Integer oldRevision) {
-		this.oldRevision = oldRevision;
+	public void setRevision(Integer revision) {
+		this.revision = revision;
 	}
 	/**
 	 * @return the issue
@@ -132,7 +132,7 @@ public class Revise extends IPConAction {
 	 */
 	@Override
 	public String toString() {
-		return "Revise [agent=" + agent + ", oldRevision=" + oldRevision
+		return "Revise [agent=" + agent + ", revision=" + revision
 				+ ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 }

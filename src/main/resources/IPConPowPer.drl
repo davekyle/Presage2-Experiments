@@ -335,30 +335,7 @@ rule "holdsAt for permission to submit2a"
 		Proposed( revision==$revision, $value : value, issue==$issue, cluster==$cluster )
 		//$quorumSize : quorumSize( $revision, $issue, $cluster ;)
 		QuorumSize( $quorumSize : quorumSize, revision==$revision, issue==$issue, cluster==$cluster )
-		//not true
-		// FIXME TODO calculate safety ?
-		// TODO make sure to take null reportedVotes into account
-		// TODO probably need to do nested from collects ? Or use queries ?
 		
-		// get all ReportedVotes
-		
-		// get the highest ReportedVote with the highest ballotNumber for each agent
-		
-		// ignore all that are in lower revisions than this
-		
-		// check there are no votes in any ballots later than this one
-		
-		// get the set of agents that those ReportedVotes are about
-		
-		// make sure you have >= $quorumSize of them
-		
-		// make all the possible quorumSize-sized groups of them
-		
-		// for each group, check that the hnb is either $value or null
-		
-		// if so, $value is safe
-		
-		////
 		
 		// get all ReportedVote facts that aren't out of date (hard part)
 		//	// ReportedVote( $a, $vote, $RIC) and
@@ -498,7 +475,7 @@ rule "holdsAt for per to revise"
 	when
 		//RevisePow( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Power( $agent : agent, $action : action )
-		Revise( agent==$agent, $revision : oldRevision, $issue : issue, $cluster : cluster ) from $action
+		Revise( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster ) from $action
 	then
 		logger.trace("Logically toggling RevisePer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		Revise $revise = new Revise( $agent, $revision, $issue, $cluster );

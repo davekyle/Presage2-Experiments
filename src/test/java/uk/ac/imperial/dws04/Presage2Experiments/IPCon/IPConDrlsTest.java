@@ -816,7 +816,7 @@ public class IPConDrlsTest {
 	}
 	
 	@Test
-	public void testSyncAckSafetyViolation() throws Exception {
+	public void testSyncAckRevise() throws Exception {
 		HashMap<String, Object> map = new HashMap<String,Object>();
 		testPossibleRevisionDetectionSetup(map);
 		
@@ -850,20 +850,20 @@ public class IPConDrlsTest {
 		 */
 		session.insert(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
 		rules.incrementTime();
-		assertFactCount("HasRole", revision, issue, cluster, 7);
-		assertFactCount("Sync", revision, issue, cluster, 0);
-		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertFactCount("HasRole", null, null, null, 7);
+		assertFactCount("Sync", null, null, null, 0);
+		assertFactCount("NeedToSync", null, null, null, 0);
 		assertQuorumSize(revision, issue, cluster, 3);
-		assertFactCount("Chosen", revision, issue, cluster, 1);
-		assertFactCount("Voted", revision, issue, cluster, 5); // null votes don't get created because it doesnt make any sense
-		assertFactCount("ReportedVote", revision, issue, cluster, 7); // add a null reportedvote
+		assertFactCount("Chosen", null, null, null, 1);
+		assertFactCount("Voted", null, null, null, 5); // null votes don't get created because it doesnt make any sense
+		assertFactCount("ReportedVote", null, null, null, 7); // add a null reportedvote
 		
 		outputObjects();
 		
 		// Check safety was violated and an obligation to revise exists
-		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1);
-		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
-		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
+		assertActionCount("getObligations", "Revise", a1, null, null, null, 1);
+		assertFactCount("PossibleAddRevision", null, null, null, 1);
+		assertFactCount("PossibleRemRevision", null, null, null, 1);
 		
 		
 		/*
@@ -1162,7 +1162,7 @@ public class IPConDrlsTest {
 																	final UUID cluster) {
 		HashSet<IPConAction> set = new HashSet<IPConAction>();
 		for (IPConAction action : getActionQueryResults(queryName, actionType, agent)) {
-			
+			//logger.trace("Checking: " + action);
 			if (matchesRIC(action, revision, issue, cluster)) {
 				set.add((IPConAction)action);
 			}
@@ -1171,7 +1171,8 @@ public class IPConDrlsTest {
 	}
 	
 	/**
-	 * Utility function to check if an object either has-equal, or does not have, the given RIC
+	 * Utility function to check if an object either has-equal, or does not have, the given RIC.
+	 * If any arg is null, the check is ignored.
 	 * @param object
 	 * @param revision
 	 * @param issue
@@ -1180,28 +1181,37 @@ public class IPConDrlsTest {
 	 */
 	private final boolean matchesRIC(Object object, Integer revision, String issue, UUID cluster) {
 		Integer actionRev = null;
-		try {
-			actionRev = (Integer) object.getClass().getMethod("getRevision").invoke(object, (Object[])null);
-		} catch (Exception e) {
-			// do nothing - if it doesn't have such a method then stay null
-			//e.printStackTrace();
+		if (revision!=null) {
+			try {
+				actionRev = (Integer) object.getClass().getMethod("getRevision").invoke(object, (Object[])null);
+			} catch (Exception e) {
+				// do nothing - if it doesn't have such a method then stay null
+				//e.printStackTrace();
+			}
 		}
 		
 		String actionIssue = null;
-		try {
-			actionIssue = (String) object.getClass().getMethod("getIssue").invoke(object, (Object[])null);
-		} catch (Exception e) {
-			// do nothing
+		if (issue!=null) {
+			try {
+				actionIssue = (String) object.getClass().getMethod("getIssue").invoke(object, (Object[])null);
+			} catch (Exception e) {
+				// do nothing
+			}
 		}
 		
 		UUID actionCluster = null;
-		try {
-			actionCluster = (UUID) object.getClass().getMethod("getCluster").invoke(object, (Object[])null);
-		} catch (Exception e) {
-			// do nothing
+		if (cluster!=null) {
+			try {
+				actionCluster = (UUID) object.getClass().getMethod("getCluster").invoke(object, (Object[])null);
+			} catch (Exception e) {
+				// do nothing
+			}
 		}
 		
-		return 	( ( actionRev==null || actionRev.equals(revision) ) &&
+		//logger.trace("Matching " + object + " against " + revision + ", " + issue + ", " + cluster + 
+		//				" and got r:" + actionRev + ", i:" + actionIssue + ", c:" + actionCluster + ".");
+		
+		return	( ( actionRev==null || actionRev.equals(revision) ) &&
 				( actionIssue==null || actionIssue.equals(issue)) &&
 				( actionCluster==null || actionCluster.equals(cluster)) );
 	}

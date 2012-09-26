@@ -310,9 +310,9 @@ end
 
 rule "Revise initiates new RIC"
 	when
-		Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
+		Revise( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Power( agent==$agent, $action : action )
-		Revise( agent==$agent, oldRevision==$revision, issue==$issue, cluster==$cluster) from $action
+		Revise( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster) from $action
 	then
 		Integer $newRevision = ($revision+1);
 		logger.trace("Revise inserted new RIC: " + $newRevision + " , " + $issue + " , " + $cluster);
@@ -321,9 +321,9 @@ end
 
 rule "Revise updates roles for new revision"
 	when
-		Revise( $leader : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
+		Revise( $leader : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Power( agent==$leader, $action : action )
-		Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster) from $action
+		Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster) from $action
 		HasRole( $role : role, $agent : agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Integer $newRevision = $revision+1;
@@ -333,9 +333,9 @@ end
 
 rule "Revise terminates all syncs"
 	when
-		Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
+		Revise( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Power( agent==$agent, $action : action )
-		Revise( agent==$agent, oldRevision==$revision, issue==$issue, cluster==$cluster) from $action
+		Revise( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster) from $action
 		$x : Sync( revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Revise retracted Sync : " + $x );
@@ -344,9 +344,9 @@ end
 
 rule "Revise terminates all needtosyncs"
 	when
-		Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
+		Revise( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Power( agent==$agent, $action : action )
-		Revise( agent==$agent, oldRevision==$revision, issue==$issue, cluster==$cluster) from $action
+		Revise( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster) from $action
 		$x : NeedToSync( revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Revise retracted NeedToSync : " + $x );

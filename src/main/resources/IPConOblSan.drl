@@ -86,7 +86,7 @@ rule "initiates for obligation to revise on leaveCluster"
 		HasRole( role==Role.ACCEPTOR, agent==$agent, $revision : revision, $issue : issue, cluster==$cluster )
 		//RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
         Permission( $leader : agent, $action : action )
-        Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster ) from $action
+        Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 		PossibleRemRevision( $value : value, revision==$revision, issue==$issue, cluster==$cluster )
 		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
@@ -107,7 +107,7 @@ end
 		//HasRole( role==Role.ACCEPTOR, agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		//RevisePer( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster )
         Permission( agent==$leader, $revAction : action )
-        Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster ) from $revAction
+        Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $revAction
 		PossibleRemRevision( $value : value, revision==$revision, issue==$issue, cluster==$cluster )
 		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
@@ -120,7 +120,7 @@ rule "revise terminates obligation to revise"
 // TODO will this work ? :S If it does, how about more general Action terminates obligation to Action ?
 	no-loop
 	when
-		$revise : Revise( $agent : agent, $revision : oldRevision, $issue : issue, $cluster : cluster )
+		$revise : Revise( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		$obl : Obligation( agent==$agent, action==$revise )
 	then
 		logger.trace("Revise retracted obligation for " + $agent + " to " + $revise );
@@ -150,7 +150,7 @@ rule "syncAck no initiates obligation to revise"
 		SyncNo( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		//RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
         Permission( $leader : agent, $actionPer : action )
-        $rev : Revise( agent==$leader, oldRevision==$revision, issue==$issue, cluster==$cluster ) from $actionPer
+        $rev : Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $actionPer
 		PossibleAddRevision( /*value!=$answer,*/ revision==$revision, issue==$issue, cluster==$cluster )
 		not Obligation( agent==$leader, action==$rev )
 	then
