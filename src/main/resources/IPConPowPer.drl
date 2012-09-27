@@ -297,7 +297,10 @@ rule "holdsAt for permission to response1b (if voted)"
 		//ResponsePow( $agent : agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		Power( $agent : agent, $action : action )
 		Response1B( agent==$agent, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster ) from $action
-		Voted( agent==$agent, $voteRevision : revision, $voteBallot : ballot, $voteValue : value, issue==$issue, cluster==$cluster )
+		// only allowed to respond about this revision or higher...
+		Voted( agent==$agent, $voteRevision : revision, revision>=$revision, $voteBallot : ballot, $voteValue : value, issue==$issue, cluster==$cluster )
+		// only allowed to respond about highest vote
+		not Voted (agent==$agent, (revision>$voteRevision || (revision==$voteRevision && ballot>$voteBallot)), issue==$issue, cluster==$cluster ) 
 	then
 		logger.trace("Logically toggling ResponsePer( " + $agent + " , " + $voteRevision + " , " + $voteBallot + " , " + $voteValue + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		Response1B $response = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
@@ -318,6 +321,8 @@ rule "holdsAt for permission to response1b (with indicators if didn't vote in th
 end
 
 rule "holdsAt for power to submit2a"
+// either if there is a pre_vote, or if there is an openvote
+//(allows pre_vote to be terminated, but more submits to occur)
 	when
 		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		Pre_Vote( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )

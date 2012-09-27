@@ -185,17 +185,21 @@ rule "Submit2A initiates Open_Vote"
 		insert( new Open_Vote( $revision, $ballot, $value, $issue, $cluster ) );
 end
 
+/* // shouldn't do this...
 rule "Submit2A terminates Pre_Vote"
+	// low salience to allow Pow(Submit) to fire first
+	salience -1
 	when
 		Submit2A( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
 		//SubmitPow( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 		Power( agent==$agent, $action : action )
 		Submit2A( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) from $action
-		$pv : Pre_Vote( revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
+		$pv : Pre_Vote( revision==$revision, ballot<=$ballot, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Submit2A retracted Pre_Vote : " + $pv );
 		retract( $pv );
 end
+*/
 
 rule "Vote initiates Voted and ReportedVote"
 	when
