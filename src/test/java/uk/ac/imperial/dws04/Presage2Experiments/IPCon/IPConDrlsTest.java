@@ -266,48 +266,13 @@ public class IPConDrlsTest {
 		session.insert(a1);
 		// Insert intially facts:
 		// Agent is acceptor
-		/*FactType roleType = typeFromString("HasRole");
-		Object role = roleType.newInstance();
-		roleType.set(role, "role", Role.ACCEPTOR);
-		roleType.set(role, "agent", a1);
-		roleType.set(role, "revision", revision);
-		roleType.set(role, "issue", issue);
-		roleType.set(role, "cluster", cluster);*/
 		session.insert(new HasRole(Role.ACCEPTOR, a1, revision, issue, cluster));
 		// PreVote exists
-		/*FactType preVoteType = typeFromString("Pre_Vote");
-		Object preVote = preVoteType.newInstance();
-		preVoteType.set(preVote, "revision", revision);
-		preVoteType.set(preVote, "ballot", ballot);
-		preVoteType.set(preVote, "issue", issue);
-		preVoteType.set(preVote, "cluster", cluster);*/
 		Pre_Vote preVote = new Pre_Vote(revision, ballot, issue, cluster);
 		session.insert(preVote);
 		// Agent voted in 3 previous ballots
-		/*final FactType votedType = typeFromString("Voted");
-		Object v1Vote = votedType.newInstance();
-		votedType.set(v1Vote, "agent", a1);
-		votedType.set(v1Vote, "revision", revision);
-		votedType.set(v1Vote, "ballot", ballot-5);
-		votedType.set(v1Vote, "value", v1);
-		votedType.set(v1Vote, "issue", issue);
-		votedType.set(v1Vote, "cluster", cluster);*/
 		session.insert(new Voted(a1, revision, ballot-5, v1, issue, cluster));
-		/*Object v2Vote = votedType.newInstance();
-		votedType.set(v2Vote, "agent", a1);
-		votedType.set(v2Vote, "revision", revision);
-		votedType.set(v2Vote, "ballot", ballot-3);
-		votedType.set(v2Vote, "value", v2);
-		votedType.set(v2Vote, "issue", issue);
-		votedType.set(v2Vote, "cluster", cluster);*/
 		session.insert(new Voted(a1, revision, ballot-3, v2, issue, cluster));
-		/*Object v3Vote = votedType.newInstance();
-		votedType.set(v3Vote, "agent", a1);
-		votedType.set(v3Vote, "revision", revision);
-		votedType.set(v3Vote, "ballot", ballot-2);
-		votedType.set(v3Vote, "value", v3);
-		votedType.set(v3Vote, "issue", issue);
-		votedType.set(v3Vote, "cluster", cluster);*/
 		session.insert(new Voted(a1, revision, ballot-2, v3, issue, cluster));
 		
 		rules.incrementTime();
@@ -321,10 +286,31 @@ public class IPConDrlsTest {
 		assertFactCount("Pre_Vote", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 3);
 		
-
-		session.insert(new Response1B( a1, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
-		// FIXME TODO : make sure agent can't (isnt permitted) to send response that isnt the most recent
-		// also try getting the permissions and responding with them (since that's what an axctual agent will do)
+		assertActionCount("getPowers", "Response1B", null, null, null, null, 1);
+		assertActionCount("getPermissions", "Response1B", null, null, null, null, 1);
+		assertActionCount("getObligations", "Response1B", null, null, null, null, 1);
+		
+		// make sure agent isn't permitted to respond with anything other than highest vote
+		Collection<IPConAction> perSet = getActionQueryResultsForRIC("getPermissions", "Response1B", null, null, null, null);
+		Collection<IPConAction> oblSet = getActionQueryResultsForRIC("getObligations", "Response1B", null, null, null, null);
+		
+		//dbl check only one each, and they're the same
+		assertEquals(perSet, oblSet);
+		assertEquals(1, perSet.size());
+		
+		//get the permitted response
+		Response1B response = (Response1B) (perSet.toArray())[0];
+		//check it's correct
+		assertEquals(a1, response.getAgent());
+		assertEquals(revision, response.getRevision());
+		assertEquals(issue, response.getIssue());
+		assertEquals(ballot, response.getBallot());
+		assertEquals(cluster, response.getCluster());
+		assertEquals(v3, response.getVoteValue());
+		assertEquals((Integer)(ballot-2), response.getVoteBallot());
+		assertEquals(revision, response.getVoteRevision());
+		
+		logger.info("Finished checkResponsePowPerObl()\n");
 		
 	}
 	
@@ -594,6 +580,8 @@ public class IPConDrlsTest {
 	}
 	
 	public void testPossibleRevisionDetectionSetup(HashMap<String,Object> map) throws Exception {
+		logger.info("\nStarting test to check for detection of possible need for revision");
+		
 		//specify revision/issue/cluster
 		Integer revision = 1;
 		String issue = "IssueString";
@@ -828,10 +816,14 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // if ag1 or 2 leave, safety is violated
 		
+		logger.info("Finished checking Possible Revision detection... now checking for outcomes...\n");
+		
 	}
 	
 	@Test
 	public void testSyncAckRevise() throws Exception {
+		logger.info("\nTrying a SyncAck no and testing correct functioning after that...");
+		
 		HashMap<String, Object> map = new HashMap<String,Object>();
 		testPossibleRevisionDetectionSetup(map);
 		
@@ -1173,18 +1165,18 @@ public class IPConDrlsTest {
 		
 		assertActionCount("getObligations", null, null, newRevision, issue, cluster, 0);
 		
+		logger.info("Finished testing algorithm after Revision following negative Syncack\n");
+		
 	}
 	
 	@Test
 	public void testSyncAckYes() throws Exception {
+		logger.info("\nTrying a SyncAck yes...");
+		
 		HashMap<String, Object> map = new HashMap<String,Object>();
 		testPossibleRevisionDetectionSetup(map);
 		
 		//get data out of map
-		IPConAgent a1 = (IPConAgent) map.get("a1");
-		IPConAgent a2 = (IPConAgent) map.get("a2");
-		IPConAgent a3 = (IPConAgent) map.get("a3");
-		IPConAgent a4 = (IPConAgent) map.get("a4");
 		IPConAgent a5 = (IPConAgent) map.get("a5");
 		Integer revision = (Integer) map.get("revision");
 		String issue = (String) map.get("issue");
@@ -1226,6 +1218,9 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
 		// PRR goes away because theres an additional "yes" vote
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		logger.info("Finished checking SyncAck yes.\n");
+		
 	}
 	
 	private final FactType typeFromString(String factTypeString) {
