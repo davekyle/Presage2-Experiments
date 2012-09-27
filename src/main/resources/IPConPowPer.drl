@@ -379,7 +379,7 @@ rule "holdsAt for permission to vote"
 		Power( $agent : agent, $action : action )
 		Vote2B( agent==$agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster ) from $action
 		// didn't vote in a higher ballot in this revision
-		not Voted( agent==$agent, revision==$revision, ballot>=$ballot, issue==$issue, cluster==$cluster )
+		not Voted( agent==$agent, revision==$revision, ballot>$ballot, issue==$issue, cluster==$cluster )
 		// didn't vote in a higher revision
 		not Voted( agent==$agent, revision>$revision, issue==$issue, cluster==$cluster )
 	then

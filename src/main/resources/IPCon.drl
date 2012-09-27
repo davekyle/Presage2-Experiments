@@ -207,6 +207,9 @@ rule "Vote initiates Voted and ReportedVote"
 		//VotePow( agent==$agent, revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
 		Power( agent==$agent, $action : action ) 
 		Vote2B( agent==$agent, revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster ) from $action
+		// don't duplicate
+		not Voted( agent==$agent, revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
+		not ReportedVote( agent==$agent, voteRevision==$revision, voteBallot==$ballot, voteValue==$value, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Vote inserted ReportedVote( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " ) and " + 
 			" Voted( " + $agent + " , " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + " )");
