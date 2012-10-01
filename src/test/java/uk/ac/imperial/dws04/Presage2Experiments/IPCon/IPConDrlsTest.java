@@ -1218,7 +1218,21 @@ public class IPConDrlsTest {
 	
 	@Test
 	public void testRemRevision() throws Exception {
-		logger.info("\nTesting PossRemRevision...");
+		
+		testRemRevision(2);
+		tearDown();
+		setUp();
+		testRemRevision(3);
+		tearDown();
+		setUp();
+		testRemRevision(4);
+		tearDown();
+		setUp();
+		testRemRevision(1);
+	}
+	
+	public void testRemRevision(int agentToLeave) throws Exception {
+		logger.info("\nTesting PossRemRevision with agent " + agentToLeave + "...");
 		
 		Integer revision = 1;
 		String issue = "IssueString";
@@ -1285,7 +1299,7 @@ public class IPConDrlsTest {
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
 		assertFactCount("ReportedVote", revision, issue, cluster, 10); // 5 novote, 3 vote, 2 extra reported novote
-		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // if someone joined then while they're synching this will be 1
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		
@@ -1296,7 +1310,95 @@ public class IPConDrlsTest {
 		 * if A1/2 leave : Revise
 		 * if A3/4 leave : No need
 		 */
+		IPConAgent agent = null;
+		switch (agentToLeave) {
+			case 1 :
+				agent = a1;
+				break;
+			case 2:
+				agent = a2;
+				break;
+			case 3 :
+				agent = a3;
+				break;
+			case 4 :
+				agent = a4;
+				break;
+			default : logger.warn("Unrecognised agent: " + agentToLeave); fail(); break;
+		}
+		session.insert(new LeaveCluster(agent, cluster));
+		rules.incrementTime();
 		
+		// Check common ones...
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 2);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 1);
+		assertFactCount("Open_Vote", revision, issue, cluster, 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
+		assertFactCount("ReportedVote", revision, issue, cluster, 10); // 5 novote, 3 vote, 2 extra reported novote
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		
+		switch (agentToLeave) {
+			case 1 : 
+				//if 1 leaves
+				assertFactCount("HasRole", revision, issue, cluster, 3);
+				assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
+				assertActionCount("getObligations", "Revise", null, revision, issue, cluster, 0); // no one to be obligated !
+				break;
+			
+			case 2 : 
+				//if 2 leaves
+				assertFactCount("HasRole", revision, issue, cluster, 5);
+				assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
+				assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1);
+				assertActionCount("getObligations", null, null, revision, issue, cluster, 1);
+				break;
+			
+			case 3 : 
+			case 4 : 
+				//otherwise
+				assertFactCount("HasRole", revision, issue, cluster, 5);
+				assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+				assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+				assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
+				break;
+
+			default : // won't get here..
+		}
+		
+		/*
+		 * Time step 3
+		 * In the case of a1 leaving, a2 arrogates
+		 * Should get the obligation to revise ?
+		 */
+		if (agentToLeave==1) {
+			session.insert(new ArrogateLeadership(a2, revision, issue, cluster));
+			rules.incrementTime();
+			
+			assertFactCount("HasRole", revision, issue, cluster, 4);
+			assertFactCount("Sync", revision, issue, cluster, 0);
+			assertFactCount("NeedToSync", revision, issue, cluster, 0);
+			assertQuorumSize(revision, issue, cluster, 2);
+			assertFactCount("Pre_Vote", revision, issue, cluster, 1);
+			assertFactCount("Open_Vote", revision, issue, cluster, 1);
+			assertFactCount("Chosen", revision, issue, cluster, 1);
+			assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
+			assertFactCount("ReportedVote", revision, issue, cluster, 10); // 5 novote, 3 vote, 2 extra reported novote
+			assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // if someone joined then while they're synching this will be 1
+			assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
+			
+			// FIXME TODO a2 is not obligated to revise. Problem !
+			assertActionCount("getObligations", "Revise", a2, revision, issue, cluster, 0);
+			assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
+			
+		}
+		else {
+			// do nothing
+		}
+
+		logger.info("Finished testing PossRemRevision with agent " + agentToLeave + "\n");
 	}
 	
 	private final FactType typeFromString(String factTypeString) {
