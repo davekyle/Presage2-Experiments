@@ -39,6 +39,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.LeaveCluster;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.RemRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ResignLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Response1B;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Revise;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Submit2A;
@@ -208,6 +209,78 @@ public class IPConDrlsTest {
 		assertFactCount("AddRole", null, null, null, 0);
 		
 		logger.info("Finished arrogateLeadershipTest()\n");
+	}
+	
+	@Test
+	public void resignTest() throws Exception {
+		logger.info("\nStarting resignTest()");
+		
+		Integer revision = 1;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
+		Integer ballot = 5;
+		Object v1 = "dfghjk";
+		Object v2 = "v2";
+		
+		/*
+		 * Initially
+		 */
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1); initAgent(a1, new Role[]{Role.LEADER, Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
+		session.insert(new Voted(a1, revision, ballot-1, v1, issue, cluster));
+		session.insert(new Proposed(revision, v2, issue, cluster));
+		
+		
+		rules.incrementTime();
+	
+		
+		//initially assert
+		assertFactCount("HasRole", revision, issue, cluster, 3);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 1);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 0);
+		assertFactCount("Open_Vote", revision, issue, cluster, 0);
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		assertFactCount("Voted", revision, issue, cluster, 2);
+		assertFactCount("ReportedVote", revision, issue, cluster, 1);
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 1); // obligated to prepare
+		assertActionCount("getObligations", "Response1B", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "Prepare1A", a1, revision, issue, cluster, 1);
+		
+		assertActionCount("getPowers", "ResignLeadership", a1, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "Request0A", a1, revision, issue, cluster, 1);
+		
+		/*
+		 * Time step 1
+		 * A1 resigns
+		 * Obligation & leader powers removed 
+		 */
+		session.insert(new ResignLeadership(a1, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 2);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 1);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 0);
+		assertFactCount("Open_Vote", revision, issue, cluster, 0);
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		assertFactCount("Voted", revision, issue, cluster, 2);
+		assertFactCount("ReportedVote", revision, issue, cluster, 1);
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 0); // obligated to report the vote, and to prepare
+		assertActionCount("getObligations", "Response1B", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "Prepare1A", a1, revision, issue, cluster, 0);
+		
+		assertActionCount("getPowers", "ResignLeadership", a1, revision, issue, cluster, 0);
+		assertActionCount("getPowers", "Request0A", a1, revision, issue, cluster, 1);
 	}
 	
 	@Test
