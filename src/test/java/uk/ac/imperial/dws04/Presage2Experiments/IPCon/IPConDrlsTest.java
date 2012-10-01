@@ -948,8 +948,6 @@ public class IPConDrlsTest {
 		rules.incrementTime();
 		//logger.debug(getActionQueryResultsForRIC("getPowers", null, null, revision+1, issue, cluster));
 		
-		//FIXME TODO urgh now I need to improve all fns with RIC args :''(
-		
 		// Check nothing changed in the old revision
 		assertFactCount("HasRole", revision, issue, cluster, 7);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -1485,27 +1483,6 @@ public class IPConDrlsTest {
 	 * @return
 	 */
 	@Deprecated
-	private final boolean assertFactType(Object obj, String factTypeName) {
-		try {
-			return ( ( typeFromString(factTypeName).newInstance().getClass() ).equals( ( obj.getClass() ) ) );
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return false;
-		}
-	}
-	
-	/**
-	 * Wrapper function to check an object from the kbase is a drls FactType. Replaces instanceof functionality.
-	 * @param obj
-	 * @param factTypeName
-	 * @return
-	 */
-	@Deprecated
 	private final boolean isFactType(Object obj, FactType factType) {
 		try {
 			return ( ( factType.newInstance().getClass() ).equals( ( obj.getClass() ) ) );
@@ -1513,11 +1490,9 @@ public class IPConDrlsTest {
 			//e.printStackTrace();
 			return false;
 		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return false;
 		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return false;
 		}
@@ -1559,9 +1534,9 @@ public class IPConDrlsTest {
 	
 	/**
 	 * @param factTypeString
-	 * @param revision TODO
-	 * @param issue TODO
-	 * @param cluster TODO
+	 * @param revision
+	 * @param issue 
+	 * @param cluster 
 	 * @param count
 	 * @return the collection of facts that matched the query
 	 */
@@ -1579,9 +1554,9 @@ public class IPConDrlsTest {
 	/**
 	 * For compatibility with things I haven't updated to the new ways...
 	 * @param factTypeString
-	 * @param revision TODO
-	 * @param issue TODO
-	 * @param cluster TODO
+	 * @param revision 
+	 * @param issue
+	 * @param cluster
 	 * @param count
 	 * @param revision
 	 * @param issue
@@ -1601,7 +1576,7 @@ public class IPConDrlsTest {
 			}));
 		}
 		// try java classes
-		//FIXME TODO remove this... only being used by IPConAgent lookups atm
+		//FIXME TODO would be nice to remove this... 
 		if (facts.size()==0) {
 			facts.addAll(session.getObjects(new ObjectFilter() {
 		
@@ -1656,19 +1631,6 @@ public class IPConDrlsTest {
 			set.add((IPConAction)row.get("$action"));
 		}
 		return set;
-	}
-
-	@Deprecated
-	private final Collection<IPConAction> getQueryResultsOld( final String queryName, final String actionType, final IPConAgent agent) {	
-		
-		HashSet<IPConAction> result = new HashSet<IPConAction>();
-		for (IPConAction action : getActionQueryResults(queryName, actionType, agent)) {
-			if (action.getClass().getSimpleName().equals(actionType)) {
-				result.add(action);
-			}
-		}
-		return result;
-		
 	}
 	
 	private final Collection<IPConAction> getActionQueryResultsForRIC(	final String queryName,
@@ -1732,64 +1694,12 @@ public class IPConDrlsTest {
 				( actionIssue==null || actionIssue.equals(issue)) &&
 				( actionCluster==null || actionCluster.equals(cluster)) );
 	}
-				
-	
-	/**
-	 * Allows testing the field of the first AND ONLY fact of a specified type
-	 * Returns the field you tested, for convenience (?)
-	 * @param factTypeString
-	 * @param fieldString
-	 * @param value
-	 * @return field
-	 */
-	/*@Deprecated
-	private final Object assertFactFieldValue(String factTypeString, String fieldString, Object value) {
-		Collection<Object> facts = assertFactCount(factTypeString, revision, issue, cluster, 1);
-		Object fact = Arrays.asList(facts.toArray()).get(0);
-		Object field = typeFromString(factTypeString).get(fact, fieldString);
-		// correct value was retrieved
-		assertEquals(value, field);
-		return field;
-	}*/
 	
 	private final void assertQuorumSize(Integer revision, String issue, UUID cluster, Integer quorumSize) {
 		ArrayList<IPConFact> obj = new ArrayList<IPConFact>();
 		obj.addAll(getFactQueryResults("QuorumSize", revision, issue, cluster));
 		assertEquals(1, obj.size());
 		assertEquals(quorumSize, ((QuorumSize)obj.get(0)).getQuorumSize());
-	}
-
-	@Deprecated
-	private final ArrayList<IPConAction> getAgentPowers(IPConAgent agent) {
-		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
-		QueryResults results = session.getQueryResults("agentPowers", new Object[] { agent });
-		for ( QueryResultsRow row : results ) {
-			actions.add((IPConAction)row.get("$action"));
-		}
-		logger.info("Agent " + agent.getName() + " has the following powers: " + actions);
-		return actions;
-	}
-
-	@Deprecated
-	private final ArrayList<IPConAction> getAgentPermissions(IPConAgent agent) {
-		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
-		QueryResults results = session.getQueryResults("agentPermissions", new Object[] { agent });
-		for ( QueryResultsRow row : results ) {
-			actions.add((IPConAction)row.get("$action"));
-		}
-		logger.info("Agent " + agent.getName() + " has the following permissions: " + actions);
-		return actions;
-	}
-
-	@Deprecated
-	private final ArrayList<IPConAction> getAgentObligations(IPConAgent agent) {
-		ArrayList<IPConAction> actions = new ArrayList<IPConAction>();
-		QueryResults results = session.getQueryResults("agentObligations", new Object[] { agent });
-		for ( QueryResultsRow row : results ) {
-			actions.add((IPConAction)row.get("$action"));
-		}
-		logger.info("Agent " + agent.getName() + " has the following obligations: " + actions);
-		return actions;
 	}
 
 	
