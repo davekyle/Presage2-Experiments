@@ -58,7 +58,7 @@ rule "holdsAt for obligation to respond"
         Permission( $agent : agent, $action : action )
         Response1B( agent==$agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster, $revision==$voteRevision ) from $action
 		Voted( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, issue==$issue, cluster==$cluster )
-		not ReportedVote( agent==$agent, revision==$voteRevision, ballot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+		not ReportedVote( agent==$agent, voteRevision==$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
 		Response1B $response = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
 		logger.trace("Logically toggling obligation for " + $agent + "  to " + $response );
@@ -79,14 +79,17 @@ rule "holdsAt for obligation to submit"
 end
 
 rule "initiates for obligation to revise when an acceptor leaves"
-// FIXME TODO I hate the order this is done in... AgentLeft should be at the top with the bindings...
+// needs to happen before the holdsAt for PRR
+agenda-group "PRR"
+auto-focus true
+lock-on-active true
+no-loop
 	when
-		PossibleRemRevision( $value : value, $revision : revision, $issue : issue, $cluster : cluster )
-		ReportedVote( $agent : agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
-		exists AgentLeft( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		AgentLeft( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		ReportedVote( agent==$agent, voteRevision==$revision, $value : voteValue, revision==$revision, issue==$issue, cluster==$cluster )
+		PossibleRemRevision( value==$value, revision==$revision, issue==$issue, cluster==$cluster )
 		Permission( $leader : agent, $action : action )
         Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $action
-		ReportedVote( agent==$agent, voteRevision==$revision, voteValue==$value, revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
 		logger.trace("AgentLeft inserted obligation for " + $leader + "  to " + $revise );

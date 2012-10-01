@@ -33,12 +33,12 @@ declare PossibleAddRevision
 end
 
 // fact indicating that if someone leaves, there may need to be a revision after
-/*declare PossibleRemRevision
-	value : Object
-	revision : Integer
-	issue : String
-	cluster : UUID
-end*/
+//declare PossibleRemRevision
+	//value : Object
+	//revision : Integer
+	//issue : String
+	//cluster : UUID
+//end
 
 
 
@@ -93,12 +93,15 @@ rule "holdsAt for possibleAddRevision"
 		insert( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
 end
 
-
 rule "holdsAt for possibleRemRevision"
+// needs to happen after the obligation to revise check
+agenda-group "PRR"
+auto-focus true
 	when
-		// NOTE that this code is all reused from above except the following line...
+		// NOTE that this code is all reused from above except the following line missing and adding QS...
 		//Sync( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
 		Chosen( $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		$quorumSize : QuorumSize( revision==$revision, issue==$issue, cluster==$cluster )
 		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
 		
 		// find all acceptors
@@ -115,7 +118,7 @@ rule "holdsAt for possibleRemRevision"
 								//, count( $b ) )
 								, collectList( $b ) )
 		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
-		$notForVotes : List( $forVotes.size() <= $notForVotes.size() ) from accumulate(
+		$notForVotes : List( $forVotes.size() <= $notForVotes.size(), $forVotes.size()<$quorumSize.getQuorumSize() ) from accumulate(
 								// that voted against the value
 								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV_val, issue==$issue, cluster==$cluster ) and 
 								// and didn't vote since the one you just got
@@ -167,13 +170,15 @@ rule "update quorumsize"
 								$c : NeedToSync( agent memberOf $acceptors, revision==$revision, issue==$issue, cluster==$cluster )
 								, collectList( $c ) )
 	then
-		/* logger.trace("0");
+		/*
+		logger.trace("0");
 		Integer acc = $acceptors.size();
 		double half = acc/2; logger.trace("1");
 		half = java.lang.Math.floor( half ); logger.trace("2");
 		Double floor = (Double)half; logger.trace("3");
 		Integer newQS = floor.intValue() + 1; logger.trace("4");
-		Integer newQSadjusted = newQS - $syncs.size() - $needToSyncs.size(); logger.trace("5");*/
+		Integer newQSadjusted = newQS - $syncs.size() - $needToSyncs.size(); logger.trace("5");
+		*/
 		//Integer syncSize = $syncs.intValue();
 		//Integer needToSyncSize = $needToSyncs.size();
 		logger.trace("Acceptors:" + $acceptors.size() + " / Syncs:" + $syncs + " / NeedToSyncs:" + $needToSyncs.size() );

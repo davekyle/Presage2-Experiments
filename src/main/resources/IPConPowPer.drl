@@ -410,9 +410,8 @@ rule "holdsAt for power to resign"
 end
 
 rule "holdsAt for power to leave"
-	agenda-group "exit"
-	auto-focus true
-	lock-on-active true
+	//agenda-group "exit"
+	//auto-focus true
 // Can't use an exists() on this because the cluster is declared in it...
 // Would need to make explicit Cluster fact (IPConRIC won't work because would be many
 // and then the same exists() problem occurs...)

@@ -122,13 +122,12 @@ public class IPConDrlsTest {
 		}
 	}
 	
-	public void initAgent(IPConAgent agent, Role role, Integer revision, String issue, UUID cluster) throws Exception {
-		ArrayList<Role> roles = new ArrayList<Role>();
-		roles.add(role);
+	public void initAgent(IPConAgent agent, Role role, Integer revision, String issue, UUID cluster) {
+		Role[] roles  = new Role[]{role};
 		initAgent(agent, roles, revision, issue, cluster);
 	}
 	
-	public void initAgent(IPConAgent agent, ArrayList<Role> roles, Integer revision, String issue, UUID cluster) throws Exception {
+	public void initAgent(IPConAgent agent, Role[] roles, Integer revision, String issue, UUID cluster) {
 		//IPConAgent agent = new IPConAgent();
 		//session.insert(agent);
 		
@@ -221,12 +220,8 @@ public class IPConDrlsTest {
 		
 		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1);
 		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2);
-		ArrayList<Role> a1Roles = new ArrayList<Role>();
-		ArrayList<Role> a2Roles = new ArrayList<Role>();
-		a1Roles.add(Role.LEADER);
-		a1Roles.add(Role.ACCEPTOR);
-		a2Roles.add(Role.PROPOSER);
-		a2Roles.add(Role.ACCEPTOR);
+		Role[] a1Roles = new Role[]{Role.LEADER, Role.ACCEPTOR};
+		Role[] a2Roles = new Role[]{Role.PROPOSER, Role.ACCEPTOR};
 		initAgent(a1, a1Roles, revision, issue, cluster);
 		initAgent(a2, a2Roles, revision, issue, cluster);
 		
@@ -292,6 +287,7 @@ public class IPConDrlsTest {
 		
 		// make sure agent isn't permitted to respond with anything other than highest vote
 		Collection<IPConAction> perSet = getActionQueryResultsForRIC("getPermissions", "Response1B", null, null, null, null);
+		// check agent is obligated to respond
 		Collection<IPConAction> oblSet = getActionQueryResultsForRIC("getObligations", "Response1B", null, null, null, null);
 		
 		//dbl check only one each, and they're the same
@@ -590,10 +586,7 @@ public class IPConDrlsTest {
 		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1);
 		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2);
 		IPConAgent a3 = new IPConAgent("a3"); session.insert(a3);
-		ArrayList<Role> leaderRoles = new ArrayList<Role>();
-		leaderRoles.add(Role.LEADER);
-		leaderRoles.add(Role.PROPOSER);
-		leaderRoles.add(Role.ACCEPTOR);
+		Role[] leaderRoles = new Role[]{Role.LEADER, Role.PROPOSER, Role.ACCEPTOR};
 		initAgent(a1, leaderRoles, revision, issue, cluster);
 		initAgent(a2, Role.ACCEPTOR, revision, issue, cluster);
 		initAgent(a3, Role.ACCEPTOR, revision, issue, cluster);
@@ -1197,7 +1190,7 @@ public class IPConDrlsTest {
 		
 		/*
 		 * Time step 7
-		 * Ag5 says no
+		 * Ag5 says yes
 		 * Safety should not be violated
 		 */
 		session.insert(new SyncAck(a5, "A", revision, issue, cluster));
@@ -1220,6 +1213,89 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
 		
 		logger.info("Finished checking SyncAck yes.\n");
+		
+	}
+	
+	@Test
+	public void testRemRevision() throws Exception {
+		logger.info("\nTesting PossRemRevision...");
+		
+		Integer revision = 1;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
+		Object v1 = "A";
+		Integer ballot1 = 1;
+		
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1); initAgent(a1, new Role[]{Role.LEADER, Role.ACCEPTOR, Role.PROPOSER}, revision, issue, cluster);
+		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2); initAgent(a2, Role.ACCEPTOR, revision, issue, cluster);
+		IPConAgent a3 = new IPConAgent("a3"); session.insert(a3); initAgent(a3, Role.ACCEPTOR, revision, issue, cluster);
+		IPConAgent a4 = new IPConAgent("a4"); session.insert(a4); initAgent(a4, Role.ACCEPTOR, revision, issue, cluster);
+		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5); initAgent(a5, Role.ACCEPTOR, revision, issue, cluster);
+		
+		// Initially, a1&2&5 voted, 3,4 not.
+		session.insert(new Voted(a1, revision, ballot1, v1, issue, cluster));
+		session.insert(new Voted(a2, revision, ballot1, v1, issue, cluster));
+		session.insert(new Voted(a5, revision, ballot1, v1, issue, cluster));
+		session.insert(new ReportedVote(a1, revision, ballot1, v1, revision, ballot1, issue, cluster));
+		session.insert(new ReportedVote(a2, revision, ballot1, v1, revision, ballot1, issue, cluster));
+		session.insert(new ReportedVote(a3, revision, 0, IPCNV.val(), revision, ballot1, issue, cluster));
+		session.insert(new ReportedVote(a4, revision, 0, IPCNV.val(), revision, ballot1, issue, cluster));
+		session.insert(new ReportedVote(a5, revision, ballot1, v1, revision, ballot1, issue, cluster));
+		session.insert(new Pre_Vote(revision, ballot1, issue, cluster));
+		session.insert(new Open_Vote(revision, ballot1, v1, issue, cluster));
+		
+
+		outputObjects();
+		
+		rules.incrementTime();
+		
+		//initially assert
+		assertFactCount("HasRole", revision, issue, cluster, 7);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 3);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 1);
+		assertFactCount("Open_Vote", revision, issue, cluster, 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
+		assertFactCount("ReportedVote", revision, issue, cluster, 10); // 5 novote, 3 vote, 2 extra reported novote
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
+		
+		assertActionCount("getPowers", "LeaveCluster", a5, revision, issue, cluster, 1);
+		
+		
+		/*
+		 * Time Step 1
+		 * A5 leaves; no immediate effect as status quo holds.
+		 * PRR init.
+		 */
+		session.insert(new LeaveCluster(a5, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 6);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 3);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 1);
+		assertFactCount("Open_Vote", revision, issue, cluster, 1);
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+		assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
+		assertFactCount("ReportedVote", revision, issue, cluster, 10); // 5 novote, 3 vote, 2 extra reported novote
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
+		
+		/*
+		 * Time Step 2
+		 * if A1/2 leave : Revise
+		 * if A3/4 leave : No need
+		 */
 		
 	}
 	
