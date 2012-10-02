@@ -52,11 +52,13 @@ end
 rule "holdsAt for obligation to respond"
 // if you haven't responded when you have permission to do so, and have voted, you must respond
 // only obligated to report votes in same revision
+// not obligated if a higher prevote exists (FIXME TODO maybe put this in the permission?)
 // FIXME TODO possibly also send an indicator if you've responded higher to help the leader
 	when
 		//ResponsePer( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
         Permission( $agent : agent, $action : action )
         Response1B( agent==$agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster, $revision==$voteRevision ) from $action
+        not Pre_Vote( revision==$voteRevision, ballot>$ballot, issue==$issue, cluster==$cluster )
 		Voted( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, issue==$issue, cluster==$cluster )
 		not ReportedVote( agent==$agent, voteRevision==$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
