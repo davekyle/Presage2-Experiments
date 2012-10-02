@@ -34,6 +34,23 @@ declare Obligation
 end
 
 
+rule "Request0A as a question initiates obligation to prepare"
+	when
+		Request0A( $agent : agent, $revision : revision, $value : value, $value==null, $issue : issue, $cluster : cluster )
+		//RequestPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		Power( agent==$agent, $reqAct : action)
+		Request0A( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) from $reqAct
+		
+		Permission( $leader : agent, $prepAct : action )
+        Prepare1A( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $prepAct
+        not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		Prepare1A $prepare = new Prepare1A( $leader, $revision, null, $issue, $cluster );
+    	logger.trace("Null request inserted obligation to " + $prepare );
+        insert( new Obligation( $leader, $prepare ) ); 
+end
+
+
 rule "holdsAt for obligation to prepare"
 // if you have permission, a value has been proposed, and a pre_vote doesn't exist already
     when
