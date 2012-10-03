@@ -159,4 +159,16 @@ public class SyncAck extends IPConAction {
 		return "SyncAck [agent=" + agent + ", value=" + value + ", revision="
 				+ revision + ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
+	
+	@Override
+	public boolean fulfils(IPConAction action) {
+		return ( (this.equals(action)) || (
+				(this.getClass().isAssignableFrom(action.getClass())) &&
+				(((SyncAck)action).getAgent()==null) &&
+				(this.getValue().equals(((SyncAck)action).getValue())) &&
+				(this.getRevision().equals(((SyncAck)action).getRevision())) &&
+				(this.getIssue().equals(((SyncAck)action).getIssue())) &&
+				(this.getCluster().equals(((SyncAck)action).getCluster()))
+				) );
+	}
 }

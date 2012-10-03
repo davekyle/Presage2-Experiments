@@ -178,4 +178,17 @@ public class SyncReq extends IPConAction {
 				+ value + ", revision=" + revision + ", issue=" + issue
 				+ ", cluster=" + cluster + "]";
 	}
+	
+	@Override
+	public boolean fulfils(IPConAction action) {
+		return ( (this.equals(action)) || (
+				(this.getClass().isAssignableFrom(action.getClass())) &&
+				(((SyncReq)action).getLeader()==null) &&
+				(this.getAgent().equals(((SyncReq)action).getAgent())) &&
+				(this.getValue().equals(((SyncReq)action).getValue())) &&
+				(this.getRevision().equals(((SyncReq)action).getRevision())) &&
+				(this.getIssue().equals(((SyncReq)action).getIssue())) &&
+				(this.getCluster().equals(((SyncReq)action).getCluster()))
+				) );
+	}
 }

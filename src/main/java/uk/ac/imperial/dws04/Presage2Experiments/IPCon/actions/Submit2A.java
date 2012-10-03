@@ -178,4 +178,17 @@ public class Submit2A extends IPConAction {
 				+ ", ballot=" + ballot + ", value=" + value + ", issue="
 				+ issue + ", cluster=" + cluster + "]";
 	}
+	
+	@Override
+	public boolean fulfils(IPConAction action) {
+		return ( (this.equals(action)) || (
+				(this.getClass().isAssignableFrom(action.getClass())) &&
+				(((Submit2A)action).getAgent()==null) &&
+				(this.getBallot().equals(((Submit2A)action).getBallot())) && 
+				(this.getValue().equals(((Submit2A)action).getValue())) &&
+				(this.getRevision().equals(((Submit2A)action).getRevision())) &&
+				(this.getIssue().equals(((Submit2A)action).getIssue())) &&
+				(this.getCluster().equals(((Submit2A)action).getCluster()))
+				) );
+	}
 }

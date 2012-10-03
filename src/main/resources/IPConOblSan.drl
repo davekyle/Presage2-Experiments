@@ -31,6 +31,8 @@ global Object IPCNV_val
 declare Obligation
 	agent : IPConAgent
 	action : IPConAction
+	agentNeutral : boolean
+	role : Role
 end
 
 
@@ -46,9 +48,9 @@ rule "Request0A as a question initiates obligation to prepare"
         Prepare1A( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $prepAct
         not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		Prepare1A $prepare = new Prepare1A( $leader, $revision, null, $issue, $cluster );
+		Prepare1A $prepare = new Prepare1A( null, $revision, null, $issue, $cluster );
     	logger.trace("Null request inserted obligation to " + $prepare );
-        insert( new Obligation( $leader, $prepare ) ); 
+        insert( new Obligation( null, $prepare, true, Role.LEADER ) ); 
 end
 
 
@@ -62,9 +64,9 @@ rule "holdsAt for obligation to prepare"
         not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
     then
     	//$ballot = Integer.NaN; // FIXME todo need to work out how to handle this...
-    	Prepare1A $prepare = new Prepare1A( $agent, $revision, null, $issue, $cluster );
+    	Prepare1A $prepare = new Prepare1A( null, $revision, null, $issue, $cluster );
     	logger.trace("Logically toggling obligation to " + $prepare );
-        insertLogical( new Obligation( $agent, $prepare ) ); 
+        insertLogical( new Obligation( null, $prepare, true, Role.LEADER ) ); 
 end
 
 rule "holdsAt for obligation to respond"
@@ -82,7 +84,7 @@ rule "holdsAt for obligation to respond"
 	then
 		Response1B $response = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
 		logger.trace("Logically toggling obligation for " + $agent + "  to " + $response );
-        insertLogical( new Obligation( $agent, $response ) );
+        insertLogical( new Obligation( $agent, $response, false, Role.ACCEPTOR ) );
 end
 
 rule "holdsAt for obligation to submit"
@@ -93,9 +95,9 @@ rule "holdsAt for obligation to submit"
         Submit2A( agent==$agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster ) from $action
 		not Open_Vote( revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
 	then
-		Submit2A $submit = new Submit2A( $agent, $revision, $ballot, $value, $issue, $cluster );
+		Submit2A $submit = new Submit2A( null, $revision, $ballot, $value, $issue, $cluster );
 		logger.trace("Logically toggling obligation for " + $agent + "  to " + $submit );
-        insertLogical( new Obligation( $agent, $submit ) );
+        insertLogical( new Obligation( null, $submit, true, Role.LEADER ) );
 end
 
 rule "initiates for obligation to revise when an acceptor leaves"
@@ -111,9 +113,9 @@ no-loop
 		Permission( $leader : agent, $action : action )
         Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 	then
-		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
+		Revise $revise = new Revise( null, $revision, $issue, $cluster );
 		logger.trace("AgentLeft inserted obligation for " + $leader + "  to " + $revise );
-        insert( new Obligation( $leader, $revise ) ); 
+        insert( new Obligation( null, $revise, true, Role.LEADER ) ); 
 end
 
 
@@ -157,7 +159,7 @@ end
         insert( new Obligation( $leader, $revise ) ); 
 end
 */
-
+/*
 rule "revise terminates obligation to revise"
 // TODO will this work ? :S If it does, how about more general Action terminates obligation to Action ?
 	no-loop
@@ -167,7 +169,7 @@ rule "revise terminates obligation to revise"
 	then
 		logger.trace("Revise retracted obligation for " + $agent + " to " + $revise );
         retract( $obl );
-end
+end*/
 
 rule "holdsAt for obligation to syncReq"
 // if you have permission, you must syncReq (syncreqper covers all the other requirements)
@@ -176,9 +178,9 @@ rule "holdsAt for obligation to syncReq"
         Permission( $leader : agent, $action : action )
         SyncReq( leader==$leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster ) from $action
 	then
-		SyncReq $syncReq = new SyncReq( $leader, $agent, $value, $revision, $issue, $cluster );
+		SyncReq $syncReq = new SyncReq( null, $agent, $value, $revision, $issue, $cluster );
 		logger.trace("Logically toggling obligation for " + $leader + " to " + $syncReq );
-        insertLogical( new Obligation( $leader, $syncReq ) );
+        insertLogical( new Obligation( null, $syncReq, true, Role.LEADER ) );
 end
 
 rule "syncAck no initiates obligation to revise"
@@ -196,9 +198,9 @@ rule "syncAck no initiates obligation to revise"
 		PossibleAddRevision( /*value!=$answer,*/ revision==$revision, issue==$issue, cluster==$cluster )
 		not Obligation( agent==$leader, action==$rev )
 	then
-		Revise $revise = new Revise( $leader, $revision, $issue, $cluster );
+		Revise $revise = new Revise( null, $revision, $issue, $cluster );
 		logger.trace("SyncAck inserted obligation for " + $leader + " to " + $revise );
-        insert( new Obligation( $leader, $revise ) ); 
+        insert( new Obligation( null, $revise, true, Role.LEADER ) ); 
 end
 
 rule "holdsAt for obligation to syncack"
@@ -213,16 +215,38 @@ rule "holdsAt for obligation to syncack"
 		//$answer = Integer.NaN; //FIXME TODO need to work out how to handle this...
 		SyncAck $syncAck = new SyncAck( $agent, null, $revision, $issue, $cluster );
 		logger.trace("Sync logically toggling obligation for " + $agent + " to " + $syncAck );
-        insertLogical( new Obligation( $agent, $syncAck ) );
+        insertLogical( new Obligation( $agent, $syncAck, false, Role.ACCEPTOR ) );
 end
-
-rule "Generic obligation retraction"
+/*
+rule "Generic agent-relative obligation retraction"
 	when
 		$agent : IPConAgent( )
 		$action : IPConAction( )
 		$obl : Obligation( agent==$agent, action==$action ) 
 	then
-		logger.trace("Retracted obligation: " + $obl);
+		logger.trace($action + " retracted agent-relative obligation: " + $obl);
+		retract( $obl );
+end	 
+
+rule "Generic agent-neutral obligation retraction"
+	when
+		$agent : IPConAgent( )
+		$action : IPConAction( )
+		HasRole( $role : role, agent==$agent )
+		$obl : Obligation( agent==null, action==$action, agentNeutral==true, role==$role ) 
+	then
+		logger.trace($action + " retracted agent-neutral obligation: " + $obl);
+		retract( $obl );
+end	 	 
+*/
+rule "Generic joint obligation retraction"
+	when
+		$agent : IPConAgent( )
+		$action : IPConAction( )
+		HasRole( agent==$agent, $role : role )
+		$obl : Obligation( ( (agent==$agent) || (agent==null && agentNeutral==true && role==$role) ), $action.fulfils(action) ) 
+	then
+		logger.trace($action + " retracted obligation: " + $obl);
 		retract( $obl );
 end	 
 
@@ -232,5 +256,6 @@ end
 
 // DO NOT USE WITH EMPTY ACTIONNAME !
 query "getObligationsActions"( IPConAgent $agent, String $actionName )
-	$obligation : Obligation( agent==$agent, $action : action, ($action.toString()).substring(0,$actionName.length()).equals($actionName) )
+	HasRole( agent==$agent, $role : role)
+	$obligation : Obligation( ( (agent==$agent) || (agent==null && agentNeutral==true && role==$role) ), $action : action, ($action.toString()).substring(0,$actionName.length()).equals($actionName) )
 end

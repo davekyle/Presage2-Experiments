@@ -177,4 +177,17 @@ public class Vote2B extends IPConAction {
 				+ ", ballot=" + ballot + ", value=" + value + ", issue="
 				+ issue + ", cluster=" + cluster + "]";
 	}
+	
+	@Override
+	public boolean fulfils(IPConAction action) {
+		return ( (this.equals(action)) || (
+				(this.getClass().isAssignableFrom(action.getClass())) &&
+				(((Vote2B)action).getAgent()==null) &&
+				(this.getValue().equals(((Vote2B)action).getValue())) &&
+				(this.getBallot().equals(((Vote2B)action).getBallot())) &&
+				(this.getRevision().equals(((Vote2B)action).getRevision())) &&
+				(this.getIssue().equals(((Vote2B)action).getIssue())) &&
+				(this.getCluster().equals(((Vote2B)action).getCluster()))
+				) );
+	}
 }

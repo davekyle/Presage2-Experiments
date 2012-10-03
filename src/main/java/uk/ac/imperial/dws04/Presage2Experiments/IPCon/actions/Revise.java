@@ -135,4 +135,15 @@ public class Revise extends IPConAction {
 		return "Revise [agent=" + agent + ", revision=" + revision
 				+ ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
+	
+	@Override
+	public boolean fulfils(IPConAction action) {
+		return ( (this.equals(action)) || (
+				(this.getClass().isAssignableFrom(action.getClass())) &&
+				(((Revise)action).getAgent()==null) &&
+				(this.getRevision().equals(((Revise)action).getRevision())) &&
+				(this.getIssue().equals(((Revise)action).getIssue())) &&
+				(this.getCluster().equals(((Revise)action).getCluster()))
+				) );
+	}
 }

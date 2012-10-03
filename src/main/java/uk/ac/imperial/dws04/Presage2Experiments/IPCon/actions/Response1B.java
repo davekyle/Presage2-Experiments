@@ -225,4 +225,19 @@ public class Response1B extends IPConAction {
 				+ ", revision=" + revision + ", ballot=" + ballot + ", issue="
 				+ issue + ", cluster=" + cluster + "]";
 	}
+	
+	@Override
+	public boolean fulfils(IPConAction action) {
+		return ( (this.equals(action)) || (
+				(this.getClass().isAssignableFrom(action.getClass())) &&
+				(((Response1B)action).getAgent()==null) &&
+				(this.getVoteBallot().equals(((Response1B)action).getVoteBallot())) &&
+				(this.getVoteRevision().equals(((Response1B)action).getVoteRevision())) &&
+				(this.getVoteValue().equals(((Response1B)action).getVoteValue())) &&
+				(this.getBallot().equals(((Response1B)action).getBallot())) &&
+				(this.getRevision().equals(((Response1B)action).getRevision())) &&
+				(this.getIssue().equals(((Response1B)action).getIssue())) &&
+				(this.getCluster().equals(((Response1B)action).getCluster()))
+				) );
+	}
 }

@@ -159,4 +159,16 @@ public class Prepare1A extends IPConAction {
 				+ ", ballot=" + ballot + ", issue=" + issue + ", cluster="
 				+ cluster + "]";
 	}
+	
+	@Override
+	public boolean fulfils(IPConAction action) {
+		return ( (this.equals(action)) || (
+				(this.getClass().isAssignableFrom(action.getClass())) &&
+				(((Prepare1A)action).getAgent()==null) &&
+				(this.getBallot().equals(((Prepare1A)action).getBallot())) &&
+				(this.getRevision().equals(((Prepare1A)action).getRevision())) &&
+				(this.getIssue().equals(((Prepare1A)action).getIssue())) &&
+				(this.getCluster().equals(((Prepare1A)action).getCluster()))
+				) );
+	}
 }

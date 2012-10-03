@@ -90,4 +90,15 @@ public class LeaveCluster extends IPConAction {
 	public String toString() {
 		return "LeaveCluster [agent=" + agent + ", cluster=" + cluster + "]";
 	}
+	
+	@Override
+	public boolean fulfils(IPConAction action) {
+		return ( (this.equals(action)) || (
+				(this.getClass().isAssignableFrom(action.getClass())) &&
+				(((LeaveCluster)action).getAgent()==null) &&
+				(this.getCluster().equals(((LeaveCluster)action).getCluster()))
+				) );
+	}
+	
+	
 }

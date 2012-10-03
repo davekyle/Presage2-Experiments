@@ -935,7 +935,7 @@ public class IPConDrlsTest {
 		outputObjects();
 		
 		// Check safety was violated and an obligation to revise exists
-		assertActionCount("getObligations", "Revise", a1, null, null, null, 1);
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1);
 		assertFactCount("PossibleAddRevision", null, null, null, 1);
 		assertFactCount("PossibleRemRevision", null, null, null, 1);
 		
@@ -948,6 +948,8 @@ public class IPConDrlsTest {
 		session.insert(new Revise(a1, revision, issue, cluster));
 		rules.incrementTime();
 		//logger.debug(getActionQueryResultsForRIC("getPowers", null, null, revision+1, issue, cluster));
+		
+		outputObjects();
 		
 		// Check nothing changed in the old revision
 		assertFactCount("HasRole", revision, issue, cluster, 7);
@@ -1463,8 +1465,8 @@ public class IPConDrlsTest {
 			assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 			
 			// FIXME TODO a2 is not obligated to revise. Problem !
-			assertActionCount("getObligations", "Revise", a2, revision, issue, cluster, 0);
-			assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
+			assertActionCount("getObligations", "Revise", a2, revision, issue, cluster, 1);
+			assertActionCount("getObligations", null, null, revision, issue, cluster, 1);
 			
 		}
 		else if (agentToLeave==1) {
@@ -1529,7 +1531,7 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
 		
-		assertActionCount("getObligations", null, null, revision, issue, cluster, 2);
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 1); // they both share one...
 		assertActionCount("getObligations", "Prepare1A", a1, revision, issue, cluster, 1);
 		assertActionCount("getObligations", "Prepare1A", a2, revision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Prepare1A", a1, revision, issue, cluster, 1);
@@ -1556,7 +1558,7 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
 		
-		assertActionCount("getObligations", null, null, revision, issue, cluster, 2);
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 2); // acceptor obligation not shared
 		assertActionCount("getObligations", "Response1B", a1, revision, issue, cluster, 1);
 		assertActionCount("getObligations", "Response1B", a2, revision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Response1B", a1, revision, issue, cluster, 1);
