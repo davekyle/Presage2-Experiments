@@ -40,33 +40,33 @@ rule "Request0A as a question initiates obligation to prepare"
 // FIXME TODO need to add a way for the asker to be informed of result (maybe in the java only?)
 	when
 		Request0A( $agent : agent, $revision : revision, $value : value, $value==null, $issue : issue, $cluster : cluster )
-		//RequestPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		Power( agent==$agent, $reqAct : action)
 		Request0A( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) from $reqAct
 		
-		Permission( $leader : agent, $prepAct : action )
-        Prepare1A( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $prepAct
-        not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
+		// Must be created on the Request0A, even if no one has permission then
+		//Permission( $leader : agent, $prepAct : action )
+		//Prepare1A( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $prepAct
+		not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
 	then
 		Prepare1A $prepare = new Prepare1A( null, $revision, null, $issue, $cluster );
     	logger.trace("Null request inserted obligation to " + $prepare );
-        insert( new Obligation( null, $prepare, true, Role.LEADER ) ); 
+		insert( new Obligation( null, $prepare, true, Role.LEADER ) ); 
 end
 
 
 rule "holdsAt for obligation to prepare"
 // if you have permission, a value has been proposed, and a pre_vote doesn't exist already
-    when
-        //PreparePer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
-        Permission( $agent : agent, $action : action )
-        Prepare1A( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster ) from $action
-        Proposed( revision==$revision, issue==$issue, cluster==$cluster )
-        not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
-    then
+	when
+		// This isn't bound to a specific action, so will kick in as soon as someone is able
+		Permission( $agent : agent, $action : action )
+		Prepare1A( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster ) from $action
+		Proposed( revision==$revision, issue==$issue, cluster==$cluster )
+		not Pre_Vote( revision==$revision, issue==$issue, cluster==$cluster )
+	then
     	//$ballot = Integer.NaN; // FIXME todo need to work out how to handle this...
     	Prepare1A $prepare = new Prepare1A( null, $revision, null, $issue, $cluster );
     	logger.trace("Logically toggling obligation to " + $prepare );
-        insertLogical( new Obligation( null, $prepare, true, Role.LEADER ) ); 
+		insertLogical( new Obligation( null, $prepare, true, Role.LEADER ) ); 
 end
 
 rule "holdsAt for obligation to respond"
@@ -75,22 +75,21 @@ rule "holdsAt for obligation to respond"
 // not obligated if a higher prevote exists (FIXME TODO maybe put this in the permission?)
 // FIXME TODO possibly also send an indicator if you've responded higher to help the leader
 	when
-		//ResponsePer( $agent : agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
-        Permission( $agent : agent, $action : action )
-        Response1B( agent==$agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster, $revision==$voteRevision ) from $action
-        not Pre_Vote( revision==$voteRevision, ballot>$ballot, issue==$issue, cluster==$cluster )
+		Permission( $agent : agent, $action : action )
+		Response1B( agent==$agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster, $revision==$voteRevision ) from $action
+		not Pre_Vote( revision==$voteRevision, ballot>$ballot, issue==$issue, cluster==$cluster )
 		Voted( agent==$agent, revision==$voteRevision, ballot==$voteBallot, value==$voteValue, issue==$issue, cluster==$cluster )
 		not ReportedVote( agent==$agent, voteRevision==$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
 	then
 		Response1B $response = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
 		logger.trace("Logically toggling obligation for " + $agent + "  to " + $response );
-        insertLogical( new Obligation( $agent, $response, false, Role.ACCEPTOR ) );
+		insertLogical( new Obligation( $agent, $response, false, Role.ACCEPTOR ) );
 end
 
 rule "holdsAt for obligation to submit"
 // if you have permission (which is pretty explicitly done) and haven't yet, you must
 	when
-		//SubmitPer( $agent : agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster )
+		// This isn't bound to a specific action, so will kick in as soon as someone is able
         Permission( $agent : agent, $action : action )
         Submit2A( agent==$agent, $revision : revision, $ballot : ballot, $value : value, $issue : issue, $cluster : cluster ) from $action
 		not Open_Vote( revision==$revision, ballot==$ballot, value==$value, issue==$issue, cluster==$cluster )
@@ -110,11 +109,12 @@ no-loop
 		AgentLeft( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		ReportedVote( agent==$agent, voteRevision==$revision, $value : voteValue, revision==$revision, issue==$issue, cluster==$cluster )
 		PossibleRemRevision( value==$value, revision==$revision, issue==$issue, cluster==$cluster )
-		Permission( $leader : agent, $action : action )
-        Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $action
+		// This is bound to the AgentLeft, so is required even if someone isn't around
+		//Permission( $leader : agent, $action : action )
+		//Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 	then
 		Revise $revise = new Revise( null, $revision, $issue, $cluster );
-		logger.trace("AgentLeft inserted obligation for " + $leader + "  to " + $revise );
+		logger.trace("AgentLeft inserted obligation for a leader  to " + $revise );
         insert( new Obligation( null, $revise, true, Role.LEADER ) ); 
 end
 
@@ -174,7 +174,7 @@ end*/
 rule "holdsAt for obligation to syncReq"
 // if you have permission, you must syncReq (syncreqper covers all the other requirements)
 	when
-		//SyncReqPer( $leader : leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
+		// This isn't bound to a specific action, so will kick in as soon as someone is able
         Permission( $leader : agent, $action : action )
         SyncReq( leader==$leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster ) from $action
 	then
@@ -186,33 +186,55 @@ end
 rule "syncAck no initiates obligation to revise"
 // if syncAck is no and agent had power to say so and leader has permission to revise and possibleAddRevision, leader must revise
 	when
-		//$answer==null 
-		//SyncAckPow( $agent : agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster )
-        //Power( $agent : agent, $actionPow : action )
-        //SyncAck( agent==$agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster ) from $actionPow
-		//SyncAck( agent==$agent, value==$answer, $answer==IPCNV_val, revision==$revision, issue==$issue, cluster==$cluster )
+		// This is bound to the SyncNo, so must be inserted immediately
 		SyncNo( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
-		//RevisePer( $leader : agent, revision==$revision, issue==$issue, cluster==$cluster )
-        Permission( $leader : agent, $actionPer : action )
-        $rev : Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $actionPer
-		PossibleAddRevision( /*value!=$answer,*/ revision==$revision, issue==$issue, cluster==$cluster )
-		not Obligation( agent==$leader, action==$rev )
+        // test
+        $quorumSize : QuorumSize( revision==$revision, issue==$issue, cluster==$cluster )
+        Chosen( revision==$revision, $ballot : ballot, $value : value, issue==$issue, cluster==$cluster )
+		// get the highest vote for each acceptors, compare FOR votes and NOTFOR votes
+		
+		// find all acceptors
+		$agents : List(size > 0) from accumulate(
+								$a : HasRole( role==Role.ACCEPTOR, revision==$revision, issue==$issue, cluster==$cluster )
+								, collectList( $a.getAgent() ) )
+		
+		//Number( $forVotes : intValue ) from accumulate(
+		$forVotes : List( ) from accumulate( 
+								// that voted for the value
+								$b : ReportedVote( $voteAgentFor: agent, $voteAgentFor memberOf $agents, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
+								// and didn't vote since the one you just got
+								not ReportedVote( agent==$voteAgentFor, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
+								//, count( $b ) )
+								, collectList( $b ) )
+		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
+		$notForVotes : List( $forVotes.size() < $notForVotes.size(), $forVotes.size()<$quorumSize.getQuorumSize() ) from accumulate(
+								// that voted against the value
+								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV_val, issue==$issue, cluster==$cluster ) and 
+								// and didn't vote since the one you just got
+								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
+								//, count( $b1 ) ) //and
+								, collectList( $b1 ) )
+        // /test
+        //Permission( $leader : agent, $actionPer : action )
+		//$rev : Revise( agent==$leader, revision==$revision, issue==$issue, cluster==$cluster ) from $actionPer
+		//PossibleAddRevision( /*value!=$answer,*/ revision==$revision, issue==$issue, cluster==$cluster )
+		//not Obligation( agent==$leader, action==$rev )
 	then
 		Revise $revise = new Revise( null, $revision, $issue, $cluster );
-		logger.trace("SyncAck inserted obligation for " + $leader + " to " + $revise );
+		logger.trace("Agents:" + $agents);
+		logger.trace("For:" + $forVotes + " / Against:" + $notForVotes);
+		logger.trace("For:" + $forVotes.size() + " / Against:" + $notForVotes.size());
+		logger.trace("SyncAck inserted obligation for a leader to " + $revise );
         insert( new Obligation( null, $revise, true, Role.LEADER ) ); 
 end
 
 rule "holdsAt for obligation to syncack"
 // if you can, you must
 	when
-		// FIXME TODO left out value since it can be one of 2 (the correct one, or null)
-		//SyncAckPer( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
         Permission( $agent : agent, $action : action )
         SyncAck( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster ) from $action
 		Sync( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		//$answer = Integer.NaN; //FIXME TODO need to work out how to handle this...
 		SyncAck $syncAck = new SyncAck( $agent, null, $revision, $issue, $cluster );
 		logger.trace("Sync logically toggling obligation for " + $agent + " to " + $syncAck );
         insertLogical( new Obligation( $agent, $syncAck, false, Role.ACCEPTOR ) );

@@ -26,28 +26,7 @@ global Object IPCNV_val
 declare PossibleAddRevision
 	@role( event )
 	@expires( 1s )
-	/*value : Object
-	revision : Integer
-	issue : String
-	cluster : UUID*/
 end
-
-// fact indicating that if someone leaves, there may need to be a revision after
-//declare PossibleRemRevision
-	//value : Object
-	//revision : Integer
-	//issue : String
-	//cluster : UUID
-//end
-
-
-
-/*declare QuorumSize
-	quorumSize : Integer
-	revision : Integer
-	issue : String
-	cluster : UUID
-end*/
 
 rule "holdsAt for possibleAddRevision"
 	when
@@ -89,6 +68,7 @@ rule "holdsAt for possibleAddRevision"
 	then
 		//logger.trace("Agents:" + $agents);
 		//logger.trace("For:" + $forVotes + " / Against:" + $notForVotes /*+ " / Didn't:" + $didntVotes*/);
+		//logger.trace("For:" + $forVotes.size() + " / Against:" + $notForVotes.size());
 		logger.trace("Inserting possibleAddRevision due to " + $agent + " syncing");
 		insert( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
 end

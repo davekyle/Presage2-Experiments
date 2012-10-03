@@ -882,6 +882,7 @@ public class IPConDrlsTest {
 		assertFactCount("ReportedVote", revision, issue, cluster, 6);
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // if ag1 or 2 leave, safety is violated
+		assertActionCount("getObligations", "Revise", null, revision, issue, cluster, 0);
 		
 		logger.info("Finished checking Possible Revision detection... now checking for outcomes...\n");
 		
@@ -913,6 +914,7 @@ public class IPConDrlsTest {
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 5);
 		assertFactCount("ReportedVote", revision, issue, cluster, 6);
+		assertActionCount("getObligations", "Revise", null, revision, issue, cluster, 0);
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
@@ -961,7 +963,7 @@ public class IPConDrlsTest {
 		assertFactCount("ReportedVote", revision, issue, cluster, 7);
 		// except this because obligation was discharged
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
-		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
 		Integer newRevision = revision+1;
@@ -1005,7 +1007,7 @@ public class IPConDrlsTest {
 		assertFactCount("ReportedVote", revision, issue, cluster, 7);
 		// FIXME TODO not sure why this didn't fire
 		//assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1); // obligation to revise because agents removed
-		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // agent no longer synching
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0); // 0 because now the agents are gone
 				
 		// check new revision
@@ -1258,6 +1260,7 @@ public class IPConDrlsTest {
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 5);
 		assertFactCount("ReportedVote", revision, issue, cluster, 6);
+		assertActionCount("getObligations", "Revise", null, revision, issue, cluster, 0);
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // if ag5 says no, safety is violated, if they say yes then PRR goes away
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		
