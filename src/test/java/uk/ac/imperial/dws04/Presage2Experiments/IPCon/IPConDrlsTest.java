@@ -473,6 +473,7 @@ public class IPConDrlsTest {
 		// inadvertantly fixed this by putting into a HashSet to remove dups :P
 		//assertFactCount("Leave", 7);
 		//outputObjects();
+		// FIXME TODO work out why this sometimes fails ! (gives 4 instead of 5)
 		assertActionCount("getPowers", "LeaveCluster",null, revision, issue, cluster, 5);
 		
 		/*
@@ -1350,6 +1351,7 @@ public class IPConDrlsTest {
 		
 		assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
 		
+		// FIXME TODO work out why this sometimes fails 
 		assertActionCount("getPowers", "LeaveCluster", a5, revision, issue, cluster, 1);
 		
 		
@@ -1465,11 +1467,226 @@ public class IPConDrlsTest {
 			assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
 			
 		}
+		else if (agentToLeave==1) {
+			// do nothing
+			rules.incrementTime();
+			// 1 is still obligated
+			assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1);
+			assertActionCount("getObligations", null, null, revision, issue, cluster, 1);
+		}
 		else {
 			// do nothing
 		}
 
 		logger.info("Finished testing PossRemRevision with agent " + agentToLeave + "\n");
+	}
+	
+	@Test
+	public void testDuellingLeaders() throws Exception {
+		logger.info("\nTesting obligations on duelling leaders...");
+		
+		Integer revision = 10;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
+		Object v1 = "Value1";
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1); initAgent(a1, new Role[]{Role.LEADER, Role.ACCEPTOR, Role.PROPOSER}, revision, issue, cluster);
+		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2); initAgent(a2, new Role[]{Role.LEADER,  Role.ACCEPTOR}, revision, issue, cluster);
+		
+		// Initially
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 5);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 2);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 0);
+		assertFactCount("Open_Vote", revision, issue, cluster, 0);
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		assertFactCount("Voted", revision, issue, cluster, 2); 
+		assertFactCount("ReportedVote", revision, issue, cluster, 2); // initial novote 
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
+		
+		/*
+		 * Time Step 1
+		 * A1 proposes
+		 * A1 and A2 both obligated to prepare
+		 */
+		session.insert(new Request0A(a1, revision, v1, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 5);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 2);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 0);
+		assertFactCount("Open_Vote", revision, issue, cluster, 0);
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		assertFactCount("Voted", revision, issue, cluster, 2); 
+		assertFactCount("ReportedVote", revision, issue, cluster, 2); // initial novote 
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 2);
+		assertActionCount("getObligations", "Prepare1A", a1, revision, issue, cluster, 1);
+		assertActionCount("getObligations", "Prepare1A", a2, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Prepare1A", a1, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Prepare1A", a2, revision, issue, cluster, 1);
+		
+		/*
+		 * Time step 2
+		 * A2 prepares
+		 * Obligations discharged
+		 */
+		Integer ballot = 1;
+		session.insert(new Prepare1A(a2, revision, ballot, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 5);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 2);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 1);
+		assertFactCount("Open_Vote", revision, issue, cluster, 0);
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		assertFactCount("Voted", revision, issue, cluster, 2); 
+		assertFactCount("ReportedVote", revision, issue, cluster, 2); // initial novote 
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 2);
+		assertActionCount("getObligations", "Response1B", a1, revision, issue, cluster, 1);
+		assertActionCount("getObligations", "Response1B", a2, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Response1B", a1, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Response1B", a2, revision, issue, cluster, 1);
+		
+		logger.info("Finished testing obligations on duelling leaders\n");
+	}
+	
+	@Test
+	public void testBallotOrderingPromise() throws Exception {
+		logger.info("\nTesting ballot ordering promise...");
+		
+		Integer revision1 = 1;
+		Integer revision2 = 2;
+		Integer ballot5 = 5;
+		Integer ballot7 = 7;
+		Integer ballot10 = 10;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
+		Object v1 = "Value1";
+		Object v2 = "Value2";
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1); initAgent(a1, new Role[]{Role.LEADER, Role.ACCEPTOR, Role.PROPOSER}, revision1, issue, cluster);
+		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2); initAgent(a2, new Role[]{Role.ACCEPTOR}, revision1, issue, cluster);
+		/*
+		 * Initially voted in 1:10, 2:5, 2:10
+		 */
+		session.insert(new Voted(a1, revision1, ballot10, v1, issue, cluster));
+		session.insert(new ReportedVote(a1, revision1, ballot10, v1, revision1, ballot10, issue, cluster));
+		session.insert(new Voted(a2, revision1, ballot10, v1, issue, cluster));
+		session.insert(new ReportedVote(a2, revision1, ballot10, v1, revision1, ballot10, issue, cluster));
+		session.insert(new Revise(a1, revision1, issue, cluster));
+		
+		session.insert(new Pre_Vote(revision2, ballot5, issue, cluster));
+		session.insert(new Open_Vote(revision2, ballot5, v1, issue, cluster));
+		session.insert(new Voted(a2, revision2, ballot5, v1, issue, cluster));
+		session.insert(new ReportedVote(a2, revision2, ballot5, v1, revision2, ballot5, issue, cluster));
+		session.insert(new ReportedVote(a1, revision2, 0, IPCNV.val(), revision2, ballot5, issue, cluster));
+
+		session.insert(new Pre_Vote(revision2, ballot10, issue, cluster));
+		session.insert(new ReportedVote(a2, revision2, ballot5, v1, revision2, ballot10, issue, cluster));
+		session.insert(new ReportedVote(a1, revision2, 0, IPCNV.val(), revision2, ballot10, issue, cluster));
+		session.insert(new Open_Vote(revision2, ballot10, v2, issue, cluster));
+		session.insert(new Voted(a1, revision2, ballot10, v2, issue, cluster));
+		session.insert(new ReportedVote(a1, revision2, ballot10, v2, revision2, ballot10, issue, cluster));
+		session.insert(new Voted(a2, revision2, ballot10, v2, issue, cluster));
+		session.insert(new ReportedVote(a2, revision2, ballot10, v2, revision2, ballot10, issue, cluster));
+		
+		session.insert(new Request0A(a1, revision2, null, issue, cluster));
+		
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision2, issue, cluster, 4);
+		assertFactCount("Sync", revision2, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision2, issue, cluster, 0);
+		assertQuorumSize(revision2, issue, cluster, 2);
+		assertFactCount("Pre_Vote", revision2, issue, cluster, 2);
+		assertFactCount("Open_Vote", revision2, issue, cluster, 2);
+		assertFactCount("Chosen", revision2, issue, cluster, 1);
+		assertFactCount("Voted", revision2, issue, cluster, 3); 
+		assertFactCount("ReportedVote", revision2, issue, cluster, 6);  
+		assertFactCount("PossibleAddRevision", revision2, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision2, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision2, issue, cluster, 0); // prevote already exists, so no obligation to prepare
+		assertActionCount("getPermissions", "Response1B", a1, revision2, issue, cluster, 2); // can respond to 5 and 10 as many times as they like
+		assertActionCount("getPermissions", "Response1B", a2, revision2, issue, cluster, 2);
+		assertActionCount("getPermissions", "Submit2A", a1, revision2, issue, cluster, 0); // (unrealistically, nothing has been proposed, so no permission) 
+		
+		
+		/*
+		 * Prepare at 2:7
+		 * Check obl/per for response
+		 * Should be no change since no new Pre_Vote created
+		 */
+		session.insert(new Prepare1A(a1, revision2, ballot7, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision2, issue, cluster, 4);
+		assertFactCount("Sync", revision2, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision2, issue, cluster, 0);
+		assertQuorumSize(revision2, issue, cluster, 2);
+		assertFactCount("Pre_Vote", revision2, issue, cluster, 2);
+		assertFactCount("Open_Vote", revision2, issue, cluster, 2);
+		assertFactCount("Chosen", revision2, issue, cluster, 1);
+		assertFactCount("Voted", revision2, issue, cluster, 3); 
+		assertFactCount("ReportedVote", revision2, issue, cluster, 6);  
+		assertFactCount("PossibleAddRevision", revision2, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision2, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision2, issue, cluster, 0);
+		assertActionCount("getPermissions", "Response1B", a1, revision2, issue, cluster, 2);  // no change
+		assertActionCount("getPermissions", "Response1B", a2, revision2, issue, cluster, 2);
+		assertActionCount("getPermissions", "Submit2A", a1, revision2, issue, cluster, 0);
+		assertActionCount("getPermissions", "Vote2B", a1, revision2, issue, cluster, 1); // can revote in 10, but not in 5 (no openvote for 7)
+		assertActionCount("getPermissions", "Vote2B", a2, revision2, issue, cluster, 1);
+		
+		
+		/*
+		 * A1 submits at 7 anyway
+		 * Check no permission to vote (as voted in 10)
+		 */
+		session.insert(new Submit2A(a1, revision2, ballot7, v2, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision2, issue, cluster, 4);
+		assertFactCount("Sync", revision2, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision2, issue, cluster, 0);
+		assertQuorumSize(revision2, issue, cluster, 2);
+		assertFactCount("Pre_Vote", revision2, issue, cluster, 2);
+		assertFactCount("Open_Vote", revision2, issue, cluster, 3);
+		assertFactCount("Chosen", revision2, issue, cluster, 1);
+		assertFactCount("Voted", revision2, issue, cluster, 3); 
+		assertFactCount("ReportedVote", revision2, issue, cluster, 6);  
+		assertFactCount("PossibleAddRevision", revision2, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision2, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision2, issue, cluster, 0);
+		assertActionCount("getPermissions", "Response1B", a1, revision2, issue, cluster, 2);  // no change
+		assertActionCount("getPermissions", "Response1B", a2, revision2, issue, cluster, 2);
+		assertActionCount("getPermissions", "Submit2A", a1, revision2, issue, cluster, 0);
+		assertActionCount("getPermissions", "Vote2B", a1, revision2, issue, cluster, 1); // can revote in 10, but not in 5 or 7 as voted higher
+		assertActionCount("getPermissions", "Vote2B", a2, revision2, issue, cluster, 1);
+		Vote2B a1Act = (Vote2B) getActionQueryResultsForRIC("getPermissions", "Vote2B", a1, revision2, issue, cluster).toArray()[0];
+		Vote2B a2Act = (Vote2B) getActionQueryResultsForRIC("getPermissions", "Vote2B", a2, revision2, issue, cluster).toArray()[0];
+		assertEquals(ballot10, a1Act.getBallot());
+		assertEquals(ballot10, a2Act.getBallot());
+		assertEquals(revision2, a1Act.getRevision());
+		assertEquals(revision2, a2Act.getRevision());
+		
+		logger.info("\nFinished testing ballot ordering promise.");
 	}
 	
 	private final FactType typeFromString(String factTypeString) {
