@@ -183,7 +183,7 @@ rule "Submit2A initiates Open_Vote"
 		Power( agent==$agent, $action : action )
 		Submit2A( agent==$agent, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) from $action
 	then
-		logger.trace("Submit2A inserted OpenVote( " + $revision + " , " + $ballot + " , " + " , " + $value + " , " + $issue + " , " + $cluster + " )");
+		logger.trace("Submit2A inserted OpenVote( " + $revision + " , " + $ballot + " , " + $value + " , " + $issue + " , " + $cluster + " )");
 		insert( new Open_Vote( $revision, $ballot, $value, $issue, $cluster ) );
 end
 
