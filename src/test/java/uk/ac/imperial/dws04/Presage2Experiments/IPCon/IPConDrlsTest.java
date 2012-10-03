@@ -1467,7 +1467,6 @@ public class IPConDrlsTest {
 			assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // if someone joined then while they're synching this will be 1
 			assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 			
-			// FIXME TODO a2 is not obligated to revise. Problem !
 			assertActionCount("getObligations", "Revise", a2, revision, issue, cluster, 1);
 			assertActionCount("getObligations", null, null, revision, issue, cluster, 1);
 			
