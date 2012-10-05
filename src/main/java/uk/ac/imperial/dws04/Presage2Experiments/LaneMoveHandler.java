@@ -43,7 +43,7 @@ import com.google.inject.Singleton;
  * Special move handler to deal with moves in an area representing a multi-lane
  * road. Adds collision detection on top of moves in a Cell area.s
  * 
- * @author Sam Macbeth
+ * @author Sam Macbeth, dws04
  * 
  */
 @ServiceDependencies({ AreaService.class, RoadLocationService.class, SpeedService.class, LocationService.class, RoadEnvironmentService.class })
