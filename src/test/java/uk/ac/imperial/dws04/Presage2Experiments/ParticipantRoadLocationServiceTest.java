@@ -24,6 +24,8 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.SpeedServiceTest.TestAgent;
 import uk.ac.imperial.presage2.core.Action;
+import uk.ac.imperial.presage2.core.IntegerTime;
+import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
@@ -63,6 +65,8 @@ public class ParticipantRoadLocationServiceTest {
 	private int maxAccel = 1;
 	private int maxDecel = 1;
 	private int junctionCount = 0;
+	
+	private final Time t = new IntegerTime();
 
 	// can't use this globally anymore since we want to be able to alter the params
 	public void setUp() throws Exception {
@@ -82,6 +86,7 @@ public class ParticipantRoadLocationServiceTest {
 					// add in params that are required
 					@Override
 					protected void configure() {
+						bind(Time.class).toInstance(t);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxSpeed")).toInstance(maxSpeed);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxAccel")).toInstance(maxAccel);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxDecel")).toInstance(maxDecel);
