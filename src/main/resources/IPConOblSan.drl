@@ -179,11 +179,12 @@ rule "holdsAt for obligation to syncReq"
         SyncReq( leader==$leader, $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster ) from $action
 	then
 		SyncReq $syncReq = new SyncReq( null, $agent, $value, $revision, $issue, $cluster );
-		logger.trace("Logically toggling obligation for " + $leader + " to " + $syncReq );
+		logger.trace("Logically toggling obligation for a leader to " + $syncReq );
         insertLogical( new Obligation( null, $syncReq, true, Role.LEADER ) );
 end
 
 rule "syncAck no initiates obligation to revise"
+salience 0 // needs to happen after sync reponse and QS update
 // if syncAck is no and agent had power to say so and leader has permission to revise and possibleAddRevision, leader must revise
 	when
 		// This is bound to the SyncNo, so must be inserted immediately
@@ -272,8 +273,8 @@ rule "Generic joint obligation retraction"
 		retract( $obl );
 end	 
 
-query "getObligations" (IPConAgent $agent)
-	Obligation( agent==$agent, $action : action )
+query "getObligations" (IPConAgent $agent)HasRole( agent==$agent, $role : role)
+	$obligation : Obligation( ( (agent==$agent) || (agent==null && agentNeutral==true && role==$role) ), $action : action )
 end
 
 // DO NOT USE WITH EMPTY ACTIONNAME !

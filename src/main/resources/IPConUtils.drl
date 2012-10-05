@@ -133,6 +133,7 @@ rule "create new quorumsize fact"
 end
 
 rule "update quorumsize"
+salience 1 // needs to happen after sync response created but before obligation
 // FIXME TODO work out how to do this properly
 	no-loop
 	when

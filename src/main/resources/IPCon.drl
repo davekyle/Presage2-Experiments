@@ -443,6 +443,7 @@ rule "SyncReq initiates Sync"
 end
 
 rule "SyncAck initiates Voted and ReportedVote (if agree)"
+salience 2
 	when
 		SyncAck( $agent : agent, $answer : value, $revision : revision, $issue : issue, $cluster : cluster )
 		$sync : Sync(agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
@@ -460,6 +461,7 @@ rule "SyncAck initiates Voted and ReportedVote (if agree)"
 end
 
 rule "SyncAck initiates null ReportedVote (if not agree)"
+salience 2 // needs to happen before QS update and before obligation to revise
 	// doesn't initiate null Voted because that doesn't make sense
 	// this might not be needed, depending on implementation of Submit & Response...
 	when
