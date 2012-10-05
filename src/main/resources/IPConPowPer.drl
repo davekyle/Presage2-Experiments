@@ -389,7 +389,6 @@ rule "holdsAt for permission to vote"
 end
 
 rule "holdsAt for power to arrogate"
-// you always have power and permission, so i had to pick one to implement :P
 	when
 		$agent : IPConAgent( )
 		//Can't do checks for roles you already have easily, so HACKITY HACK
@@ -400,6 +399,16 @@ rule "holdsAt for power to arrogate"
 		insertLogical( new Power( $agent, $arrogate ) );
 end
 
+rule "holdsAt for per to arrogate"
+	when
+		Power( $agent : agent, $action : action )
+		ArrogateLeadership( agent==$agent ) from $action
+	then
+		logger.trace("Logically toggling ArrogatePer( " + $agent + ")");
+		ArrogateLeadership $arrogate = new ArrogateLeadership( $agent, null, null, null );
+		insertLogical( new Permission( $agent, $arrogate ) );
+end
+
 rule "holdsAt for power to resign"
 	when
 		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
@@ -407,6 +416,15 @@ rule "holdsAt for power to resign"
 		logger.trace("Logically toggling ResignPow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		ResignLeadership $resign = new ResignLeadership( $agent, $revision, $issue, $cluster );
 		insertLogical( new Power( $agent, $resign ) );
+end
+
+rule "holdsAt for per to resign"
+	when
+		HasRole( role==Role.LEADER, $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+	then
+		logger.trace("Logically toggling ResignPer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		ResignLeadership $resign = new ResignLeadership( $agent, $revision, $issue, $cluster );
+		insertLogical( new Permission( $agent, $resign ) );
 end
 
 rule "holdsAt for power to leave"
@@ -423,6 +441,16 @@ rule "holdsAt for power to leave"
 		LeaveCluster $leave = new LeaveCluster( $agent, $cluster );
 		insertLogical( new Power( $agent, $leave ) );
 end
+
+rule "holdsAt for per to leave"
+	when
+		$agent : IPConAgent( )
+		HasRole( agent==$agent, $cluster : cluster )
+	then
+		logger.trace("Logically toggling LeavePer( " + $agent + " , " + $cluster + ")");
+		LeaveCluster $leave = new LeaveCluster( $agent, $cluster );
+		insertLogical( new Permission( $agent, $leave ) );
+end		
 
 rule "holdsAt for power to addRole"
 	agenda-group "exit"
