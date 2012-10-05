@@ -1026,10 +1026,10 @@ public class IPConDrlsTest {
 
 		assertActionCount("getObligations", null, a4, null, null, null, 0);
 		assertActionCount("getPowers", null, a4, null, null, null, 1); // can always arrogate
-		assertActionCount("getPermissions", null, a4, null, null, null, 0);
+		assertActionCount("getPermissions", null, a4, null, null, null, 1);
 		assertActionCount("getObligations", null, a5, null, null, null, 0);
 		assertActionCount("getPowers", null, a5, null, null, null, 1); // can always arrogate
-		assertActionCount("getPermissions", null, a5, null, null, null, 0);
+		assertActionCount("getPermissions", null, a5, null, null, null, 1);
 		
 		
 		/*
@@ -1692,6 +1692,402 @@ public class IPConDrlsTest {
 		
 		logger.info("\nFinished testing ballot ordering promise.");
 	}
+	
+	@Test
+	public void demoNarrative() throws Exception {
+		Integer revision1 = 1;
+		Integer revision2 = 2;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
+		Integer ballot1 = 1;
+		IPConAgent[] none = null;
+		
+		
+		
+		IPConAgent a7 = new IPConAgent("a7"); session.insert(a7); // not given a role yet
+		IPConAgent a8 = new IPConAgent("a8"); session.insert(a8); // (need to add first or leader won't get power)
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1); initAgent(a1, Role.ACCEPTOR, revision1, issue, cluster);
+		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2); initAgent(a2, new Role[]{Role.ACCEPTOR, Role.PROPOSER}, revision1, issue, cluster);
+		IPConAgent a3 = new IPConAgent("a3"); session.insert(a3); initAgent(a3, Role.ACCEPTOR, revision1, issue, cluster);
+		IPConAgent a4 = new IPConAgent("a4"); session.insert(a4); initAgent(a4, Role.ACCEPTOR, revision1, issue, cluster);
+		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5); initAgent(a5, Role.ACCEPTOR, revision1, issue, cluster);
+		IPConAgent a6 = new IPConAgent("a6"); session.insert(a6); initAgent(a6, new Role[]{Role.ACCEPTOR, Role.LEADER}, revision1, issue, cluster);
+		
+
+		// A3 did not vote
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a4, a5, a6}) {
+			session.insert(new Voted(ag, revision1, ballot1, "a", issue, cluster));
+			session.insert(new ReportedVote(ag, revision1, ballot1, "a", revision1, ballot1, issue, cluster));
+			
+		}
+		session.insert(new Chosen(revision1, 1, "a", issue, cluster));
+		none = new IPConAgent[]{a7, a8};
+		rules.incrementTime();
+
+		
+		/*
+		 * Check initially
+		 */
+		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
+		checkLeaderPowPer(a6, revision1, issue, cluster, 8, 8, 6, 0, 0, 0);
+		for (IPConAgent ag : new IPConAgent[]{a1, a3, a4, a5}) {
+			checkAccPowPer(ag, revision1, issue, cluster, 0, 0);
+		}
+		
+		//check obligations
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a4, a5, a6, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0);
+		}
+		
+		checkNoPowPerObl(none);
+		
+		
+		/*
+		 * Time step 1
+		 * A4-6 leave cluster, A1 arrogates
+		 * Demonstrates fragmentation, role failure, and self-organisation of leadership
+		 * A4-8 have no powers or permissions except Arrogate
+		 * A1 takes leadership powers and permissions
+		 */
+		for (IPConAgent ag : new IPConAgent[]{a4, a5, a6}) {
+			session.insert(new LeaveCluster(ag, cluster));
+		}
+		session.insert(new ArrogateLeadership(a1, revision1, issue, cluster));
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
+		checkLeaderPowPer(a1, revision1, issue, cluster, 8, 5, 3, 0, 0, 0);
+		for (IPConAgent ag : new IPConAgent[]{a3}) {
+			checkAccPowPer(ag, revision1, issue, cluster, 0, 0);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0);
+		}
+		
+		none = new IPConAgent[]{a4, a5, a6, a7, a8};
+		checkNoPowPerObl(none);
+		
+		
+		/*
+		 * Time step 2
+		 * A1 adds A7,8
+		 * Demonstrates aggregation (1)
+		 * A1 obligated to SyncAck A7 and A8, gains permission to do so
+		 */
+		session.insert(new AddRole(a1, a7, Role.ACCEPTOR, revision1, issue, cluster));
+		session.insert(new AddRole(a1, a8, Role.ACCEPTOR, revision1, issue, cluster));
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
+		checkLeaderPowPer(a1, revision1, issue, cluster, 8, 7, 5, 2, 0, 0);
+		for (IPConAgent ag : new IPConAgent[]{a3}) {
+			checkAccPowPer(ag, revision1, issue, cluster, 0, 0);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a2, a3, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0);
+		}
+		assertActionCount("getObligations", null, a1, null, null, null, 2);
+		assertActionCount("getObligations", "SyncReq", a1, null, null, null, 2);
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		
+		/*
+		 * Time step 3
+		 * A1 issues syncreq to 7 and 8
+		 * Demonstrates aggregation (2)
+		 * A7 and A8 have power, permission, and obligation to SyncAck (pow & per for both yes and no)
+		 */
+		session.insert(new SyncReq(a1, a7, "a", revision1, issue, cluster));
+		session.insert(new SyncReq(a1, a8, "a", revision1, issue, cluster));
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
+		checkLeaderPowPer(a1, revision1, issue, cluster, 8, 7, 5, 0, 0, 0);
+		checkAccPowPer(a3, revision1, issue, cluster, 0, 0);
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a7, a8}) {
+			checkAccPowPer(ag, revision1, issue, cluster, 2, 2); // additional Pow&Per to SyncAck Yes & No
+			assertActionCount("getPowers", "SyncAck", ag, revision1, issue, cluster, 2);
+			assertActionCount("getPermissions", "SyncAck", ag, revision1, issue, cluster, 2);
+			assertActionCount("getObligations", null, ag, null, null, null, 1); // syncAck
+			assertActionCount("getObligations", "SyncAck", ag, revision1, issue, cluster, 1);
+		}
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		
+		/*
+		 * Time step 4
+		 * A7&A8 sync no
+		 * Demonstrates aggregation (3)
+		 * A1 obligated to revise
+		 */
+		session.insert(new SyncAck(a7, IPCNV.val(), revision1, issue, cluster));
+		session.insert(new SyncAck(a8, IPCNV.val(), revision1, issue, cluster));
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
+		checkLeaderPowPer(a1, revision1, issue, cluster, 8, 7, 5, 0, 0, 0);
+		for (IPConAgent ag : new IPConAgent[]{a3, a7, a8}) {
+			checkAccPowPer(ag, revision1, issue, cluster, 0, 0);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a2, a3, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0);
+		}
+		
+		
+		assertActionCount("getObligations", null, a1, null, null, null, 1); // revise
+		assertActionCount("getObligations", "Revise", a1, revision1, issue, cluster, 1);
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		
+		
+		/*
+		 * Time step 5
+		 * A1 revises
+		 * Demonstrates revision: parameter change
+		 * A1 no longer obligated to revise
+		 * All agents at standard pow & per
+		 */
+		session.insert(new Revise(a1, revision1, issue, cluster));
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision2, issue, cluster, 0, 0);
+		checkLeaderPowPer(a1, revision2, issue, cluster, 8, 7, 5, 0, 0, 0);
+		for (IPConAgent ag : new IPConAgent[]{a3, a7, a8}) {
+			checkAccPowPer(ag, revision2, issue, cluster, 0, 0);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0);
+		}
+		
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		
+		/*
+		 * Time step 6
+		 * A2 request/proposes
+		 * Demonstrates algorithm flow (1)
+		 * A1 is obligated to prepare
+		 */
+		session.insert(new Request0A(a2, revision2, "b", issue, cluster));
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision2, issue, cluster, 0, 0);
+		checkLeaderPowPer(a1, revision2, issue, cluster, 8, 7, 5, 0, 0, 0);
+		for (IPConAgent ag : new IPConAgent[]{a3, a7, a8}) {
+			checkAccPowPer(ag, revision2, issue, cluster, 0, 0);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a2, a3, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0);
+		}
+		assertActionCount("getObligations", "Prepare1A", a1, revision2, issue, cluster, 1);
+		assertActionCount("getObligations", null, a1, revision2, issue, cluster, 1);
+		
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		
+		/*
+		 * Time step 7
+		 * A1 prepares
+		 * Demonstrates algorithm flow (2)
+		 * All gain power and permission to respond
+		 */
+		session.insert(new Prepare1A(a1, revision2, ballot1, issue, cluster));
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision2, issue, cluster, 1, 1); // additional powper to response
+		assertActionCount("getPowers", "Response1B", a2, revision2, issue, cluster, 1);
+		assertActionCount("getPermissions", "Response1B", a2, revision2, issue, cluster, 1);
+		assertActionCount("getPowers", "Response1B", a1, revision2, issue, cluster, 1);
+		assertActionCount("getPermissions", "Response1B", a1, revision2, issue, cluster, 1);
+		assertActionCount("getPowers", "Submit2A", a1, revision2, issue, cluster, 1);
+		assertActionCount("getPermissions", "Submit2A", a1, revision2, issue, cluster, 0);
+		checkLeaderPowPer(a1, revision2, issue, cluster, 8, 7, 5, 0, 2, 1); // additional powper to response, and pow to submit
+		for (IPConAgent ag : new IPConAgent[]{a3, a7, a8}) {
+			checkAccPowPer(ag, revision2, issue, cluster, 1, 1);
+			assertActionCount("getPowers", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Response1B", ag, revision2, issue, cluster, 1);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0); // no one voted so no obligation
+		}
+		
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		
+		/*
+		 * Time step 8
+		 * All respond
+		 * Demonstrates algorithm flow (3)
+		 * A1 gains permission to, and is obligated to, submit
+		 */
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
+			session.insert(new Response1B(ag, revision2, 0, IPCNV.val(), revision2, ballot1, issue, cluster));
+		}
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision2, issue, cluster, 1, 1); // additional powper to response
+		for (IPConAgent ag : new IPConAgent[]{a1, a2}) {
+			assertActionCount("getPowers", "Response1B", ag, revision2, issue, cluster, 1);
+		assertActionCount("getPermissions", "Response1B", ag, revision2, issue, cluster, 1);
+		}
+		assertActionCount("getPowers", "Submit2A", a1, revision2, issue, cluster, 1);
+		assertActionCount("getPermissions", "Submit2A", a1, revision2, issue, cluster, 1);
+		checkLeaderPowPer(a1, revision2, issue, cluster, 8, 7, 5, 0, 2, 2); // additional powper to response and submit
+		for (IPConAgent ag : new IPConAgent[]{a3, a7, a8}) {
+			checkAccPowPer(ag, revision2, issue, cluster, 1, 1);
+			assertActionCount("getPowers", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Response1B", ag, revision2, issue, cluster, 1);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a2, a3, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0); // no one voted so no obligation
+		}
+		assertActionCount("getObligations", "Submit2A", a1, revision2, issue, cluster, 1); // obl to submit
+		assertActionCount("getObligations", null, a1, null, null, null, 1);
+		
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		
+		/*
+		 * Time step 9
+		 * A1 submits
+		 * Demonstrates algorithm flow (4)
+		 * All now gain pow & per to vote
+		 * A1 no longer obligated to submit
+		 */
+		session.insert(new Submit2A(a1, revision2, ballot1, "b", issue, cluster));
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision2, issue, cluster, 2, 2); // additional powper to response&vote
+		for (IPConAgent ag : new IPConAgent[]{a1, a2}) {
+			assertActionCount("getPowers", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPowers", "Vote2B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Vote2B", ag, revision2, issue, cluster, 1);
+		}
+		assertActionCount("getPowers", "Submit2A", a1, revision2, issue, cluster, 1);
+		assertActionCount("getPermissions", "Submit2A", a1, revision2, issue, cluster, 1);
+		checkLeaderPowPer(a1, revision2, issue, cluster, 8, 7, 5, 0, 3, 3); // additional powper to response and vote and submit
+		for (IPConAgent ag : new IPConAgent[]{a3, a7, a8}) {
+			checkAccPowPer(ag, revision2, issue, cluster, 2, 2);
+			assertActionCount("getPowers", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPowers", "Vote2B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Vote2B", ag, revision2, issue, cluster, 1);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0); // no one voted so no obligation
+		}
+		
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		assertFactCount("Chosen", revision2, issue, cluster, 0);
+		
+		/*
+		 * Time step 10
+		 * All vote
+		 * Demonstrates algorithm flow (5)
+		 * No change in pow or per or obl
+		 * Value now chosen
+		 */
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
+			session.insert(new Vote2B(ag, revision2, ballot1, "b", issue, cluster));
+		}
+		rules.incrementTime();
+		
+		checkProposerPowPer(a2, revision2, issue, cluster, 2, 2); // additional powper to response&vote
+		for (IPConAgent ag : new IPConAgent[]{a1, a2}) {
+			assertActionCount("getPowers", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPowers", "Vote2B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Vote2B", ag, revision2, issue, cluster, 1);
+		}
+		assertActionCount("getPowers", "Submit2A", a1, revision2, issue, cluster, 1);
+		assertActionCount("getPermissions", "Submit2A", a1, revision2, issue, cluster, 1);
+		checkLeaderPowPer(a1, revision2, issue, cluster, 8, 7, 5, 0, 3, 3); // additional powper to response and vote and submit
+		for (IPConAgent ag : new IPConAgent[]{a3, a7, a8}) {
+			checkAccPowPer(ag, revision2, issue, cluster, 2, 2);
+			assertActionCount("getPowers", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Response1B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPowers", "Vote2B", ag, revision2, issue, cluster, 1);
+			assertActionCount("getPermissions", "Vote2B", ag, revision2, issue, cluster, 1);
+		}
+		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
+			assertActionCount("getObligations", null, ag, null, null, null, 0); // no one voted so no obligation
+		}
+		
+		none = new IPConAgent[]{a4, a5, a6};
+		checkNoPowPerObl(none);
+		assertFactCount("Chosen", revision2, issue, cluster, 1);
+	}
+	
+	private void checkNoPowPerObl(IPConAgent[] list) {
+		for (IPConAgent ag : list) {
+			assertActionCount("getPowers", null, ag, null, null, null, 1); // can always arrogate and leave
+			assertActionCount("getPowers", "ArrogateLeadership", ag, null, null, null, 1);
+			assertActionCount("getPermissions", null, ag, null, null, null, 1);
+			assertActionCount("getPermissions", "ArrogateLeadership", ag, null, null, null, 1);
+			assertActionCount("getObligations", null, ag, null, null, null, 0);
+		}
+	
+	}
+	
+	private void checkProposerPowPer(IPConAgent proposer, Integer revision, String issue, UUID cluster, Integer addPow, Integer addPer){
+		assertActionCount("getPowers", null, proposer, revision, issue, cluster, 3+addPow); // can always arrogate and leave
+		assertActionCount("getPowers", "LeaveCluster", proposer, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "ArrogateLeadership", proposer, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "Request0A", proposer, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", null, proposer, revision, issue, cluster, 3+addPer);
+		assertActionCount("getPermissions", "LeaveCluster", proposer, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "ArrogateLeadership", proposer, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Request0A", proposer, revision, issue, cluster, 1);
+	}
+	
+	/**
+	 * 
+	 * @param leader
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 * @param numAgents number of Agents in the kbase
+	 * @param numRoles number of roles in the RIC
+	 * @param numAcc number of acceptors in the RIC
+	 * @param numSync number of agents to be sync'd
+	 * @param addPow number of additional powers
+	 * @param addPer number of additional permissions
+	 */
+	private void checkLeaderPowPer(IPConAgent leader, Integer revision, String issue, UUID cluster, Integer numAgents, Integer numRoles, Integer numAcc, Integer numSync, Integer addPow, Integer addPer) {
+		assertActionCount("getPowers", "LeaveCluster", leader, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "ArrogateLeadership", leader, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "ResignLeadership", leader, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "RemRole", leader, revision, issue, cluster, numRoles);
+		assertActionCount("getPowers", "AddRole", leader, revision, issue, cluster, (numAgents*5 - numRoles)); // Lead, Learn, Acc, Prop, Invalid
+		assertActionCount("getPowers", "Revise", leader, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "SyncReq", leader, revision, issue, cluster, numAcc); // power but not per
+		assertActionCount("getPowers", "Prepare1A", leader, revision, issue, cluster, 1);
+		assertActionCount("getPowers", null, leader, revision, issue, cluster, (1+1+1+numRoles+(numAgents*5 - numRoles)+1+numAcc+1)+addPow);
+		assertActionCount("getPermissions", "LeaveCluster", leader, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "ArrogateLeadership", leader, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "ResignLeadership", leader, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "RemRole", leader, revision, issue, cluster, numRoles);
+		assertActionCount("getPermissions", "AddRole", leader, revision, issue, cluster, (numAgents*5 - numRoles)); // Lead, Learn, Acc, Prop, Invalid
+		assertActionCount("getPermissions", "Revise", leader, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "SyncReq", leader, revision, issue, cluster, numSync);
+		assertActionCount("getPermissions", "Prepare", leader, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", null, leader, revision, issue, cluster, (1+1+1+numRoles+(numAgents*5 - numRoles)+1+1)+addPer+numSync);
+	}
+	
+	private void checkAccPowPer(IPConAgent ag, Integer revision, String issue, UUID cluster, Integer addPow, Integer addPer) {
+		assertActionCount("getPowers", "LeaveCluster", ag, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "ArrogateLeadership", ag, revision, issue, cluster, 1);
+		assertActionCount("getPowers", null, ag, revision, issue, cluster, 2+addPow); // can always arrogate and leave
+		assertActionCount("getPermissions", "LeaveCluster", ag, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "ArrogateLeadership", ag, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", null, ag, revision, issue, cluster, 2+addPer);
+	}
+	
 	
 	private final FactType typeFromString(String factTypeString) {
 		return rules.getKbase().getFactType("uk.ac.imperial.dws04.Presage2Experiments.IPCon", factTypeString);
