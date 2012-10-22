@@ -133,8 +133,51 @@ public class RoadAgent extends AbstractParticipant {
 	
 	@Override
 	public void execute() {
+		/*
+		 * Get physical state
+		 */
 		myLoc = (RoadLocation) locationService.getAgentLocation(getID());
 		mySpeed = speedService.getAgentSpeed(getID());
+		Integer junctionDist = this.locationService.getDistanceToNextJunction();
+		
+		/*
+		 * Retrieve (in case we want to change them...) macrogoals
+		 * FIXME TODO 
+		 */
+		
+		/*
+		 * Get IPCon info
+		 *  - get the RIC the agent is in
+		 *  - get the current state for each (ie, cheat :P - maybe this should rely on memory ?)
+		 *  - - this is only to get indication of required speed and spacing
+		 * FIXME TODO
+		 */
+		
+		/*
+		 * Get obligations
+		 * Get permissions
+		 * Use permissions to instantiate obligations
+		 * Check for conflicting obligations/permissions
+		 * Take note of permission to vote
+		 * Add all relevant actions to queue of actions
+		 * FIXME TODO
+		 */
+		
+		/*
+		 * Derive microgoals to fulfil macrogoals
+		 *  - take into account distance to exit
+		 *  - time to get to exit
+		 *  - fuel economy ?
+		 *  - IPCon agreed speed etc
+		 * Reason actions to fulfil microgoals
+		 * Check for conflicts
+		 * All all relevant actions to queue of actions
+		 * FIXME TODO
+		 */
+		
+		
+		
+		// FIXME TODO implement these then choose them properly :P
 		NeighbourChoiceMethod neighbourChoiceMethod = NeighbourChoiceMethod.WORSTCASE;
 		OwnChoiceMethod ownChoiceMethod = OwnChoiceMethod.SAFE;
 	 
@@ -146,7 +189,7 @@ public class RoadAgent extends AbstractParticipant {
 		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
 		saveDataToDB();
 
-		Integer junctionDist = this.locationService.getDistanceToNextJunction();
+		
 		CellMove move;
 		// Check to see if you want to turn off, then if you can end up at the junction in the next timecycle, do so
 		if (	(fsm.getState().equals("MOVE_TO_EXIT")) && (junctionDist!=null) ) {
