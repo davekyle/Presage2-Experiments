@@ -7,10 +7,12 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.util.random.Random;
 
 /**
+ * Extends IPConFact despite not having a RIC...
+ * 
  * @author dws04
  *
  */
-public class IPConAgent {
+public class IPConAgent extends IPConFact {
 	
 	String name;
 	NetworkAddress address;
@@ -19,7 +21,7 @@ public class IPConAgent {
 	 * 
 	 */
 	public IPConAgent() {
-		super();
+		super(null, null, null);
 		this.address = new NetworkAddress(Random.randomUUID());
 		this.name = address.toString();
 	}
@@ -28,7 +30,7 @@ public class IPConAgent {
 	 * @param name
 	 */
 	public IPConAgent(String name) {
-		super();
+		super(null, null, null);
 		this.address = new NetworkAddress(Random.randomUUID());
 		this.name = name;
 	}
@@ -37,7 +39,7 @@ public class IPConAgent {
 	 * @param address
 	 */
 	public IPConAgent(NetworkAddress address) {
-		super();
+		super(null, null, null);
 		this.address = address;
 		this.name = address.toString();
 	}
@@ -47,7 +49,7 @@ public class IPConAgent {
 	 * @param name
 	 */
 	public IPConAgent(NetworkAddress address, String name) {
-		super();
+		super(null, null, null);
 		this.address = address;
 		this.name = name;
 	}

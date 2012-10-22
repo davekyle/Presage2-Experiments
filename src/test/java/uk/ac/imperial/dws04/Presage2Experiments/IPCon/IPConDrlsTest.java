@@ -349,7 +349,7 @@ public class IPConDrlsTest {
 		 * Make sure initially facts hold
 		 */
 		// agent is inserted
-		assertFactCount("IPConAgent", revision, issue, cluster, 1);
+		assertFactCount("IPConAgent", null, null, null, 1);
 		assertFactCount("HasRole", revision, issue, cluster, 1);
 		assertFactCount("Pre_Vote", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 3);
@@ -450,7 +450,7 @@ public class IPConDrlsTest {
 		
 		// check there are the right number of roles
 		// 5 acceptors, one leader, one proposer
-		assertFactCount("IPConAgent", revision, issue, cluster, 5);
+		assertFactCount("IPConAgent", null, null, null, 5);
 		assertFactCount("HasRole", revision, issue, cluster, 7);
 		
 		// check theres only one agent can request (the proposer)
@@ -739,7 +739,7 @@ public class IPConDrlsTest {
 		
 		rules.incrementTime();
 		
-		assertFactCount("IPConAgent", revision, issue, cluster, 3);
+		assertFactCount("IPConAgent", null, null, null, 3);
 		// Remember the initial "didnt vote" facts
 		assertFactCount("Voted", revision, issue, cluster, 5);
 		assertFactCount("ReportedVote", revision, issue, cluster, 5);
@@ -782,7 +782,7 @@ public class IPConDrlsTest {
 
 		assertFactCount("HasRole", revision, issue, cluster, 6);
 		outputObjects();
-		assertObjectCount("SyncReq", revision, issue, cluster, 0);
+		assertFactCount("SyncReq", revision, issue, cluster, 0);
 		assertFactCount("Sync", revision, issue, cluster, 0);
 		assertFactCount("NeedToSync", revision, issue, cluster, 1);
 		
@@ -979,7 +979,7 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", newRevision, issue, cluster, 0);
 		assertFactCount("PossibleRemRevision", newRevision, issue, cluster, 0);
 		// FactCount would work too, but would drop into objectcount anyway...
-		assertObjectCount("IPConAgent", null, null, null, 5);
+		assertFactCount("IPConAgent", null, null, null, 5);
 		assertActionCount("getPowers", "LeaveCluster", a4, null, null, null, 1); 
 		
 		/*
@@ -995,7 +995,7 @@ public class IPConDrlsTest {
 		outputObjects();
 		
 		assertFactCount("Revise", null, null, null, 0); // fact isn't in the kbase anymore
-		assertObjectCount("IPConAgent", null, null, null, 5); // the facts are still there
+		assertFactCount("IPConAgent", null, null, null, 5); // the facts are still there
 		
 		// Check  old revision
 		assertFactCount("HasRole", revision, issue, cluster, 5);
@@ -2161,9 +2161,10 @@ public class IPConDrlsTest {
 
 		Collection<Object> facts = new HashSet<Object>();
 		facts.addAll(getFactQueryResults(factTypeString, revision, issue, cluster));
-		if (facts.size()==0) {
-			facts.addAll(assertObjectCount(factTypeString, revision, issue, cluster, count));
-		}
+		// FIXME Checking to see if this is still required.. ?
+		//if (facts.size()==0) {
+		//	facts.addAll(assertObjectCount(factTypeString, revision, issue, cluster, count));
+		//}
 		assertEquals(count, facts.size());
 		return facts;
 	}
@@ -2180,6 +2181,7 @@ public class IPConDrlsTest {
 	 * @param cluster
 	 * @return
 	 */
+	@Deprecated
 	private final Collection<Object> assertObjectCount(final String factTypeString, final Integer revision, final String issue, final UUID cluster, final int count) {
 		Collection<Object> facts = new HashSet<Object>();
 		// try drls fact types

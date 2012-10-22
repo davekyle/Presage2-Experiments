@@ -10,11 +10,11 @@ import java.util.UUID;
  * @author dws04
  *
  */
-public class IPConRIC {
+public class IPConRIC extends IPConFact {
 	
-	final Integer revision;
+	/*final Integer revision;
 	final String issue;
-	final UUID cluster;
+	final UUID cluster;*/
 	
 	/**
 	 * @param revision
@@ -22,35 +22,35 @@ public class IPConRIC {
 	 * @param cluster
 	 */
 	public IPConRIC(Integer revision, String issue, UUID cluster) {
-		super();
-		this.revision = revision;
+		super(revision, issue, cluster);
+		/*this.revision = revision;
 		this.issue = issue;
-		this.cluster = cluster;
+		this.cluster = cluster;*/
 	}
+	/*
 	
-	
-	/**
+	*//**
 	 * @return the revision
-	 */
+	 *//*
 	public Integer getRevision() {
 		return revision;
 	}
 
 
-	/**
+	*//**
 	 * @return the issue
-	 */
+	 *//*
 	public String getIssue() {
 		return issue;
 	}
 
 
-	/**
+	*//**
 	 * @return the cluster
-	 */
+	 *//*
 	public UUID getCluster() {
 		return cluster;
-	}
+	}*/
 
 
 	/* (non-Javadoc)
