@@ -57,7 +57,7 @@ public class IPConService extends EnvironmentService {
 		}
 		else {
 			logger.warn("Got multiple values for getQuorumSize(" + revision + "," + issue + "," + cluster  + ") : " + obj);
-			return 0;
+			return null;
 		}
 	}
 	
