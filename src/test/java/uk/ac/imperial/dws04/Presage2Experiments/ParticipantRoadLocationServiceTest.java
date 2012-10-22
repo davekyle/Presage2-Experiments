@@ -66,7 +66,7 @@ public class ParticipantRoadLocationServiceTest {
 	private int maxDecel = 1;
 	private int junctionCount = 0;
 	
-	private final Time t = new IntegerTime();
+	//private final Time t = new IntegerTime();
 
 	// can't use this globally anymore since we want to be able to alter the params
 	public void setUp() throws Exception {
@@ -86,7 +86,7 @@ public class ParticipantRoadLocationServiceTest {
 					// add in params that are required
 					@Override
 					protected void configure() {
-						bind(Time.class).toInstance(t);
+						//bind(Time.class).toInstance(t);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxSpeed")).toInstance(maxSpeed);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxAccel")).toInstance(maxAccel);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.maxDecel")).toInstance(maxDecel);
