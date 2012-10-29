@@ -56,7 +56,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 
 /**
- * @author dave
+ * @author dws04
  *
  */
 public class IPConDrlsTest {

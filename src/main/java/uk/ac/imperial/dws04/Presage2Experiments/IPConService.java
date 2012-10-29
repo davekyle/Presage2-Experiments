@@ -18,6 +18,8 @@ import org.drools.runtime.rule.Variable;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
@@ -40,6 +42,12 @@ public class IPConService extends EnvironmentService {
 			StatefulKnowledgeSession session) {
 		super(sharedState);
 		this.session = session;
+		session.setGlobal("logger", this.logger);
+		session.setGlobal("IPCNV_val", IPCNV.val());
+		
+		for (Role role : Role.values()) {
+			session.insert(role);
+		}
 	}
 	
 	/**
