@@ -67,7 +67,7 @@ public class RoadAgent extends AbstractParticipant {
 	ParticipantSpeedService speedService;
 	/*RoadEnvironmentService environmentService;*/
 	 
-	RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
+	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
 		this.myLoc = myLoc;
 		this.mySpeed = mySpeed;

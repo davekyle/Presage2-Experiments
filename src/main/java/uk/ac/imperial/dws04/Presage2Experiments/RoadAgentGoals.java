@@ -5,7 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments;
  * @author dws04
  *
  */
-class RoadAgentGoals {
+public class RoadAgentGoals {
 	/**
 	 *  Preferred speed
 	 */

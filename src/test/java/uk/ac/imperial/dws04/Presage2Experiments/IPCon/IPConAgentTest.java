@@ -12,13 +12,17 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.LaneMoveHandler;
 import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationService;
 import uk.ac.imperial.dws04.Presage2Experiments.ParticipantSpeedService;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
+import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
 import uk.ac.imperial.presage2.rules.RuleStorage;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironment;
@@ -102,5 +106,12 @@ public class IPConAgentTest {
 	@After
 	public void tearDown() throws Exception {
 		session.dispose();
+	}
+	
+	private RoadAgent createAgent(String name, RoadLocation startLoc, int startSpeed, RoadAgentGoals goals) {
+		RoadAgent a = new RoadAgent(Random.randomUUID(), name, startLoc, startSpeed, goals);
+		injector.injectMembers(a);
+		a.initialise();
+		return a;
 	}
 }
