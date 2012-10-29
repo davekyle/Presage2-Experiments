@@ -20,7 +20,7 @@ public class RoadAgentGoals {
 	 */
 	private final Integer spacing;
 	
-	RoadAgentGoals(Integer speed, Integer dest, Integer spacing) {
+	public RoadAgentGoals(Integer speed, Integer dest, Integer spacing) {
 		this.speed = speed;
 		this.dest = dest;
 		this.spacing = spacing;

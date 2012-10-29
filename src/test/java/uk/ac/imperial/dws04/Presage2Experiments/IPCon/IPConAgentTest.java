@@ -3,6 +3,8 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
+import java.util.UUID;
+
 import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.junit.After;
@@ -19,6 +21,10 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.ReportedVote;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Voted;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
@@ -62,6 +68,9 @@ public class IPConAgentTest {
 	private int junctionCount = 0;
 	IntegerTime time = new IntegerTime(0);
 	SimTime sTime = new SimTime(time);
+	
+	private final String issue = "IssueString";
+	private final UUID cluster = Random.randomUUID();
 	
 	@Before
 	public void setUp() throws Exception {
@@ -108,10 +117,22 @@ public class IPConAgentTest {
 		session.dispose();
 	}
 	
-	private RoadAgent createAgent(String name, RoadLocation startLoc, int startSpeed, RoadAgentGoals goals) {
-		RoadAgent a = new RoadAgent(Random.randomUUID(), name, startLoc, startSpeed, goals);
+	private RoadAgent createAgent(String name, Role[] roles, RoadLocation startLoc, int startSpeed) {
+		RoadAgent a = new RoadAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
 		injector.injectMembers(a);
 		a.initialise();
+		initAgent(a, roles, 0, issue, cluster);
 		return a;
+	}
+	
+	public void initAgent(IPConAgent agent, Role[] roles, Integer revision, String issue, UUID cluster) {
+		//Set roles
+		for (Role role : roles) {
+			session.insert(new HasRole(role, agent, revision, issue, cluster));
+		}
+		// Initially didn't vote
+		session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
+		// And the reportedvote for the initially
+		session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
 	}
 }
