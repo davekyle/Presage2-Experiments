@@ -199,14 +199,22 @@ public class RoadSimulation extends InjectedSimulation {
 			.addActionHandler(LaneMoveHandler.class)
 			.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 			.addParticipantEnvironmentService(ParticipantSpeedService.class)
+			.addParticipantGlobalEnvironmentService(IPConService.class)
 			//.addGlobalEnvironmentService(RoadLocationService.class)
 			.addGlobalEnvironmentService(RoadEnvironmentService.class)
-			.setStorage(RuleStorage.class));
+			.setStorage(RuleStorage.class)
+			);
 		// No network
 		modules.add(NetworkModule.noNetworkModule());
 		// Location plugin
 		// TODO need to modify the plugin
 		modules.add(new PluginModule().addPlugin(LocationStoragePlugin.class));
+		// Rules engine stuff
+		modules.add(new RuleModule().addClasspathDrlFile("IPConUtils.drl")
+			.addClasspathDrlFile("IPConPowPer.drl")
+			.addClasspathDrlFile("IPCon.drl")
+			.addClasspathDrlFile("IPConOblSan.drl")
+			);
 		return modules;
 	}
 	
