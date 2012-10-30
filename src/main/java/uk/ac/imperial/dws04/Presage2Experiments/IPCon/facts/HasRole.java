@@ -39,6 +39,12 @@ public class HasRole extends IPConFact {
 	public IPConAgent getAgent() {
 		return agent;
 	}
+	/**
+	 * @return the RIC as an object
+	 */
+	public IPConRIC getRIC() {
+		return new IPConRIC(revision, issue, cluster);
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */

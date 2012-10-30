@@ -16,6 +16,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
@@ -140,6 +141,15 @@ public class RoadSimulation extends InjectedSimulation {
 		}
 	}
 	
+	IPConService getIPConService() {
+		try {
+			return this.serviceProvider.getEnvironmentService(IPConService.class);
+		} catch (UnavailableServiceException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
 	/**
 	 * @param serviceProvider
 	 * @return
@@ -199,7 +209,7 @@ public class RoadSimulation extends InjectedSimulation {
 			.addActionHandler(LaneMoveHandler.class)
 			.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 			.addParticipantEnvironmentService(ParticipantSpeedService.class)
-			.addParticipantGlobalEnvironmentService(IPConService.class)
+			.addParticipantEnvironmentService(ParticipantIPConService.class)
 			//.addGlobalEnvironmentService(RoadLocationService.class)
 			.addGlobalEnvironmentService(RoadEnvironmentService.class)
 			.setStorage(RuleStorage.class)

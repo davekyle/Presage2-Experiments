@@ -59,6 +59,7 @@ public class IPConAgentTest {
 	//RoadEnvironmentService roadEnvironmentService;
 	SpeedService globalSpeedService;
 	RoadEnvironmentService globalRoadEnvironmentService;
+	IPConService globalIPConService;
 	
 	private int lanes = 3;
 	private int length = 10;
@@ -86,7 +87,7 @@ public class IPConAgentTest {
 					.addParticipantEnvironmentService(ParticipantLocationService.class)
 					.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 					.addParticipantEnvironmentService(ParticipantSpeedService.class)
-					.addParticipantEnvironmentService(IPConService.class)
+					.addParticipantEnvironmentService(ParticipantIPConService.class)
 					.addGlobalEnvironmentService(RoadEnvironmentService.class)
 					.setStorage(RuleStorage.class),
 				Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX,
@@ -107,6 +108,7 @@ public class IPConAgentTest {
 		env = injector.getInstance(AbstractEnvironment.class);
 		globalSpeedService = injector.getInstance(SpeedService.class);
 		globalRoadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
+		globalIPConService = injector.getInstance(IPConService.class);
 		
 		rules = injector.getInstance(RuleStorage.class);
 		session = injector.getInstance(StatefulKnowledgeSession.class);

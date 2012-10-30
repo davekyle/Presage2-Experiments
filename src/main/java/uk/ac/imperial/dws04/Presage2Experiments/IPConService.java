@@ -21,8 +21,10 @@ import com.google.inject.Singleton;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
@@ -218,6 +220,34 @@ public class IPConService extends EnvironmentService {
 		return	( ( actionRev==null || actionRev.equals(revision) ) &&
 				( actionIssue==null || actionIssue.equals(issue)) &&
 				( actionCluster==null || actionCluster.equals(cluster)) );
+	}
+
+	/**
+	 * 
+	 * @param handle
+	 * @return all RICs the agent is a member of
+	 */
+	public Collection<IPConRIC> getCurrentRICs(IPConAgent handle) {
+		Collection<IPConRIC> result = new HashSet<IPConRIC>();
+		Collection<IPConFact> coll = getFactQueryResults("HasRole", null, null, null);
+		for (IPConFact fact : coll) {
+			if ( (fact instanceof HasRole) && ((HasRole)fact).getAgent().equals(handle) ) {
+				result.add( ((HasRole)fact).getRIC() );
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * @return all RICs known
+	 */
+	public Collection<IPConRIC> getCurrentRICs() {
+		Collection<IPConRIC> result = new HashSet<IPConRIC>();
+		Collection<IPConFact> coll = getFactQueryResults("IPConRIC", null, null, null);
+		for (IPConFact fact : coll) {
+			result.add((IPConRIC)fact);
+		}
+		return result;
 	}
 	
 }

@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Level;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
@@ -47,8 +48,6 @@ public class RoadAgent extends AbstractParticipant {
 	protected final RoadAgentGoals goals;
 	private Integer junctionsLeft;
 	
-	IPConService ipconService;
-	protected final IPConAgent ipconHandle;
 	
 	/**
 	 * FSM Stuff
@@ -66,10 +65,13 @@ public class RoadAgent extends AbstractParticipant {
 	private FSM fsm;
 
 	
-	// Variable to store the location service.
+	// service variables
 	ParticipantRoadLocationService locationService;
 	ParticipantSpeedService speedService;
 	/*RoadEnvironmentService environmentService;*/
+	
+	ParticipantIPConService ipconService;
+	protected final IPConAgent ipconHandle;
 	 
 	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
@@ -123,7 +125,7 @@ public class RoadAgent extends AbstractParticipant {
 		}
 		// get the IPConService.
 		try {
-			this.ipconService = getEnvironmentService(IPConService.class);
+			this.ipconService = getEnvironmentService(ParticipantIPConService.class);
 		} catch (UnavailableServiceException e) {
 			logger.warn(e);
 		}
@@ -168,6 +170,7 @@ public class RoadAgent extends AbstractParticipant {
 		 *  - - this is only to get indication of required speed and spacing
 		 * FIXME TODO
 		 */
+		ipconService.getCurrentRICs();
 		
 		/*
 		 * Get obligations
