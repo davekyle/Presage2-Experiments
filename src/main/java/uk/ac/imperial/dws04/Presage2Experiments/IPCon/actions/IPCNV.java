@@ -5,7 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions;
 
 /**
  * IPCon No Vote
- * @author dave
+ * @author dws04
  *
  */
 public class IPCNV {

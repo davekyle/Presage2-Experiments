@@ -9,7 +9,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 
 /**
- * @author dave
+ * @author dws04
  *
  */
 public class RemRole extends IPConAction {

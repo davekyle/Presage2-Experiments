@@ -13,7 +13,7 @@ import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.util.protocols.FSMConversation;
 
 /**
- * @author dave
+ * @author dws04
  *
  */
 public class ChangeRoleMessage extends BroadcastMessage<IPConRoleChangeMessageData> {

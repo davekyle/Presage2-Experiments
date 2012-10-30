@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 /**
- * @author dave
+ * @author dws04
  *
  */
 public class Vote2B extends IPConAction {

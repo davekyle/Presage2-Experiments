@@ -4,7 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions;
 
 /**
- * @author dave
+ * @author dws04
  *
  */
 public abstract class IPConAction {

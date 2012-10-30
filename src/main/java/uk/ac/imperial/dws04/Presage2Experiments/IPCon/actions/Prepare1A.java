@@ -10,7 +10,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 /**
  * If ballot is null, this is from an obligation to prepare and any sensible value may be chosen
  * 
- * @author dave
+ * @author dws04
  *
  */
 public class Prepare1A extends IPConAction {

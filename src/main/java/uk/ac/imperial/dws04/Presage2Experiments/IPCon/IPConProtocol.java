@@ -830,7 +830,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 	
 	/**
 	 * Class to hold the data to identify a vote (issue, value, ballot)
-	 * @author dave
+	 * @author dws04
 	 *
 	 */
 	private class IPConVoteData {

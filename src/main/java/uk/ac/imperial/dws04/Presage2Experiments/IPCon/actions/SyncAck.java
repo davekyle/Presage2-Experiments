@@ -11,7 +11,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 /**
  * If value is the string "PLACEHOLDER" this is from an obligation and either the correct value or a null (no) should be chosen
  * 
- * @author dave
+ * @author dws04
  *
  */
 public class SyncAck extends IPConAction {
