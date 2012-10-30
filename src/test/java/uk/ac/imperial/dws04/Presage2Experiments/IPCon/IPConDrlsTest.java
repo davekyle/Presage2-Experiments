@@ -212,6 +212,60 @@ public class IPConDrlsTest {
 	}
 	
 	@Test
+	/**
+	 * Checks to make sure you can start one of these from scratch without nullvotes
+	 * @throws Exception
+	 */
+	public void fromScratchTest() throws Exception {
+		logger.info("\nStarting fromScratchTest()");
+		IPConAgent a1 = new IPConAgent("a1");
+		IPConAgent a2 = new IPConAgent("a2");
+		Integer revision = 0;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
+		session.insert(a1);
+		session.insert(a2);
+		session.insert(new ArrogateLeadership(a1, revision, issue, cluster));
+		rules.incrementTime();
+
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		
+		session.insert(new AddRole(a1, a1, Role.PROPOSER, revision, issue, cluster));
+		session.insert(new AddRole(a1, a1, Role.ACCEPTOR, revision, issue, cluster));
+		session.insert(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		session.insert(new Request0A(a1, revision, 5, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		
+		session.insert(new Prepare1A(a1, revision, 1, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getPermissions", "Response1B", a1, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Response1B", a2, revision, issue, cluster, 1);
+
+		session.insert(new Response1B(a1, 0, 0, IPCNV.val(), revision, 0, issue, cluster));
+		session.insert(new Response1B(a2, 0, 0, IPCNV.val(), revision, 0, issue, cluster));
+		rules.incrementTime();
+		
+		session.insert(new Submit2A(a1, revision, 1, 5, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getPermissions", "Vote2B", a1, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Vote2B", a2, revision, issue, cluster, 1);
+
+		session.insert(new Vote2B(a1, revision, 1, 5, issue, cluster));
+		session.insert(new Vote2B(a2, revision, 1, 5, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("Chosen", revision, issue, cluster, 1);
+
+		logger.info("Finished fromScratchTest()\n");
+	}
+	
+	@Test
 	public void resignTest() throws Exception {
 		logger.info("\nStarting resignTest()");
 		
