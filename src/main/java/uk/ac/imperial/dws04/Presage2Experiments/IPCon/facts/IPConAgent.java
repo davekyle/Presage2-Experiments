@@ -3,6 +3,8 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts;
 
+import java.util.UUID;
+
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.util.random.Random;
 
@@ -15,15 +17,15 @@ import uk.ac.imperial.presage2.core.util.random.Random;
 public class IPConAgent extends IPConFact {
 	
 	String name;
-	NetworkAddress address;
+	UUID uuid;
 
 	/**
 	 * 
 	 */
 	public IPConAgent() {
 		super(null, null, null);
-		this.address = new NetworkAddress(Random.randomUUID());
-		this.name = address.toString();
+		this.uuid = Random.randomUUID();
+		this.name = uuid.toString();
 	}
 	
 	/**
@@ -31,26 +33,26 @@ public class IPConAgent extends IPConFact {
 	 */
 	public IPConAgent(String name) {
 		super(null, null, null);
-		this.address = new NetworkAddress(Random.randomUUID());
+		this.uuid = Random.randomUUID();
 		this.name = name;
 	}
 	
 	/**
 	 * @param address
 	 */
-	public IPConAgent(NetworkAddress address) {
+	public IPConAgent(UUID uuid) {
 		super(null, null, null);
-		this.address = address;
-		this.name = address.toString();
+		this.uuid = uuid;
+		this.name = uuid.toString();
 	}
 
 	/**
-	 * @param address
+	 * @param uuid
 	 * @param name
 	 */
-	public IPConAgent(NetworkAddress address, String name) {
+	public IPConAgent(UUID uuid, String name) {
 		super(null, null, null);
-		this.address = address;
+		this.uuid = uuid;
 		this.name = name;
 	}
 
@@ -60,8 +62,9 @@ public class IPConAgent extends IPConFact {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((address == null) ? 0 : address.hashCode());
+		int result = super.hashCode();
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((uuid == null) ? 0 : uuid.hashCode());
 		return result;
 	}
 
@@ -72,15 +75,20 @@ public class IPConAgent extends IPConFact {
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
+		if (!super.equals(obj))
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
 		IPConAgent other = (IPConAgent) obj;
-		if (address == null) {
-			if (other.address != null)
+		if (name == null) {
+			if (other.name != null)
 				return false;
-		} else if (!address.equals(other.address))
+		} else if (!name.equals(other.name))
+			return false;
+		if (uuid == null) {
+			if (other.uuid != null)
+				return false;
+		} else if (!uuid.equals(other.uuid))
 			return false;
 		return true;
 	}
@@ -90,7 +98,7 @@ public class IPConAgent extends IPConFact {
 	 */
 	@Override
 	public String toString() {
-		return "IPConAgent [name=" + name + ", address=" + address + "]";
+		return "IPConAgent [name=" + name + ", uuid=" + uuid + "]";
 	}
 
 	public String getName() {

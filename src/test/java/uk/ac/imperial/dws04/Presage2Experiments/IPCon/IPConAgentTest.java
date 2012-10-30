@@ -121,7 +121,7 @@ public class IPConAgentTest {
 		RoadAgent a = new RoadAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
 		injector.injectMembers(a);
 		a.initialise();
-		initAgent(a, roles, 0, issue, cluster);
+		initAgent(a.getIPConHandle(), roles, 0, issue, cluster);
 		return a;
 	}
 	

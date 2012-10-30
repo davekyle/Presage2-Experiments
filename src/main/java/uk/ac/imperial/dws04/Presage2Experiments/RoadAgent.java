@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Level;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
@@ -46,6 +47,8 @@ public class RoadAgent extends AbstractParticipant {
 	protected final RoadAgentGoals goals;
 	private Integer junctionsLeft;
 	
+	protected final IPConAgent ipconHandle;
+	
 	/**
 	 * FSM Stuff
 	 */
@@ -79,10 +82,16 @@ public class RoadAgent extends AbstractParticipant {
 		else {
 			this.junctionsLeft = null;
 		}
-		//this.driver = new Driver(id, locationService, speedService/*, environmentService*/);
-		
+		this.ipconHandle = new IPConAgent(this.getID(), this.getName());
 	}
 	
+	/**
+	 * @return the ipconHandle
+	 */
+	public IPConAgent getIPConHandle() {
+		return ipconHandle;
+	}
+
 	@Override
 	protected Set<ParticipantSharedState> getSharedState() {
 		Set<ParticipantSharedState> ss = super.getSharedState();
