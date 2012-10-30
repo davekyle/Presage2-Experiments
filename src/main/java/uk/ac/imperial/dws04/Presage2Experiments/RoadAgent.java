@@ -47,6 +47,7 @@ public class RoadAgent extends AbstractParticipant {
 	protected final RoadAgentGoals goals;
 	private Integer junctionsLeft;
 	
+	IPConService ipconService;
 	protected final IPConAgent ipconHandle;
 	
 	/**
@@ -119,6 +120,12 @@ public class RoadAgent extends AbstractParticipant {
 			this.driver = new Driver(getID(), this);
 		} catch (UnavailableServiceException e) {
 			e.printStackTrace();
+		}
+		// get the IPConService.
+		try {
+			this.ipconService = getEnvironmentService(IPConService.class);
+		} catch (UnavailableServiceException e) {
+			logger.warn(e);
 		}
 		/*// get the RoadEnvironmentService.
 		try {

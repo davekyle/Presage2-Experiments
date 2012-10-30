@@ -119,12 +119,16 @@ public class IPConAgentTest {
 	
 	private RoadAgent createAgent(String name, Role[] roles, RoadLocation startLoc, int startSpeed) {
 		RoadAgent a = new RoadAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
-		injector.injectMembers(a);
+		// FIXME TODO Not sure if this is needed...?
+		//injector.injectMembers(a);
 		a.initialise();
 		initAgent(a.getIPConHandle(), roles, 0, issue, cluster);
 		return a;
 	}
 	
+	/**
+	 * Artificially inserting facts without the service for sake of testing
+	 */
 	public void initAgent(IPConAgent agent, Role[] roles, Integer revision, String issue, UUID cluster) {
 		//Set roles
 		for (Role role : roles) {
