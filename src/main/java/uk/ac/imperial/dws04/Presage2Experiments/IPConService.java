@@ -24,6 +24,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
+import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 
@@ -48,6 +49,12 @@ public class IPConService extends EnvironmentService {
 		for (Role role : Role.values()) {
 			session.insert(role);
 		}
+	}
+	
+	@Override
+	public void registerParticipant(EnvironmentRegistrationRequest req) {
+		// do insertion of IPConAgent fact and such
+		session.insert( ((RoadAgent)req.getParticipant()).getIPConHandle() );
 	}
 	
 	/**
