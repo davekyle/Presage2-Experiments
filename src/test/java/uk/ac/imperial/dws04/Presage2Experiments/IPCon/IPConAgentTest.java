@@ -9,6 +9,7 @@ import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.LaneMoveHandler;
@@ -140,5 +141,40 @@ public class IPConAgentTest {
 		session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
 		// And the reportedvote for the initially
 		session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
+	}
+	
+	@Test
+	public void test() throws Exception {
+		/*
+		 * Create agents
+		 */
+		
+		/*
+		 * One of them arrogates
+		 */
+		
+		/*
+		 * Agents join
+		 */
+		
+		/*
+		 * Proposal for issues
+		 */
+		
+		/*
+		 * Prepare
+		 */
+		
+		/*
+		 * Response
+		 */
+		
+		/*
+		 * Submit
+		 */
+		
+		/*
+		 * Vote
+		 */
 	}
 }
