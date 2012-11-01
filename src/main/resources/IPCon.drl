@@ -491,6 +491,16 @@ end
 		logger.trace("SyncAck retracted Sync : " + $sync );
 end*/
 
+rule "JoinAsLearner initiates HasRole(Learner)"
+	when
+		JoinAsLearner( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		Power( agent==$agent, $action : action )
+		JoinAsLearner( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster) from $action
+	then
+		logger.trace("JoinAsLearner inserted HasRole( LEARNER, " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + " )");
+		insert( new HasRole( Role.LEARNER, $agent, $revision, $issue, $cluster ) );
+end
+
 
 query "getFacts" ( Integer $revision, String $issue, UUID $cluster )
 	$fact : IPConFact( revision==$revision, issue==$issue, cluster==$cluster )

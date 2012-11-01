@@ -583,6 +583,29 @@ rule "holdsAt for per to SyncAck"
 		insertLogical( new Permission( $agent, $syncAck ) );
 end
 
+rule "holdsAt for pow to JoinAsLearner"
+	when
+		$agent : IPConAgent(  )
+		IPConRIC( $revision : revision, $issue : issue, $cluster : cluster )
+		not HasRole( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+	then
+		logger.trace("Logically toggling JoinPow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		JoinAsLearner $join = new JoinAsLearner( $agent, $revision, $issue, $cluster );
+		insertLogical( new Power( $agent, $join ) );
+end
+
+rule "holdsAt for per to JoinAsLearner"
+	when
+		Power( $agent : agent, $action : action )
+		JoinAsLearner( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster ) from $action
+	then
+		logger.trace("Logically toggling JoinPer( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		JoinAsLearner $join = new JoinAsLearner( $agent, $revision, $issue, $cluster );
+		insertLogical( new Permission( $agent, $join ) );
+end
+
+
+
 query "getPowers" (IPConAgent $agent)
 	Power( agent==$agent, $action : action )
 end
