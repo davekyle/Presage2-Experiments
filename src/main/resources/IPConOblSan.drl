@@ -99,7 +99,7 @@ rule "holdsAt for obligation to submit"
         insertLogical( new Obligation( null, $submit, true, Role.LEADER ) );
 end
 
-rule "initiates for obligation to revise when an acceptor leaves"
+rule "initiates for obligation to revise when an acceptor leaves (due to remrole or leavecluster)"
 // needs to happen before the holdsAt for PRR
 agenda-group "PRR"
 auto-focus true

@@ -28,7 +28,7 @@ declare PossibleAddRevision
 	@expires( 1s )
 end
 
-rule "holdsAt for possibleAddRevision"
+rule "holdsAt for possibleAddRevision - only an indication"
 	when
 		Sync( $agent : agent, $value : value, $revision : revision, $issue : issue, $cluster : cluster )
 		Chosen( revision==$revision, $ballot : ballot, value==$value, issue==$issue, cluster==$cluster )
@@ -69,6 +69,7 @@ rule "holdsAt for possibleAddRevision"
 		//logger.trace("Agents:" + $agents);
 		//logger.trace("For:" + $forVotes + " / Against:" + $notForVotes /*+ " / Didn't:" + $didntVotes*/);
 		//logger.trace("For:" + $forVotes.size() + " / Against:" + $notForVotes.size());
+		// THIS IS NOW ACTUALLY DONE IN THE ACTION
 		logger.trace("Inserting possibleAddRevision due to " + $agent + " syncing");
 		insert( new PossibleAddRevision( $value, $revision, $issue, $cluster ) );
 end

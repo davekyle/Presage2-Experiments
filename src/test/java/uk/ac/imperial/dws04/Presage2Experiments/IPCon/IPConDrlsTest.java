@@ -262,6 +262,89 @@ public class IPConDrlsTest {
 		
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 
+		IPConAgent a3 = new IPConAgent("a3");
+		session.insert(a3);
+		session.insert(new AddRole(a1, a3, Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 1);
+		
+		session.insert(new SyncReq(a1, a3, 5, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncAck", a3, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "SyncAck", a3, revision, issue, cluster, 2); // yes or no
+		
+		session.insert(new SyncAck(a3, IPCNV.val(), revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncAck", a3, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // only an indication and not taken into account until new agent is in sync
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0); // actually used in code (not a problem because would be 1 vs 1 with qs of 2 and status quo holds)
+		
+		IPConAgent a4 = new IPConAgent("a4");
+		session.insert(a4);
+		session.insert(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 1);
+		assertActionCount("getObligations", "SyncAck", a4, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // only an indication (agent isnt in Sync yet, so not taken into account)
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0); // actually used in code (not a problem until a4 finishes)
+		
+		session.insert(new SyncReq(a1, a4, 5, revision, issue, cluster));
+		rules.incrementTime();
+
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncAck", a4, revision, issue, cluster, 1);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // only an indication (agent is now in Sync, but would only give 2 vs 2 with qs of 3 and status quo holds)
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0); // actually used in code (not a problem until a4 finishes)
+		
+		session.insert(new SyncAck(a4, IPCNV.val(), revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncAck", a4, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // only an indication (no agents in sync - we have 2 vs 2 with qs of 3, and status quo holds)
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // actually used in code (would be 1 vs 2 with qs of 2)
+		
+		IPConAgent a5 = new IPConAgent("a5");
+		session.insert(a5);
+		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 1);
+		assertActionCount("getObligations", "SyncAck", a5, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // only an indication (agent isnt in Sync yet, so not taken into account)
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // actually used in code (not done until a5 finishes)
+		
+		session.insert(new SyncReq(a1, a5, 5, revision, issue, cluster));
+		rules.incrementTime();
+
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncAck", a5, revision, issue, cluster, 1);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // only an indication (agent is now in Sync, would give 2 vs 3 with qs of 3)
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // actually used in code (not done until a5 finishes)
+		
+		session.insert(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1);
+		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "SyncAck", a5, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // only an indication (no agents in sync but event doesn't expire as it is in use - we have 2 vs 3 with qs of 3 so obligation to revise exists)
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // actually used in code (would be 1 vs 3 with qs of 3 - still 1 from before and doesn't doubleup)
+
 		logger.info("Finished fromScratchTest()\n");
 	}
 	
