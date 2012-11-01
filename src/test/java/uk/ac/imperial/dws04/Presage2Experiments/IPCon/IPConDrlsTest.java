@@ -1079,11 +1079,11 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleRemRevision", newRevision, issue, cluster, 0);
 
 		assertActionCount("getObligations", null, a4, null, null, null, 0);
-		assertActionCount("getPowers", null, a4, null, null, null, 1); // can always arrogate
-		assertActionCount("getPermissions", null, a4, null, null, null, 1);
+		assertActionCount("getPowers", null, a4, null, null, null, 2); // can always arrogate and join as learner
+		assertActionCount("getPermissions", null, a4, null, null, null, 2);
 		assertActionCount("getObligations", null, a5, null, null, null, 0);
-		assertActionCount("getPowers", null, a5, null, null, null, 1); // can always arrogate
-		assertActionCount("getPermissions", null, a5, null, null, null, 1);
+		assertActionCount("getPowers", null, a5, null, null, null, 2); // can always arrogate and join as learner
+		assertActionCount("getPermissions", null, a5, null, null, null, 2);
 		
 		
 		/*
@@ -1757,7 +1757,7 @@ public class IPConDrlsTest {
 		IPConAgent[] none = null;
 		
 		
-		
+		session.insert(new IPConRIC(revision1, issue, cluster));
 		IPConAgent a7 = new IPConAgent("a7"); session.insert(a7); // not given a role yet
 		IPConAgent a8 = new IPConAgent("a8"); session.insert(a8); // (need to add first or leader won't get power)
 		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1); initAgent(a1, Role.ACCEPTOR, revision1, issue, cluster);
@@ -1782,6 +1782,8 @@ public class IPConDrlsTest {
 		/*
 		 * Check initially
 		 */
+		assertFactCount("IPConRIC", null , issue, cluster, 1);
+		
 		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
 		checkLeaderPowPer(a6, revision1, issue, cluster, 8, 8, 6, 0, 0, 0);
 		for (IPConAgent ag : new IPConAgent[]{a1, a3, a4, a5}) {
@@ -2079,10 +2081,12 @@ public class IPConDrlsTest {
 	
 	private void checkNoPowPerObl(IPConAgent[] list) {
 		for (IPConAgent ag : list) {
-			assertActionCount("getPowers", null, ag, null, null, null, 1); // can always arrogate and leave
+			assertActionCount("getPowers", null, ag, null, null, null, 2); // can always arrogate, join (and leave if you have a role)
 			assertActionCount("getPowers", "ArrogateLeadership", ag, null, null, null, 1);
-			assertActionCount("getPermissions", null, ag, null, null, null, 1);
+			assertActionCount("getPowers", "JoinAsLearner", ag, null, null, null, 1);
+			assertActionCount("getPermissions", null, ag, null, null, null, 2);
 			assertActionCount("getPermissions", "ArrogateLeadership", ag, null, null, null, 1);
+			assertActionCount("getPermissions", "JoinAsLearner", ag, null, null, null, 1);
 			assertActionCount("getObligations", null, ag, null, null, null, 0);
 		}
 	

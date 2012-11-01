@@ -588,6 +588,8 @@ rule "holdsAt for pow to JoinAsLearner"
 		$agent : IPConAgent(  )
 		IPConRIC( $revision : revision, $issue : issue, $cluster : cluster )
 		not HasRole( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
+		// Can't join something that is out of date
+		not IPConRIC( revision>$revision, issue==$issue, cluster==$cluster )
 	then
 		logger.trace("Logically toggling JoinPow( " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		JoinAsLearner $join = new JoinAsLearner( $agent, $revision, $issue, $cluster );

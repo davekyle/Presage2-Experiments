@@ -109,7 +109,9 @@ public class JoinAsLearner extends IPConAction {
 		return ( (this.equals(action)) || (
 				(this.getClass().isAssignableFrom(action.getClass())) &&
 				(((JoinAsLearner)action).getAgent()==null) &&
-				(this.getCluster().equals(((LeaveCluster)action).getCluster()))
+				(this.getRevision().equals(((JoinAsLearner)action).getRevision())) &&
+				(this.getIssue().equals(((JoinAsLearner)action).getIssue())) &&
+				(this.getCluster().equals(((JoinAsLearner)action).getCluster()))
 				) );
 
 }
@@ -175,7 +177,7 @@ public class JoinAsLearner extends IPConAction {
 	 */
 	@Override
 	public String toString() {
-		return "JoinCluster [agent=" + agent + ", revision=" + revision
+		return "JoinAsLearner [agent=" + agent + ", revision=" + revision
 				+ ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 	
