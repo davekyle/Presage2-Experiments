@@ -1,7 +1,7 @@
 /**
  * 
  */
-package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
+package uk.ac.imperial.dws04.Presage2Experiments;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,8 +18,7 @@ import org.drools.runtime.rule.Variable;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConRole;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
@@ -49,7 +48,7 @@ public class IPConService extends EnvironmentService {
 		session.setGlobal("logger", this.logger);
 		session.setGlobal("IPCNV_val", IPCNV.val());
 		
-		for (IPConRole role : IPConRole.values()) {
+		for (Role role : Role.values()) {
 			session.insert(role);
 		}
 	}

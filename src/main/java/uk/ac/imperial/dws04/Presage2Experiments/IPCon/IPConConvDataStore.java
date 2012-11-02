@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
+
 /**
  * Convenience object for storing data in an IPCon FSMConversation's entity object.
  * @author dws04
@@ -14,7 +16,7 @@ import java.util.UUID;
  */
 public class IPConConvDataStore {
 	private final UUID myId;
-	private final HashMap<UUID, ArrayList<IPConRole>> roleMap;
+	private final HashMap<UUID, ArrayList<Role>> roleMap;
 	private final String issue;
 	private Object value = null;
 	/**
@@ -39,7 +41,7 @@ public class IPConConvDataStore {
 	 * @param roleMap
 	 * @param issue
 	 */
-	public IPConConvDataStore(UUID myId, String issue, Integer ballotNum, Integer revision, HashMap<UUID, ArrayList<IPConRole>> roleMap) {
+	public IPConConvDataStore(UUID myId, String issue, Integer ballotNum, Integer revision, HashMap<UUID, ArrayList<Role>> roleMap) {
 		super();
 		this.myId = myId;
 		this.roleMap = roleMap;
@@ -54,10 +56,10 @@ public class IPConConvDataStore {
 	 * @param myStartingRole
 	 * @param issue
 	 */
-	public IPConConvDataStore(UUID myId, String issue, Integer ballotNum, Integer revision, IPConRole myStartingRole) {
+	public IPConConvDataStore(UUID myId, String issue, Integer ballotNum, Integer revision, Role myStartingRole) {
 		super();
 		this.myId = myId;
-		this.roleMap = new HashMap<UUID, ArrayList<IPConRole>>();
+		this.roleMap = new HashMap<UUID, ArrayList<Role>>();
 		this.addRole(myId, myStartingRole);
 		this.issue = issue;
 		this.ballotNum = ballotNum;
@@ -75,7 +77,7 @@ public class IPConConvDataStore {
 	/**
 	 * @return the roleMap
 	 */
-	public HashMap<UUID, ArrayList<IPConRole>> getRoleMap() {
+	public HashMap<UUID, ArrayList<Role>> getRoleMap() {
 		return roleMap;
 	}
 	
@@ -84,11 +86,11 @@ public class IPConConvDataStore {
 	 * @param agentId
 	 * @return the role of the given agent in this conversation
 	 */
-	public ArrayList<IPConRole> getRoles(UUID agentId) {
+	public ArrayList<Role> getRoles(UUID agentId) {
 		return roleMap.get(agentId);
 	}
 	
-	public void addRole(UUID agentId, IPConRole role) {
+	public void addRole(UUID agentId, Role role) {
 		if (!this.roleMap.get(agentId).contains(role)) {
 			this.roleMap.get(agentId).add(role);
 		}
@@ -100,7 +102,7 @@ public class IPConConvDataStore {
 	 * @param role
 	 * @return true if the agent has the role, false otherwise
 	 */
-	public boolean agentHasRole(UUID agentId, IPConRole role) {
+	public boolean agentHasRole(UUID agentId, Role role) {
 		return roleMap.get(agentId).contains(role);
 	}
 
