@@ -1,6 +1,5 @@
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 
 public class IPConRoleChangeMessageData {
@@ -13,11 +12,11 @@ public class IPConRoleChangeMessageData {
 	/**
 	 * The agent's old role
 	 */
-	private final Role oldRole;
+	private final IPConRole oldRole;
 	/**
 	 * The agent's new role
 	 */
-	private final Role newRole;
+	private final IPConRole newRole;
 	
 	private final Integer ballotNum;
 	
@@ -29,7 +28,7 @@ public class IPConRoleChangeMessageData {
 	 * @param newRole
 	 */
 	public IPConRoleChangeMessageData(NetworkAddress agentId, String issue, Integer ballotNum,
-			Boolean addRole, Role oldRole, Role newRole) {
+			Boolean addRole, IPConRole oldRole, IPConRole newRole) {
 		super();
 		this.agentId = agentId;
 		this.issue = issue;
@@ -63,14 +62,14 @@ public class IPConRoleChangeMessageData {
 	/**
 	 * @return the oldRole
 	 */
-	public Role getOldRole() {
+	public IPConRole getOldRole() {
 		return oldRole;
 	}
 
 	/**
 	 * @return the newRole
 	 */
-	public Role getNewRole() {
+	public IPConRole getNewRole() {
 		return newRole;
 	}
 

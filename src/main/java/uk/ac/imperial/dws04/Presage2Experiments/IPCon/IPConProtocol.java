@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConRole;
 import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.environment.EnvironmentConnector;
 import uk.ac.imperial.presage2.core.messaging.Performative;
@@ -47,15 +48,15 @@ public abstract class IPConProtocol extends FSMProtocol {
 	protected final EnvironmentConnector environment;
 	private final UUID myId;
 	private final UUID authkey;
-	private final HashMap<FSMConversation,Role> myRoles;
+	private final HashMap<FSMConversation,IPConRole> myRoles;
 	/**
 	 * The most recent ballots voted for by the agent
 	 */
 	private final HashMap<String,IPConVoteData> hnb;
 	
-	public static enum Role {
-		LEADER, ACCEPTOR, LEARNER, PROPOSER, INVALID
-	};
+//	public static enum Role {
+//		LEADER, ACCEPTOR, LEARNER, PROPOSER, INVALID
+//	};
 	
 	public static enum State {
 		START, IDLE, PRE_VOTE, OPEN_VOTE, CHOSEN, SYNC, ERROR
@@ -76,7 +77,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		this.environment = environment;
 		this.myId = myId;
 		this.authkey = authkey;
-		this.myRoles = new HashMap<FSMConversation, Role>();
+		this.myRoles = new HashMap<FSMConversation, IPConRole>();
 		this.hnb = new HashMap<String,IPConVoteData>();
 
 		this.logger = Logger.getLogger("IPCon for " + myId);
@@ -118,7 +119,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 					NetworkAddress from = conv.getNetwork().getAddress();
 					//NetworkAddress to = conv.recipients.get(0);
 					logger.debug("Arrogating: " + e.issue);
-					myRoles.put(conv, Role.LEADER);
+					myRoles.put(conv, IPConRole.LEADER);
 					Integer hnbBallot = hnb.get(e.issue).getBallotNum();
 					Integer hnbRevision = hnb.get(e.issue).getRevision();
 					// If you don't know about any previous ballots or revisions, start with 0
@@ -130,7 +131,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 						logger.error("INADVERTANTLY CHANGED HNB !");
 						System.exit(1);
 					}
-					conv.entity = new IPConConvDataStore(myId, e.issue, hnbBallot, hnbRevision, Role.LEADER);
+					conv.entity = new IPConConvDataStore(myId, e.issue, hnbBallot, hnbRevision, IPConRole.LEADER);
 					conv.getNetwork().sendMessage(
 							new BroadcastMessage<String>(
 									Performative.INFORM, MessageType.ARROGATE.name(), SimTime.get(), from, e.issue));
@@ -143,8 +144,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Sends a prepare message.
 		 */
 		this.description.addTransition(MessageType.PROPOSE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.PROPOSER),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.PROPOSER),
 				new MessageTypeCondition(MessageType.PROPOSE.name()),
 				new ConversationCondition()
 			),
@@ -183,8 +184,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Do nothing other than update own data
 		 */
 		this.description.addTransition(MessageType.RESPONSE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.RESPONSE.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -222,8 +223,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Decide on safe values and send submit message
 		 */
 		this.description.addTransition(MessageType.RESPONSE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.RESPONSE.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -267,8 +268,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Update own knowledge 
 		 */
 		this.description.addTransition(MessageType.VOTE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.VOTE.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -308,8 +309,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Update own knowledge and send chosen message (we're adding this for clarity)
 		 */
 		this.description.addTransition(MessageType.VOTE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.VOTE.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -359,8 +360,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send sync_req message and make note of who is syncing (do other acceptors need to know we're syncing?)
 		 */
 		this.description.addTransition(MessageType.INTERNAL_ROLE_CHANGE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				//new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				//new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.INTERNAL_ROLE_CHANGE.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -373,7 +374,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 						return (	( (dataStore.getData("SyncSet").equals(null)) || (dataStore.getData("SyncSet").equals(Collections.emptySet())) ) && 
 								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
 								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
-								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(Role.ACCEPTOR))) && 
+								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(IPConRole.ACCEPTOR))) && 
 								( (((InternalRoleChangeMessage)event).getData().getBallotNum().equals(dataStore.getData("BallotNum"))) )
 								);
 					}
@@ -390,8 +391,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send sync_req message and make note of who is syncing (do other acceptors need to know we're syncing?)
 		 */
 		this.description.addTransition(MessageType.INTERNAL_ROLE_CHANGE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.INTERNAL_ROLE_CHANGE.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -404,7 +405,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 						return  ( ( (!dataStore.getData("SyncSet").equals(null)) && (!dataStore.getData("SyncSet").equals(Collections.emptySet())) ) && 
 								( (event instanceof InternalRoleChangeMessage) && (((InternalRoleChangeMessage)event).getData() instanceof IPConRoleChangeMessageData ) &&
 								( (((InternalRoleChangeMessage)event).getData().getAddRole()))  ) &&
-								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(Role.ACCEPTOR))) && 
+								( (((InternalRoleChangeMessage)event).getData().getNewRole().equals(IPConRole.ACCEPTOR))) && 
 								( (((InternalRoleChangeMessage)event).getData().getBallotNum().equals(dataStore.getData("BallotNum"))) )
 								);
 					}
@@ -421,8 +422,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Update knowledge of who is syncing (do other acceptors need to know we're syncing?)
 		 */
 		this.description.addTransition(MessageType.SYNC_ACK, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -480,8 +481,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Update knowledge (if other acceptors needed to know we're syncing then tell them we're not anymore)
 		 */
 		this.description.addTransition(MessageType.SYNC_ACK, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -536,8 +537,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send revise message
 		 */
 		this.description.addTransition(MessageType.SYNC_ACK, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.ACCEPTOR),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.ACCEPTOR),
 				new MessageTypeCondition(MessageType.SYNC_ACK.name()),
 				new ConversationCondition(),
 				new TransitionCondition() {
@@ -603,7 +604,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send revise message
 		 */
 		this.description.addTransition(MessageType.REVISE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
 				new MessageTypeCondition(MessageType.INTERNAL_NEED_REVISION.name()),
 				new ConversationCondition()
 			),
@@ -660,8 +661,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		}
 		
 		/*this.description.addTransition(MessageType.PROPOSE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.PROPOSER),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.PROPOSER),
 				new MessageTypeCondition(MessageType.PROPOSE.name()),
 				new ConversationCondition()
 			),
@@ -682,8 +683,8 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * Send prepare message
 		 */
 		/*this.description.addTransition(MessageType.PROPOSE, new AndCondition(
-				new IPConOwnRoleCondition(Role.LEADER),
-				new IPConSenderRoleCondition(Role.PROPOSER),
+				new IPConOwnRoleCondition(IPConRole.LEADER),
+				new IPConSenderRoleCondition(IPConRole.PROPOSER),
 				new MessageTypeCondition(MessageType.PROPOSE.name()),
 				new ConversationCondition()
 			),
@@ -756,7 +757,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 	 * @param oldRole
 	 * @param newRole
 	 */
-	public void internalRoleChange(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, Role oldRole, Role newRole) {
+	public void internalRoleChange(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, IPConRole oldRole, IPConRole newRole) {
 		this.handle(new InternalRoleChangeMessage(conv, agentId, issue, ballotNum, addOrRem, oldRole, newRole));
 	}
 	
@@ -785,7 +786,7 @@ public abstract class IPConProtocol extends FSMProtocol {
 		 * @param oldRole
 		 * @param newRole
 		 */
-		public InternalRoleChangeMessage(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, Role oldRole, Role newRole) {
+		public InternalRoleChangeMessage(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, IPConRole oldRole, IPConRole newRole) {
 			super(Performative.INFORM, MessageType.INTERNAL_ROLE_CHANGE.name(), SimTime.get(), conv.getNetwork().getAddress(),new IPConRoleChangeMessageData(agentId, issue, ballotNum, addOrRem, oldRole, newRole));
 		}
 	}
@@ -905,9 +906,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 	 */
 	private class IPConOwnRoleCondition implements TransitionCondition {
 		
-		private final Role role;
+		private final IPConRole role;
 		
-		public IPConOwnRoleCondition(Role role) {
+		public IPConOwnRoleCondition(IPConRole role) {
 			this.role = role;
 		}
 
@@ -926,9 +927,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 	 */
 	private class IPConSenderRoleCondition implements TransitionCondition {
 		
-		private final Role role;
+		private final IPConRole role;
 		
-		public IPConSenderRoleCondition(Role role) {
+		public IPConSenderRoleCondition(IPConRole role) {
 			this.role = role;
 		}
 
