@@ -7,7 +7,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
  * @author dws04
  *
  */
-public enum IPConRole {
+public enum Role {
 	LEADER,
 	PROPOSER,
 	ACCEPTOR,
