@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
 
-import uk.ac.imperial.dws04.Presage2Experiments.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
