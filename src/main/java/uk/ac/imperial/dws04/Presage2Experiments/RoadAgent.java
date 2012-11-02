@@ -3,8 +3,11 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.UUID;
@@ -12,6 +15,7 @@ import java.util.UUID;
 import org.apache.log4j.Level;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
@@ -181,6 +185,43 @@ public class RoadAgent extends AbstractParticipant {
 		 * Add all relevant actions to queue of actions
 		 * FIXME TODO
 		 */
+		HashSet<IPConAction> obligations = (HashSet<IPConAction>) ipconService.getObligations(ipconHandle, null, null, null);
+		HashSet<IPConAction> permissions = (HashSet<IPConAction>) ipconService.getPermissions(ipconHandle, null, null, null);
+		HashMap<String, ArrayList<IPConAction>> perMap = new HashMap<String, ArrayList<IPConAction>>();
+		
+		// Split permissions by class
+		for (IPConAction per : permissions) {
+			String type = per.getClass().getSimpleName();
+			if (!perMap.containsKey(type)) {
+				perMap.put(type, new ArrayList<IPConAction>());
+			}
+			perMap.get(type).add(per);
+		}
+		
+		
+		// check to see if you have a permission for each obligation, if you do then fill in any nulls
+		for (IPConAction obl : obligations) {
+			logger.trace(getID() + " is attempting to discharge their obligation to " + obl);
+			if (perMap.containsKey(obl.getClass().getSimpleName())) {
+				Field[] fields = obl.getClass().getFields();
+				for (Field f : fields) {
+					Object fVal = null;
+					try {
+						fVal = f.get(obl);
+					} catch (Exception e) {
+						logger.error(getID() + " had a problem extracting the fields of an obligation (this should never happen !)" + obl + "...");
+						e.printStackTrace();
+					}
+					if (fVal==null) {
+						logger.trace(getID() + " found a null field in " + obl);
+						
+					}
+				}
+			}
+			else {
+				logger.warn(getID() + " is not permitted to discharge its obligation to " + obl);
+			}
+		}
 		
 		/*
 		 * Derive microgoals to fulfil macrogoals

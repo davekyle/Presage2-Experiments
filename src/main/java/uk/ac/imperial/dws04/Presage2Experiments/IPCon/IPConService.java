@@ -86,7 +86,7 @@ public class IPConService extends EnvironmentService {
 	 * @param cluster cluster to match, or null to match all
 	 * @return facts matching the query
 	 */
-	public Collection<IPConFact> getFactQueryResults(
+	private Collection<IPConFact> getFactQueryResults(
 			final String factType,
 			final Integer revision,
 			final String issue,
@@ -125,7 +125,7 @@ public class IPConService extends EnvironmentService {
 	 * @param cluster
 	 * @return matching actions; use null for any argument except queryName to get all matching
 	 */
-	public Collection<IPConAction> getActionQueryResultsForRIC(
+	private Collection<IPConAction> getActionQueryResultsForRIC(
 			final String queryName,
 			final String actionType,
 			final IPConAgent agent,
@@ -169,6 +169,75 @@ public class IPConService extends EnvironmentService {
 		}
 		for ( QueryResultsRow row : results ) {
 			set.add((IPConAction)row.get("$action"));
+		}
+		return set;
+	}
+	
+	/**
+	 * 
+	 * @param agent can be null to match all agents
+	 * @param revision can be null to match all revisions
+	 * @param issue can be null to match all clusters
+	 * @param cluster can be null to match all clusters
+	 * @return the obligations for the agent&RIC specified. 
+	 */
+	public Collection<IPConAction> getObligations(
+			final IPConAgent agent,
+			final Integer revision,
+			final String issue,
+			final UUID cluster) {
+		HashSet<IPConAction> set = new HashSet<IPConAction>();
+		for (IPConAction action : getActionQueryResults("getObligations", null, agent)) {
+			//logger.trace("Checking: " + action);
+			if (matchesRIC(action, revision, issue, cluster)) {
+				set.add((IPConAction)action);
+			}
+		}
+		return set;
+	}
+	
+	/**
+	 * 
+	 * @param agent can be null to match all agents
+	 * @param revision can be null to match all revisions
+	 * @param issue can be null to match all clusters
+	 * @param cluster can be null to match all clusters
+	 * @return the permissions for the agent&RIC specified. 
+	 */
+	public Collection<IPConAction> getPermissions(
+			final IPConAgent agent,
+			final Integer revision,
+			final String issue,
+			final UUID cluster) {
+		HashSet<IPConAction> set = new HashSet<IPConAction>();
+		for (IPConAction action : getActionQueryResults("getPermissions", null, agent)) {
+			//logger.trace("Checking: " + action);
+			if (matchesRIC(action, revision, issue, cluster)) {
+				set.add((IPConAction)action);
+			}
+		}
+		return set;
+	}
+	
+	/**
+	 * 
+	 * @param agent can be null to match all agents
+	 * @param revision can be null to match all revisions
+	 * @param issue can be null to match all clusters
+	 * @param cluster can be null to match all clusters
+	 * @return the powers for the agent&RIC specified. 
+	 */
+	public Collection<IPConAction> getPowers(
+			final IPConAgent agent,
+			final Integer revision,
+			final String issue,
+			final UUID cluster) {
+		HashSet<IPConAction> set = new HashSet<IPConAction>();
+		for (IPConAction action : getActionQueryResults("getPowers", null, agent)) {
+			//logger.trace("Checking: " + action);
+			if (matchesRIC(action, revision, issue, cluster)) {
+				set.add((IPConAction)action);
+			}
 		}
 		return set;
 	}

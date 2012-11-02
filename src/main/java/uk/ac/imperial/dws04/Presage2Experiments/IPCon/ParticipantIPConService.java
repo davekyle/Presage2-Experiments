@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
@@ -52,5 +53,48 @@ public class ParticipantIPConService extends IPConService {
 			throw new SharedStateAccessException("A participant may not view another agent's RICs!");
 		}
 	}
+
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getObligations(uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent, java.lang.Integer, java.lang.String, java.util.UUID)
+	 */
+	@Override
+	public Collection<IPConAction> getObligations(IPConAgent agent,
+			Integer revision, String issue, UUID cluster) {
+		if (agent.equals(this.handle)) {
+			return super.getObligations(agent, revision, issue, cluster);
+		}
+		else {
+			throw new SharedStateAccessException("A participant may not view another agent's obligations!");
+		}
+	}
+	
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getObligations(uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent, java.lang.Integer, java.lang.String, java.util.UUID)
+	 */
+	@Override
+	public Collection<IPConAction> getPermissions(IPConAgent agent,
+			Integer revision, String issue, UUID cluster) {
+		if (agent.equals(this.handle)) {
+			return super.getPermissions(agent, revision, issue, cluster);
+		}
+		else {
+			throw new SharedStateAccessException("A participant may not view another agent's permissions!");
+		}
+	}
+	
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getObligations(uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent, java.lang.Integer, java.lang.String, java.util.UUID)
+	 */
+	@Override
+	public Collection<IPConAction> getPowers(IPConAgent agent,
+			Integer revision, String issue, UUID cluster) {
+		if (agent.equals(this.handle)) {
+			return super.getPowers(agent, revision, issue, cluster);
+		}
+		else {
+			throw new SharedStateAccessException("A participant may not view another agent's powers!");
+		}
+	}
+	
 	
 }
