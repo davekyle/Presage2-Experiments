@@ -1,6 +1,5 @@
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 
 public class IPConRoleChangeMessageData {

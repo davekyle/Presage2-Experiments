@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
-
 /**
  * Convenience object for storing data in an IPCon FSMConversation's entity object.
  * @author dws04

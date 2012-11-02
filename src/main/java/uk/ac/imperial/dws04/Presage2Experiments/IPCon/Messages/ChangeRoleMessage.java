@@ -4,7 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.MessageType;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConRoleChangeMessageData;
 import uk.ac.imperial.presage2.core.messaging.Performative;
 import uk.ac.imperial.presage2.core.network.BroadcastMessage;

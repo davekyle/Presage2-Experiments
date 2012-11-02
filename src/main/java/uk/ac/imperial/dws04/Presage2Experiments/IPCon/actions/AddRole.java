@@ -5,7 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions;
 
 import java.util.UUID;
 
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 
 /**
@@ -122,7 +122,7 @@ public class AddRole extends IPConAction {
 	/**
 	 * @return the role
 	 */
-	public Role getRole() {
+	public uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role getRole() {
 		return role;
 	}
 	/**

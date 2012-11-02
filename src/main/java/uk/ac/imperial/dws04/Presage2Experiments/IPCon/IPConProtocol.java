@@ -53,9 +53,9 @@ public abstract class IPConProtocol extends FSMProtocol {
 	 */
 	private final HashMap<String,IPConVoteData> hnb;
 	
-	public static enum Role {
-		LEADER, ACCEPTOR, LEARNER, PROPOSER, INVALID
-	};
+//	public static enum Role {
+//		LEADER, ACCEPTOR, LEARNER, PROPOSER, INVALID
+//	};
 	
 	public static enum State {
 		START, IDLE, PRE_VOTE, OPEN_VOTE, CHOSEN, SYNC, ERROR
