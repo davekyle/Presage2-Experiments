@@ -86,7 +86,7 @@ public class IPConService extends EnvironmentService {
 	 * @param cluster cluster to match, or null to match all
 	 * @return facts matching the query
 	 */
-	private Collection<IPConFact> getFactQueryResults(
+	public Collection<IPConFact> getFactQueryResults(
 			final String factType,
 			final Integer revision,
 			final String issue,
@@ -125,13 +125,18 @@ public class IPConService extends EnvironmentService {
 	 * @param cluster
 	 * @return matching actions; use null for any argument except queryName to get all matching
 	 */
-	private Collection<IPConAction> getActionQueryResultsForRIC(
+	public Collection<IPConAction> getActionQueryResultsForRIC(
 			final String queryName,
 			final String actionType,
 			final IPConAgent agent,
 			final Integer revision,
 			final String issue,
 			final UUID cluster) {
+		// don't bother checking for RIC if you want them all
+		if ((revision==null)&&(issue==null)&&(cluster==null)) {
+			return getActionQueryResults(queryName, actionType, agent);
+		}
+		//else
 		HashSet<IPConAction> set = new HashSet<IPConAction>();
 		for (IPConAction action : getActionQueryResults(queryName, actionType, agent)) {
 			//logger.trace("Checking: " + action);

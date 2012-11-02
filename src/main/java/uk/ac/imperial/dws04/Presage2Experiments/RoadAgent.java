@@ -213,7 +213,7 @@ public class RoadAgent extends AbstractParticipant {
 						e.printStackTrace();
 					}
 					if (fVal==null) {
-						logger.trace(getID() + " found a null field in " + obl);
+						logger.trace(getID() + " found a null field (" + f + ") in " + obl);
 						
 					}
 				}

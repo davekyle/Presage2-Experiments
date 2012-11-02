@@ -11,6 +11,7 @@ import org.drools.runtime.StatefulKnowledgeSession;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
@@ -94,6 +95,25 @@ public class ParticipantIPConService extends IPConService {
 		else {
 			throw new SharedStateAccessException("A participant may not view another agent's powers!");
 		}
+	}
+
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getFactQueryResults(java.lang.String, java.lang.Integer, java.lang.String, java.util.UUID)
+	 */
+	@Override
+	public Collection<IPConFact> getFactQueryResults(String factType,
+			Integer revision, String issue, UUID cluster) {
+		throw new SharedStateAccessException("getFactQueryResults not available to agents!");
+	}
+
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getActionQueryResultsForRIC(java.lang.String, java.lang.String, uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent, java.lang.Integer, java.lang.String, java.util.UUID)
+	 */
+	@Override
+	public Collection<IPConAction> getActionQueryResultsForRIC(
+			String queryName, String actionType, IPConAgent agent,
+			Integer revision, String issue, UUID cluster) {
+		throw new SharedStateAccessException("getActionQueryResultsForRIC not available to agents!");
 	}
 	
 	
