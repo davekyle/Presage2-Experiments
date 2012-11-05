@@ -185,9 +185,55 @@ public class RoadAgent extends AbstractParticipant {
 		 * Add all relevant actions to queue of actions
 		 * FIXME TODO
 		 */
+		ArrayList<IPConAction> obligatedActions = getInstatiatedObligatedActionQueue();
+		
+		/*
+		 * Derive microgoals to fulfil macrogoals
+		 *  - take into account distance to exit
+		 *  - time to get to exit
+		 *  - fuel economy ?
+		 *  - IPCon agreed speed etc
+		 * Reason actions to fulfil microgoals
+		 * Check for conflicts
+		 * All all relevant actions to queue of actions
+		 * FIXME TODO
+		 */
+		
+		
+		
+		// FIXME TODO implement these then choose them properly :P
+		NeighbourChoiceMethod neighbourChoiceMethod = NeighbourChoiceMethod.WORSTCASE;
+		OwnChoiceMethod ownChoiceMethod = OwnChoiceMethod.SAFE;
+	 
+		logger.info("[" + getID() + "] My location is: " + this.myLoc + 
+										", my speed is " + this.mySpeed + 
+										", my goalSpeed is " + this.goals.getSpeed() + 
+										", and I have " + junctionsLeft + " junctions to pass before my goal of " + goals.getDest() +
+										", so I am in state " + fsm.getState());
+		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
+		saveDataToDB();
+
+		
+		CellMove move;
+		// Check to see if you want to turn off, then if you can end up at the junction in the next timecycle, do so
+		if (	(fsm.getState().equals("MOVE_TO_EXIT")) && (junctionDist!=null) ) {
+			//move = driver.turnOff();
+			move = createExitMove(junctionDist, neighbourChoiceMethod);
+		}
+		else {
+			move = createMove(ownChoiceMethod, neighbourChoiceMethod);
+		}
+		if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
+			passJunction();
+		}
+		submitMove(move);
+	}
+
+	private ArrayList<IPConAction> getInstatiatedObligatedActionQueue() {
 		HashSet<IPConAction> obligations = (HashSet<IPConAction>) ipconService.getObligations(ipconHandle, null, null, null);
 		HashSet<IPConAction> permissions = (HashSet<IPConAction>) ipconService.getPermissions(ipconHandle, null, null, null);
 		HashMap<String, ArrayList<IPConAction>> perMap = new HashMap<String, ArrayList<IPConAction>>();
+		ArrayList<IPConAction> queue = new ArrayList<IPConAction>();
 		
 		// Split permissions by class
 		for (IPConAction per : permissions) {
@@ -282,48 +328,9 @@ public class RoadAgent extends AbstractParticipant {
 			else {
 				logger.warn(getID() + " is not permitted to discharge its obligation to " + obl + " (this should never happen)!");
 			}
+			queue.add(actToDo);
 		}
-		
-		/*
-		 * Derive microgoals to fulfil macrogoals
-		 *  - take into account distance to exit
-		 *  - time to get to exit
-		 *  - fuel economy ?
-		 *  - IPCon agreed speed etc
-		 * Reason actions to fulfil microgoals
-		 * Check for conflicts
-		 * All all relevant actions to queue of actions
-		 * FIXME TODO
-		 */
-		
-		
-		
-		// FIXME TODO implement these then choose them properly :P
-		NeighbourChoiceMethod neighbourChoiceMethod = NeighbourChoiceMethod.WORSTCASE;
-		OwnChoiceMethod ownChoiceMethod = OwnChoiceMethod.SAFE;
-	 
-		logger.info("[" + getID() + "] My location is: " + this.myLoc + 
-										", my speed is " + this.mySpeed + 
-										", my goalSpeed is " + this.goals.getSpeed() + 
-										", and I have " + junctionsLeft + " junctions to pass before my goal of " + goals.getDest() +
-										", so I am in state " + fsm.getState());
-		logger.info("I can see the following agents:" + locationService.getNearbyAgents());
-		saveDataToDB();
-
-		
-		CellMove move;
-		// Check to see if you want to turn off, then if you can end up at the junction in the next timecycle, do so
-		if (	(fsm.getState().equals("MOVE_TO_EXIT")) && (junctionDist!=null) ) {
-			//move = driver.turnOff();
-			move = createExitMove(junctionDist, neighbourChoiceMethod);
-		}
-		else {
-			move = createMove(ownChoiceMethod, neighbourChoiceMethod);
-		}
-		if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
-			passJunction();
-		}
-		submitMove(move);
+		return queue;
 	}
 	
 	private void passJunction(){

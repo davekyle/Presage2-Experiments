@@ -143,6 +143,24 @@ public class IPConAgentTest {
 	}
 	
 	@Test
+	public void testObligationInstantiation() throws Exception {
+		/**
+		 * This requires access to a fn which should be private... Could either test the behaviour as a whole or... ?
+		 */
+		/*
+		 * Create agents
+		 */
+		/*
+		 * Set up cluster to ensure at least one agent-relative obligation and one agent-neutral obligation
+		 * where the agents are all permitted. Preferably the permissions should include examples of multiple
+		 * options, no options, single options, and unconstrained(-ish) options. 
+		 */
+		/*
+		 * Check resulting actions
+		 */
+	}
+	
+	@Test
 	public void test() throws Exception {
 		/*
 		 * Create agents
