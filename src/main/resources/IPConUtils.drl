@@ -12,7 +12,7 @@ import java.lang.Math
 import java.util.UUID
 import java.util.List
 //IPCon
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
 //drls
 //import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*

@@ -18,7 +18,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConUtils.*
 
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
 
 //declare any global variables here

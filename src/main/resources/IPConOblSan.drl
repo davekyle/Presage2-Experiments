@@ -20,7 +20,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon.*
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role
 
 //declare any global variables here
 global org.apache.log4j.Logger logger

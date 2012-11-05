@@ -10,7 +10,7 @@ import java.lang.Object
 import java.util.List
 // my presage2
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConProtocol.Role
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
 //drls
 //import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCon_Institutional_Facts.*
