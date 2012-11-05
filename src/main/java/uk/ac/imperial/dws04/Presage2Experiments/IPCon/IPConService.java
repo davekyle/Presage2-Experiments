@@ -117,6 +117,42 @@ public class IPConService extends EnvironmentService {
 	
 	/**
 	 * 
+	 * @param agent agent to match, or null to match all
+	 * @param revision revision to match, or null to match all
+	 * @param issue issue to match, or null to match all
+	 * @param cluster cluster to match, or null to match all
+	 * @return roles the agent holds in the given RIC
+	 */
+	public Collection<HasRole> getAgentRoles(
+			final IPConAgent agent,
+			final Integer revision,
+			final String issue,
+			final UUID cluster) {
+		String queryString = "getAgentRoles";
+		HashSet<HasRole> set = new HashSet<HasRole>();
+		ArrayList<Object> lookup = new ArrayList<Object>();
+		lookup.addAll(Arrays.asList(new Object[]{agent, revision, issue, cluster}));
+		if (agent==null) {
+			lookup.set(0, Variable.v);
+		}
+		if (revision==null) {
+			lookup.set(1, Variable.v);
+		}
+		if (issue==null) {
+			lookup.set(2, Variable.v);
+		}
+		if (cluster==null) {
+			lookup.set(3, Variable.v);
+		}
+		QueryResults facts = session.getQueryResults(queryString, lookup.toArray());
+		for (QueryResultsRow row : facts) {
+			set.add((HasRole)row.get("$role"));
+		}
+		return set;
+	}
+	
+	/**
+	 * 
 	 * @param queryName should be "getPowers" "getPermissions" or "getObligations"
 	 * @param actionType
 	 * @param agent
@@ -303,11 +339,11 @@ public class IPConService extends EnvironmentService {
 	 */
 	public Collection<IPConRIC> getCurrentRICs(IPConAgent handle) {
 		Collection<IPConRIC> result = new HashSet<IPConRIC>();
-		Collection<IPConFact> coll = getFactQueryResults("HasRole", null, null, null);
-		for (IPConFact fact : coll) {
-			if ( (fact instanceof HasRole) && ((HasRole)fact).getAgent().equals(handle) ) {
-				result.add( ((HasRole)fact).getRIC() );
-			}
+		Collection<HasRole> coll = getAgentRoles(handle, null, null, null);
+		for (HasRole fact : coll) {
+			//if ( (fact instanceof HasRole) && ((HasRole)fact).getAgent().equals(handle) ) {
+				result.add( fact.getRIC() );
+			//}
 		}
 		return result;
 	}

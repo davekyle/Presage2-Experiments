@@ -511,7 +511,9 @@ query "getFactsNamed" ( Integer $revision, String $issue, UUID $cluster, String 
 	$fact : IPConFact( revision==$revision, issue==$issue, cluster==$cluster, (($fact.toString()).substring(0, $factName.length())).equals($factName) ) 
 end
 
-
+query "getAgentRoles" ( IPConAgent $agent, Integer $revision, String $issue, UUID $cluster )
+	$role : HasRole( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) 
+end
 
 
 
