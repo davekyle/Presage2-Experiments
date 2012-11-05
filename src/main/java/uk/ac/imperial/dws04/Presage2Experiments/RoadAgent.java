@@ -198,28 +198,89 @@ public class RoadAgent extends AbstractParticipant {
 			perMap.get(type).add(per);
 		}
 		
-		
 		// check to see if you have a permission for each obligation, if you do then fill in any nulls
 		for (IPConAction obl : obligations) {
 			logger.trace(getID() + " is attempting to discharge their obligation to " + obl);
-			if (perMap.containsKey(obl.getClass().getSimpleName())) {
+			// Make your proto-action
+			IPConAction actToDo = null;
+			try {
+				actToDo = obl.getClass().newInstance();
+			} catch (InstantiationException e1) {
+				logger.error("Failed to instantiate from " + obl + " when making a new instance.");
+				e1.printStackTrace();
+			} catch (IllegalAccessException e1) {
+				logger.error("Failed to access " + obl + " when making a new instance.");
+				e1.printStackTrace();
+			}
+			
+			/* Make sure you have permission to do it,
+			 * and dbl check you really do,
+			 * and make sure they're actually the same class, since we'll be reflecting
+			 */
+			if (	(perMap.containsKey(obl.getClass().getSimpleName())) &&
+					(!perMap.get(obl.getClass().getSimpleName()).isEmpty()) &&
+					(!perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass())) ) {
+				
 				Field[] fields = obl.getClass().getFields();
 				for (Field f : fields) {
-					Object fVal = null;
+					logger.trace(getID() + " checking field " + f + " in " + obl);
+					Object fOblVal = null;
 					try {
-						fVal = f.get(obl);
+						fOblVal = f.get(obl);
+						logger.trace(getID() + " found the value of field " + f + " in " + obl + " to be " + fOblVal);
 					} catch (Exception e) {
 						logger.error(getID() + " had a problem extracting the fields of an obligation (this should never happen !)" + obl + "...");
 						e.printStackTrace();
 					}
-					if (fVal==null) {
+					if (fOblVal==null) {
 						logger.trace(getID() + " found a null field (" + f + ") in " + obl);
-						
+						// Go through the permitted values, and get all non-null ones
+						ArrayList<Object> vals = new ArrayList<Object>();
+						ArrayList<IPConAction> perList = perMap.get(obl.getClass().getSimpleName());
+						for (IPConAction act : perList) {
+							Object fActVal = null;
+							try {
+								fActVal = f.get(act);
+								logger.trace(getID() + " found the value of field " + f + " in " + act + " to be " + fActVal);
+							} catch (Exception e) {
+								logger.error(getID() + " had a problem extracting the fields of an action (this should never happen !)" + act + "...");
+								e.printStackTrace();
+							}
+							if (fActVal!=null) {
+								vals.add(fActVal);
+							}
+						}
+						// If all the permissions are also null, then you can do anything so pick something at random :P 
+						if (vals.size()==0) {
+							// FIXME TODO 
+							logger.trace(getID() + " didn't know what to set the value of field " + f + " to be in " + actToDo);
+						}
+						// If there is only one then use that.
+						else if (vals.size()==1) {
+							try {
+								logger.trace(getID() + " set the value of field " + f + " to be " + vals.get(0) + " in " + actToDo);
+								f.set(actToDo, vals.get(0));
+							} catch (Exception e) {
+								logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
+								e.printStackTrace();
+							}
+						}
+						// If there is more than one, pick one at random ?
+						else {
+							// FIXME TODO 
+							try {
+								logger.trace(getID() + " randomly picked the value of field " + f + " to be " + vals.get(0) + " in " + actToDo);
+								f.set(actToDo, vals.get(0));
+							} catch (Exception e) {
+								logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
+								e.printStackTrace();
+							}
+						}
 					}
 				}
 			}
 			else {
-				logger.warn(getID() + " is not permitted to discharge its obligation to " + obl);
+				logger.warn(getID() + " is not permitted to discharge its obligation to " + obl + " (this should never happen)!");
 			}
 		}
 		
