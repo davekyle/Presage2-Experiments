@@ -144,4 +144,8 @@ public class ResignLeadership extends IPConAction {
 				(this.getCluster().equals(((ResignLeadership)action).getCluster()))
 				) );
 	}
+	@Override
+	public ResignLeadership copy() {
+		return new ResignLeadership(agent, revision, issue, cluster);
+	}
 }

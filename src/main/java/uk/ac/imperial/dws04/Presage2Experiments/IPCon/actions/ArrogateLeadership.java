@@ -17,8 +17,8 @@ public class ArrogateLeadership extends IPConAction {
 	public String issue;
 	public UUID cluster;
 	
-	@SuppressWarnings("unused")
-	private ArrogateLeadership(){}
+	//@SuppressWarnings("unused")
+	//private ArrogateLeadership(){}
 	
 	/**
 	 * @param agent
@@ -156,5 +156,10 @@ public class ArrogateLeadership extends IPConAction {
 				(((ArrogateLeadership)action).getAgent()==null) &&
 				(this.getCluster().equals(((ArrogateLeadership)action).getCluster()))
 				) );
+	}
+
+	@Override
+	public ArrogateLeadership copy() {
+		return new ArrogateLeadership(agent, revision, issue, cluster);
 	}
 }

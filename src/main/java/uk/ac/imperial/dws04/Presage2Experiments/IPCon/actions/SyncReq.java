@@ -191,4 +191,8 @@ public class SyncReq extends IPConAction {
 				(this.getCluster().equals(((SyncReq)action).getCluster()))
 				) );
 	}
+	@Override
+	public SyncReq copy() {
+		return new SyncReq(leader, agent, value, revision, issue, cluster);
+	}
 }

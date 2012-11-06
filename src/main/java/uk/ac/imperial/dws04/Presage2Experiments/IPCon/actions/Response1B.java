@@ -240,4 +240,8 @@ public class Response1B extends IPConAction {
 				(this.getCluster().equals(((Response1B)action).getCluster()))
 				) );
 	}
+	@Override
+	public Response1B copy() {
+		return new Response1B(agent, voteRevision, voteBallot, voteValue, revision, ballot, issue, cluster);
+	}
 }

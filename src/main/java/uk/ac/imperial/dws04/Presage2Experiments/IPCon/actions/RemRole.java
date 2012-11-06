@@ -189,4 +189,8 @@ public class RemRole extends IPConAction {
 				(this.getCluster().equals(((RemRole)action).getCluster()))
 				) );
 	}
+	@Override
+	public RemRole copy() {
+		return new RemRole(leader, agent, role, revision, issue, cluster);
+	}
 }

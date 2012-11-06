@@ -191,4 +191,8 @@ public class Submit2A extends IPConAction {
 				(this.getCluster().equals(((Submit2A)action).getCluster()))
 				) );
 	}
+	@Override
+	public Submit2A copy() {
+		return new Submit2A(agent, revision, ballot, value, issue, cluster);
+	}
 }

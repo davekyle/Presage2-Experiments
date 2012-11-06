@@ -171,4 +171,8 @@ public class Prepare1A extends IPConAction {
 				(this.getCluster().equals(((Prepare1A)action).getCluster()))
 				) );
 	}
+	@Override
+	public Prepare1A copy() {
+		return new Prepare1A(agent, revision, ballot, issue, cluster);
+	}
 }

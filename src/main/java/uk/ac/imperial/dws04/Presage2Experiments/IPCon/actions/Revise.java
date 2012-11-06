@@ -146,4 +146,8 @@ public class Revise extends IPConAction {
 				(this.getCluster().equals(((Revise)action).getCluster()))
 				) );
 	}
+	@Override
+	public Revise copy() {
+		return new Revise(agent, revision, issue, cluster);
+	}
 }

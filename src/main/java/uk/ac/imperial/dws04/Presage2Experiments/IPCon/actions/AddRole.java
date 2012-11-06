@@ -189,4 +189,9 @@ public class AddRole extends IPConAction {
 				(this.getCluster().equals(((AddRole)action).getCluster()))
 				) );
 	}
+	
+	@Override
+	public AddRole copy() {
+		return new AddRole(this.leader, this.agent, this.role, this.revision, this.issue, this.cluster);
+	}
 }

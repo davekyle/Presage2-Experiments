@@ -170,4 +170,8 @@ public class SyncAck extends IPConAction {
 				(this.getCluster().equals(((SyncAck)action).getCluster()))
 				) );
 	}
+	@Override
+	public SyncAck copy() {
+		return new SyncAck(agent, value, revision, issue, cluster);
+	}
 }

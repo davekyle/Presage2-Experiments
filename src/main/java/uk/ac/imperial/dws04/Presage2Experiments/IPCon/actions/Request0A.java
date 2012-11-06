@@ -170,4 +170,8 @@ public class Request0A extends IPConAction {
 				(this.getCluster().equals(((Request0A)action).getCluster()))
 				) );
 	}
+	@Override
+	public Request0A copy() {
+		return new Request0A(agent, revision, value, issue, cluster);
+	}
 }

@@ -15,5 +15,11 @@ public abstract class IPConAction {
 	 * @return true if this action is "the same as" the argument with the exception of the agent
 	 */
 	public abstract boolean fulfils(IPConAction action);
+	
+	/**
+	 * Copy constructor...
+	 * @return new action with same values
+	 */
+	public abstract IPConAction copy();
 
 }

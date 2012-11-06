@@ -180,5 +180,12 @@ public class JoinAsLearner extends IPConAction {
 		return "JoinAsLearner [agent=" + agent + ", revision=" + revision
 				+ ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
+
+
+
+	@Override
+	public JoinAsLearner copy() {
+		return new JoinAsLearner(agent, revision, issue, cluster);
+	}
 	
 }

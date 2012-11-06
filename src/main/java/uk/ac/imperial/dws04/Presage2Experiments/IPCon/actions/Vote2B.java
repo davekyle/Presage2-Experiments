@@ -190,4 +190,8 @@ public class Vote2B extends IPConAction {
 				(this.getCluster().equals(((Vote2B)action).getCluster()))
 				) );
 	}
+	@Override
+	public Vote2B copy() {
+		return new Vote2B(agent, revision, ballot, value, issue, cluster);
+	}
 }

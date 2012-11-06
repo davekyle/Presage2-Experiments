@@ -99,6 +99,10 @@ public class LeaveCluster extends IPConAction {
 				(this.getCluster().equals(((LeaveCluster)action).getCluster()))
 				) );
 	}
+	@Override
+	public LeaveCluster copy() {
+		return new LeaveCluster(agent, cluster);
+	}
 	
 	
 }
