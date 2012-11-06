@@ -5,7 +5,9 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
 import static org.junit.Assert.*;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -174,11 +176,15 @@ public class IPConAgentTest {
 		session.insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
 		rules.incrementTime();
 		Collection<IPConAction> obl = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
-		assertEquals(1,obl.size());
 		logger.info("A1 obligated to :" + obl);
+		assertEquals(1,obl.size());
+		Collection<IPConAction> per = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
+		logger.info("A1 permitted to :" + per);
+		assertEquals(1,per.size());
 		
 		ArrayList<IPConAction> a1Obl = a1.TESTgetInstantiatedObligatedActionQueue();
 		assertEquals(1, a1Obl.size());
+		assertTrue(a1Obl.get(0).fulfils((IPConAction)obl.toArray()[0]));
 		logger.info("A1 instantiated: " + a1Obl);
 		
 		
