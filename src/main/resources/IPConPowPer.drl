@@ -567,7 +567,7 @@ rule "holdsAt for pow to SyncAck (no)"
 		// FIXME TODO work out how to do this
 		//( $answer==$value || $answer==null )
 	then
-		logger.trace("Logically toggling SyncAckPow( " + $agent + " , null , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SyncAckPow( " + $agent + " , " + IPCN_val + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		SyncAck $syncAck = new SyncAck( $agent, IPCNV_val, $revision, $issue, $cluster );
 		insertLogical( new Power( $agent, $syncAck ) );
 end
