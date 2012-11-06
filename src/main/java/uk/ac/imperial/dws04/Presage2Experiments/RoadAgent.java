@@ -327,7 +327,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param f
 	 * @param actToDo
 	 * @param obl
-	 * @param vals
+	 * @param vals if empty, indicates that the agent is permitted to use any value (though they might not all make sense !)
 	 */
 	private void instantiateFieldInObligatedAction(final Field f, IPConAction actToDo, final IPConAction obl, final ArrayList<Object> vals) {
 
@@ -335,41 +335,76 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		String[] tokens = f.toString().split("[.]+");
 		String fName = (Arrays.asList(tokens)).get(tokens.length-1);
 		// If all the permissions are also null, then you can do anything so pick something at random :P 
+		// (You know there are permissions because we previously checked against the list of permissions being empty)
 		if (vals.size()==0) {
 			// FIXME TODO 
-			logger.trace(getID() + " didn't know what to set the value of field " + fName + " to be in " + actToDo);
+			logger.trace(getID() + " is not constrained by permission on what to set the value of field " + fName + " to be in " + actToDo);
 			if (fName.equals("ballot")) {
 				// choose a valid ballot number
+				/*
+				 * Possible situations where is will be null:
+				 * Prepare1A - need to pick a ballot number that is higher than all current ballot numbers in the same RIC
+				 */
 			}
 			else if (fName.equals("value")) {
 				// pick one - from your goals ?
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("agent")) {
 				// pick an agent to act on
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("leader")) {
 				// this should probably be yourself
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("revision")) {
 				// pick a revision - probably this one ?
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("issue")) {
 				// pick an issue - probably this one ?
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("cluster")) {
 				// pick a cluster - probably this one ?
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("voteBallot")) {
 				// pick one
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("voteRevision")) {
 				// pick one
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("voteValue")) {
 				// pick one
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 			else if (fName.equals("role")) {
 				// pick one
+				/*
+				 * Possible situations where is will be null:
+				 */
 			}
 		}
 		// If there is only one then use that.
