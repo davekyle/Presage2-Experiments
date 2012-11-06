@@ -323,11 +323,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 	
 	/**
-	 * Set the field f in actToDo to fulfil the obligation obl depending on your permitted values vals
-	 * @param f
-	 * @param actToDo
-	 * @param obl
-	 * @param vals if empty, indicates that the agent is permitted to use any value (though they might not all make sense !)
+	 * Sets the field f in actToDo to fulfil the obligation obl depending on your permitted values vals
+	 * @param f the field to be filled in
+	 * @param actToDo copy of the obligation, possibly with some nulls filled in
+	 * @param obl the actual obligation, with nulls
+	 * @param vals the permitted values for f. If empty, indicates that the agent is permitted to use any value (though they might not all make sense !)
 	 */
 	private void instantiateFieldInObligatedAction(final Field f, IPConAction actToDo, final IPConAction obl, final ArrayList<Object> vals) {
 
@@ -344,66 +344,82 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				/*
 				 * Possible situations where is will be null:
 				 * Prepare1A - need to pick a ballot number that is higher than all current ballot numbers in the same RIC
+				 * Can either rely on responses to tell you to retry with a higher ballot (obligation not implemented yet)
+				 * or pull highest vote/pre_vote/open_vote for RIC and get highest ballot, then add some value
+				 *  ( FIXME TODO The finally chosen ballot number should be unique to each leader to comply with Paxos)
 				 */
 			}
 			else if (fName.equals("value")) {
 				// pick one - from your goals ?
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! (value is constrained to one of two options by permissions in SyncAck)
 				 */
 			}
 			else if (fName.equals("agent")) {
 				// pick an agent to act on
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! (constrained by permission to be yourself, or in case of leader/agent difference, you should never be obligated to do something to *just anyone*)
 				 */
 			}
 			else if (fName.equals("leader")) {
 				// this should probably be yourself
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! (constrained by permission to be yourself)
 				 */
 			}
 			else if (fName.equals("revision")) {
 				// pick a revision - probably this one ?
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! Always have a specific revision in mind when an obligation is formed....
+				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
 			}
 			else if (fName.equals("issue")) {
 				// pick an issue - probably this one ?
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! Always have a specific issue in mind when an obligation is formed....
+				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
 			}
 			else if (fName.equals("cluster")) {
 				// pick a cluster - probably this one ?
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! Always have a specific cluster in mind when an obligation is formed....
+				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
 			}
 			else if (fName.equals("voteBallot")) {
 				// pick one
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! Will either be 0 (if you didn't vote yet) or the ballot you voted in...
 				 */
 			}
 			else if (fName.equals("voteRevision")) {
 				// pick one
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! Will either be the current revision (if you didn't vote yet) or the revision you voted in...
 				 */
 			}
 			else if (fName.equals("voteValue")) {
 				// pick one
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! Will either be IPCNV.val() (if you didn't vote yet) or the value you voted for...
 				 */
 			}
 			else if (fName.equals("role")) {
 				// pick one
 				/*
 				 * Possible situations where is will be null:
+				 * Should be never ! No obligated actions concern roles...
 				 */
 			}
 		}
@@ -423,6 +439,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// FIXME TODO 
 			try {
 				logger.trace(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
+				//FIXME TODO need to pick more sensibly... eg in SyncAck you need to choose value not at random :P
 				f.set(actToDo, vals.get(0));
 			} catch (Exception e) {
 				logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
