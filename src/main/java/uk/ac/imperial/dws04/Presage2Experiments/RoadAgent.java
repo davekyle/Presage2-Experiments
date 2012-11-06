@@ -5,6 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -255,37 +256,42 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			logger.trace(getID() + " is attempting to discharge their obligation to " + obl);
 			// Make your proto-action
 			IPConAction actToDo = null;
-			try {
-				actToDo = obl.getClass().newInstance();
-			} catch (InstantiationException e1) {
-				logger.error("Failed to instantiate from " + obl + " when making a new instance.");
-				e1.printStackTrace();
-			} catch (IllegalAccessException e1) {
-				logger.error("Failed to access " + obl + " when making a new instance.");
-				e1.printStackTrace();
-			}
-			
 			/* Make sure you have permission to do it,
 			 * and dbl check you really do,
 			 * and make sure they're actually the same class, since we'll be reflecting
 			 */
+			if (!(perMap.containsKey(obl.getClass().getSimpleName()))) logger.trace("perMap does not contains right classname");
+			if (!(!perMap.get(obl.getClass().getSimpleName()).isEmpty())) logger.trace("perMap match is empty");
+			if (!(perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass()))) {
+				logger.trace("perMap match (" + perMap.get(obl.getClass().getSimpleName()).get(0) + ") has class " + 
+						perMap.get(obl.getClass().getSimpleName()).get(0).getClass() + ", which is not assignable from " + obl.getClass());
+			}
+			
+			
 			if (	(perMap.containsKey(obl.getClass().getSimpleName())) &&
 					(!perMap.get(obl.getClass().getSimpleName()).isEmpty()) &&
-					(!perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass())) ) {
+					(perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass())) ) {
 				
+				actToDo = obl.copy();
 				Field[] fields = obl.getClass().getFields();
 				for (Field f : fields) {
-					logger.trace(getID() + " checking field " + f + " in " + obl);
+					logger.trace(getID() + " currently has " + actToDo);
+					// Chop down the string of the field to something more readable
+					String s = f.toString();
+					String delims = "[.]+"; // use + to treat consecutive delims as one, omit to treat consecutive delims separately
+					String[] tokens = s.split(delims);
+					String fName = (Arrays.asList(tokens)).get(tokens.length-1);
+					logger.trace(getID() + " checking field " + fName + " in " + obl);
 					Object fOblVal = null;
 					try {
 						fOblVal = f.get(obl);
-						logger.trace(getID() + " found the value of field " + f + " in " + obl + " to be " + fOblVal);
+						logger.trace(getID() + " found the value of field " + fName + " in " + obl + " to be " + fOblVal);
 					} catch (Exception e) {
 						logger.error(getID() + " had a problem extracting the fields of an obligation (this should never happen !)" + obl + "...");
 						e.printStackTrace();
 					}
 					if (fOblVal==null) {
-						logger.trace(getID() + " found a null field (" + f + ") in " + obl);
+						logger.trace(getID() + " found a null field (" + fName + ") in " + obl);
 						// Go through the permitted values, and get all non-null ones
 						ArrayList<Object> vals = new ArrayList<Object>();
 						ArrayList<IPConAction> perList = perMap.get(obl.getClass().getSimpleName());
@@ -293,7 +299,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 							Object fActVal = null;
 							try {
 								fActVal = f.get(act);
-								logger.trace(getID() + " found the value of field " + f + " in " + act + " to be " + fActVal);
+								logger.trace(getID() + " found the value of field " + fName + " in " + act + " to be " + fActVal);
 							} catch (Exception e) {
 								logger.error(getID() + " had a problem extracting the fields of an action (this should never happen !)" + act + "...");
 								e.printStackTrace();
@@ -302,32 +308,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 								vals.add(fActVal);
 							}
 						}
-						// If all the permissions are also null, then you can do anything so pick something at random :P 
-						if (vals.size()==0) {
-							// FIXME TODO 
-							logger.trace(getID() + " didn't know what to set the value of field " + f + " to be in " + actToDo);
-						}
-						// If there is only one then use that.
-						else if (vals.size()==1) {
-							try {
-								logger.trace(getID() + " set the value of field " + f + " to be " + vals.get(0) + " in " + actToDo);
-								f.set(actToDo, vals.get(0));
-							} catch (Exception e) {
-								logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
-								e.printStackTrace();
-							}
-						}
-						// If there is more than one, pick one at random ?
-						else {
-							// FIXME TODO 
-							try {
-								logger.trace(getID() + " randomly picked the value of field " + f + " to be " + vals.get(0) + " in " + actToDo);
-								f.set(actToDo, vals.get(0));
-							} catch (Exception e) {
-								logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
-								e.printStackTrace();
-							}
-						}
+						
+						instantiateFieldInObligatedAction(f, actToDo, obl, vals);
+						
 					}
 				}
 			}
@@ -339,6 +322,80 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		return queue;
 	}
 	
+	/**
+	 * Set the field f in actToDo to fulfil the obligation obl depending on your permitted values vals
+	 * @param f
+	 * @param actToDo
+	 * @param obl
+	 * @param vals
+	 */
+	private void instantiateFieldInObligatedAction(final Field f, IPConAction actToDo, final IPConAction obl, final ArrayList<Object> vals) {
+
+		// Make it humanreadable
+		String[] tokens = f.toString().split("[.]+");
+		String fName = (Arrays.asList(tokens)).get(tokens.length-1);
+		// If all the permissions are also null, then you can do anything so pick something at random :P 
+		if (vals.size()==0) {
+			// FIXME TODO 
+			logger.trace(getID() + " didn't know what to set the value of field " + fName + " to be in " + actToDo);
+			if (fName.equals("ballot")) {
+				// choose a valid ballot number
+			}
+			else if (fName.equals("value")) {
+				// pick one - from your goals ?
+			}
+			else if (fName.equals("agent")) {
+				// pick an agent to act on
+			}
+			else if (fName.equals("leader")) {
+				// this should probably be yourself
+			}
+			else if (fName.equals("revision")) {
+				// pick a revision - probably this one ?
+			}
+			else if (fName.equals("issue")) {
+				// pick an issue - probably this one ?
+			}
+			else if (fName.equals("cluster")) {
+				// pick a cluster - probably this one ?
+			}
+			else if (fName.equals("voteBallot")) {
+				// pick one
+			}
+			else if (fName.equals("voteRevision")) {
+				// pick one
+			}
+			else if (fName.equals("voteValue")) {
+				// pick one
+			}
+			else if (fName.equals("role")) {
+				// pick one
+			}
+		}
+		// If there is only one then use that.
+		else if (vals.size()==1) {
+			try {
+				logger.trace(getID() + " set the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
+				f.set(actToDo, vals.get(0));
+				logger.trace(getID() + " now has " + actToDo);
+			} catch (Exception e) {
+				logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
+				e.printStackTrace();
+			}
+		}
+		// If there is more than one, pick one at random ?
+		else {
+			// FIXME TODO 
+			try {
+				logger.trace(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
+				f.set(actToDo, vals.get(0));
+			} catch (Exception e) {
+				logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
+				e.printStackTrace();
+			}
+		}
+	}
+
 	private void passJunction(){
 		if (junctionsLeft!=null) {
 			junctionsLeft--;
