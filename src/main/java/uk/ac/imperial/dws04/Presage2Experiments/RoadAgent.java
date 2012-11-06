@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Level;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -40,7 +41,7 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  * @author dws04
  * 
  */
-public class RoadAgent extends AbstractParticipant {
+public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
 	private enum OwnChoiceMethod {SAFE, PLANNED};
 	private enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};

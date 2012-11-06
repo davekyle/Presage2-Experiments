@@ -9,6 +9,8 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
 
+import com.google.inject.Inject;
+
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -17,7 +19,9 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.SharedStateAccessException;
+import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.participant.Participant;
+import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
 
 /**
  * @author dws04
@@ -28,10 +32,24 @@ public class ParticipantIPConService extends IPConService {
 	protected final IPConAgent handle;
 	private final Logger logger = Logger.getLogger(ParticipantIPConService.class);
 	
-	ParticipantIPConService(HasIPConHandle p, EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider, StatefulKnowledgeSession session) {
-		super(sharedState, serviceProvider, session);
-		this.handle = p.getIPConHandle();
+	public ParticipantIPConService(Participant p, EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider) {
+		// construct from the protected one, then hope it injects correctly !
+		super(sharedState, serviceProvider);
+		if (p instanceof HasIPConHandle) {
+			this.handle = ((HasIPConHandle)p).getIPConHandle();
+		}
+		else {
+			this.handle = null;
+			logger.error(p.getID() + " does not have an IPCon handle...");
+		}
     }
+	
+	private StatefulKnowledgeSession getSession() {
+		if (this.session==null) {
+			setSession(session);
+		}
+		return this.session;
+	}
 	
 	@Override
 	/**
@@ -64,7 +82,7 @@ public class ParticipantIPConService extends IPConService {
 			return super.getObligations(agent, revision, issue, cluster);
 		}
 		else {
-			throw new SharedStateAccessException("A participant may not view another agent's obligations!");
+			throw new SharedStateAccessException("A participant (" + this.handle + ") may not view another agent's (" + agent + ") obligations!");
 		}
 	}
 	

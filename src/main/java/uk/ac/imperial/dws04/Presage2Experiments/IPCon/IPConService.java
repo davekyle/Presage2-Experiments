@@ -39,7 +39,7 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 public class IPConService extends EnvironmentService {
 
 	private final Logger logger = Logger.getLogger(this.getClass());
-	final StatefulKnowledgeSession session;
+	StatefulKnowledgeSession session;
 	private final EnvironmentServiceProvider serviceProvider;
 
 	@Inject
@@ -53,6 +53,27 @@ public class IPConService extends EnvironmentService {
 		
 		for (Role role : Role.values()) {
 			session.insert(role);
+		}
+	}
+	
+	protected IPConService(EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider) {
+		super(sharedState);
+		this.serviceProvider = serviceProvider;
+	}
+	
+	/**
+	 * Lazyload the session
+	 */
+	@Inject
+	protected void setSession(StatefulKnowledgeSession session) {
+		this.session = session;
+		if (session.getGlobal("logger")==null) {
+			session.setGlobal("logger", this.logger);
+			session.setGlobal("IPCNV_val", IPCNV.val());
+			
+			for (Role role : Role.values()) {
+				session.insert(role);
+			}
 		}
 	}
 	
