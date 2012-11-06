@@ -28,6 +28,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
+import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 
 /**
@@ -39,12 +40,14 @@ public class IPConService extends EnvironmentService {
 
 	private final Logger logger = Logger.getLogger(this.getClass());
 	final StatefulKnowledgeSession session;
+	private final EnvironmentServiceProvider serviceProvider;
 
 	@Inject
-	public IPConService(EnvironmentSharedStateAccess sharedState,
+	public IPConService(EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider,
 			StatefulKnowledgeSession session) {
 		super(sharedState);
 		this.session = session;
+		this.serviceProvider = serviceProvider;
 		session.setGlobal("logger", this.logger);
 		session.setGlobal("IPCNV_val", IPCNV.val());
 		

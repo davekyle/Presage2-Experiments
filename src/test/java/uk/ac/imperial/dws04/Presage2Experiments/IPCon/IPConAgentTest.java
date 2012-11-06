@@ -3,6 +3,10 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
+import static org.junit.Assert.*;
+
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -20,11 +24,10 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.ReportedVote;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Voted;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
@@ -49,7 +52,7 @@ import com.google.inject.name.Names;
  */
 public class IPConAgentTest {
 
-	final private Logger logger = Logger.getLogger(IPConDrlsTest.class);
+	final private Logger logger = Logger.getLogger(this.getClass());
 
 	Injector injector;
 	RuleStorage rules;
@@ -70,8 +73,6 @@ public class IPConAgentTest {
 	IntegerTime time = new IntegerTime(0);
 	SimTime sTime = new SimTime(time);
 	
-	private final String issue = "IssueString";
-	private final UUID cluster = Random.randomUUID();
 	
 	@Before
 	public void setUp() throws Exception {
@@ -119,42 +120,68 @@ public class IPConAgentTest {
 		session.dispose();
 	}
 	
-	private RoadAgent createAgent(String name, Role[] roles, RoadLocation startLoc, int startSpeed) {
+	private RoadAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
 		RoadAgent a = new RoadAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
 		// FIXME TODO Not sure if this is needed...?
-		//injector.injectMembers(a);
+		injector.injectMembers(a);
 		a.initialise();
-		initAgent(a.getIPConHandle(), roles, 0, issue, cluster);
+		//Call this if needed
+		//initAgent(a.getIPConHandle(), roles, 0, issue, cluster);
 		return a;
 	}
 	
 	/**
 	 * Artificially inserting facts without the service for sake of testing
 	 */
-	public void initAgent(IPConAgent agent, Role[] roles, Integer revision, String issue, UUID cluster) {
+	private void addRoles(IPConAgent agent, Role[] roles, Integer revision, String issue, UUID cluster) {
 		//Set roles
 		for (Role role : roles) {
 			session.insert(new HasRole(role, agent, revision, issue, cluster));
 		}
 		// Initially didn't vote
-		session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
+		//session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
 		// And the reportedvote for the initially
-		session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
+		//session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
 	}
 	
 	@Test
 	public void testObligationInstantiation() throws Exception {
 		/**
-		 * This requires access to a fn which should be private... Could either test the behaviour as a whole or... ?
+		 * This requires access to a fn which should be private, so calling public wrapper fn
 		 */
+		final Integer revision = 1;
+		final String issue = "IssueString";
+		final UUID cluster = Random.randomUUID();
+		Object value = "VALUE";
 		/*
 		 * Create agents
 		 */
+		RoadAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
+		RoadAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
+		addRoles(a2.getIPConHandle(), new Role[]{Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
+		RoadAgent a3 = createAgent("a3", new RoadLocation(2,0), 1);
+		addRoles(a3.getIPConHandle(), new Role[]{Role.ACCEPTOR}, revision, issue, cluster);
+		
 		/*
 		 * Set up cluster to ensure at least one agent-relative obligation and one agent-neutral obligation
 		 * where the agents are all permitted. Preferably the permissions should include examples of multiple
 		 * options, no options, single options, and unconstrained(-ish) options. 
 		 */
+		/*
+		 * A2 requests. A1 now should be obligated to prepare
+		 */
+		session.insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
+		rules.incrementTime();
+		Collection<IPConAction> obl = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
+		assertEquals(1,obl.size());
+		logger.info("A1 obligated to :" + obl);
+		
+		ArrayList<IPConAction> a1Obl = a1.TESTgetInstantiatedObligatedActionQueue();
+		assertEquals(1, a1Obl.size());
+		logger.info("A1 instantiated: " + a1Obl);
+		
+		
 		/*
 		 * Check resulting actions
 		 */

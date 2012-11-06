@@ -132,6 +132,7 @@ public class RoadAgent extends AbstractParticipant {
 			this.ipconService = getEnvironmentService(ParticipantIPConService.class);
 		} catch (UnavailableServiceException e) {
 			logger.warn(e);
+			e.printStackTrace();
 		}
 		/*// get the RoadEnvironmentService.
 		try {
@@ -229,6 +230,10 @@ public class RoadAgent extends AbstractParticipant {
 		submitMove(move);
 	}
 
+	public ArrayList<IPConAction> TESTgetInstantiatedObligatedActionQueue() {
+		return getInstatiatedObligatedActionQueue();
+	}
+	
 	private ArrayList<IPConAction> getInstatiatedObligatedActionQueue() {
 		HashSet<IPConAction> obligations = (HashSet<IPConAction>) ipconService.getObligations(ipconHandle, null, null, null);
 		HashSet<IPConAction> permissions = (HashSet<IPConAction>) ipconService.getPermissions(ipconHandle, null, null, null);

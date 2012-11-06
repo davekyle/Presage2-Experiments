@@ -25,13 +25,11 @@ import uk.ac.imperial.presage2.core.participant.Participant;
  */
 public class ParticipantIPConService extends IPConService {
 
-	private final EnvironmentServiceProvider serviceProvider;
 	protected final IPConAgent handle;
 	private final Logger logger = Logger.getLogger(ParticipantIPConService.class);
 	
-	ParticipantIPConService(EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider, HasIPConHandle p, StatefulKnowledgeSession session) {
-		super(sharedState, session);
-		this.serviceProvider = serviceProvider;
+	ParticipantIPConService(HasIPConHandle p, EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider, StatefulKnowledgeSession session) {
+		super(sharedState, serviceProvider, session);
 		this.handle = p.getIPConHandle();
     }
 	
