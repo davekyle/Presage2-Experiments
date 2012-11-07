@@ -29,7 +29,7 @@ public abstract class IPConAction {
 				else {
 					try {
 						result = result && (
-								(f.get(obligation).equals(null)) || 
+								(f.get(obligation)==null) || 
 								(f.get(this).equals(f.get(obligation)))
 								);
 					} catch (Exception e) {
