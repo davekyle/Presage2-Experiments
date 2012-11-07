@@ -159,7 +159,7 @@ public class SyncAck extends IPConAction {
 				+ revision + ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -169,7 +169,8 @@ public class SyncAck extends IPConAction {
 				( (((SyncAck)obligation).getIssue()==null) || (this.getIssue().equals(((SyncAck)obligation).getIssue())) ) &&
 				( (((SyncAck)obligation).getCluster()==null) || (this.getCluster().equals(((SyncAck)obligation).getCluster())) )
 				) );
-	}
+	}*/
+	
 	@Override
 	public SyncAck copy() {
 		return new SyncAck(agent, value, revision, issue, cluster);

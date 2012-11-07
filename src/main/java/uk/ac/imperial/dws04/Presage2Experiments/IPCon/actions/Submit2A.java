@@ -179,7 +179,7 @@ public class Submit2A extends IPConAction {
 				+ issue + ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -190,7 +190,8 @@ public class Submit2A extends IPConAction {
 				(this.getIssue().equals(((Submit2A)obligation).getIssue())) &&
 				(this.getCluster().equals(((Submit2A)obligation).getCluster()))
 				) );
-	}
+	}*/
+	
 	@Override
 	public Submit2A copy() {
 		return new Submit2A(agent, revision, ballot, value, issue, cluster);

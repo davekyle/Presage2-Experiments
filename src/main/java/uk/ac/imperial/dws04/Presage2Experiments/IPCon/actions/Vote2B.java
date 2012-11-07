@@ -178,7 +178,7 @@ public class Vote2B extends IPConAction {
 				+ issue + ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -189,7 +189,8 @@ public class Vote2B extends IPConAction {
 				( (((Vote2B)obligation).getIssue()==null) || (this.getIssue().equals(((Vote2B)obligation).getIssue())) ) &&
 				( (((Vote2B)obligation).getCluster()==null) || (this.getCluster().equals(((Vote2B)obligation).getCluster())) ) 
 				) );
-	}
+	}*/
+	
 	@Override
 	public Vote2B copy() {
 		return new Vote2B(agent, revision, ballot, value, issue, cluster);

@@ -177,7 +177,7 @@ public class RemRole extends IPConAction {
 				+ ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -188,7 +188,8 @@ public class RemRole extends IPConAction {
 				(this.getIssue().equals(((RemRole)obligation).getIssue())) &&
 				(this.getCluster().equals(((RemRole)obligation).getCluster()))
 				) );
-	}
+	}*/
+	
 	@Override
 	public RemRole copy() {
 		return new RemRole(leader, agent, role, revision, issue, cluster);

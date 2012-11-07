@@ -136,7 +136,7 @@ public class Revise extends IPConAction {
 				+ ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -145,7 +145,8 @@ public class Revise extends IPConAction {
 				(this.getIssue().equals(((Revise)obligation).getIssue())) &&
 				(this.getCluster().equals(((Revise)obligation).getCluster()))
 				) );
-	}
+	}*/
+	
 	@Override
 	public Revise copy() {
 		return new Revise(agent, revision, issue, cluster);

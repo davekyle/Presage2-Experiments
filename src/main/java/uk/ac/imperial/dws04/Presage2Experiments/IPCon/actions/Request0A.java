@@ -159,7 +159,7 @@ public class Request0A extends IPConAction {
 				+ cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -169,7 +169,8 @@ public class Request0A extends IPConAction {
 				(this.getIssue().equals(((Request0A)obligation).getIssue())) &&
 				(this.getCluster().equals(((Request0A)obligation).getCluster()))
 				) );
-	}
+	}*/
+	
 	@Override
 	public Request0A copy() {
 		return new Request0A(agent, revision, value, issue, cluster);

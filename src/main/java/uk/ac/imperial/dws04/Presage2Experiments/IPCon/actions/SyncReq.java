@@ -179,7 +179,7 @@ public class SyncReq extends IPConAction {
 				+ ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -190,7 +190,8 @@ public class SyncReq extends IPConAction {
 				( (((SyncReq)obligation).getIssue()==null) || (this.getIssue().equals(((SyncReq)obligation).getIssue())) ) &&
 				( (((SyncReq)obligation).getCluster()==null) || (this.getCluster().equals(((SyncReq)obligation).getCluster())) )
 				) );
-	}
+	}*/
+	
 	@Override
 	public SyncReq copy() {
 		return new SyncReq(leader, agent, value, revision, issue, cluster);

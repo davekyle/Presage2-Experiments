@@ -226,7 +226,7 @@ public class Response1B extends IPConAction {
 				+ issue + ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -239,7 +239,8 @@ public class Response1B extends IPConAction {
 				(this.getIssue().equals(((Response1B)obligation).getIssue())) &&
 				(this.getCluster().equals(((Response1B)obligation).getCluster()))
 				) );
-	}
+	}*/
+	
 	@Override
 	public Response1B copy() {
 		return new Response1B(agent, voteRevision, voteBallot, voteValue, revision, ballot, issue, cluster);

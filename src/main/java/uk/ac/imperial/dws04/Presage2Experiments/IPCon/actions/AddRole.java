@@ -177,7 +177,7 @@ public class AddRole extends IPConAction {
 				+ ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
@@ -188,7 +188,7 @@ public class AddRole extends IPConAction {
 				(this.getIssue().equals(((AddRole)obligation).getIssue())) &&
 				(this.getCluster().equals(((AddRole)obligation).getCluster()))
 				) );
-	}
+	}*/
 	
 	@Override
 	public AddRole copy() {

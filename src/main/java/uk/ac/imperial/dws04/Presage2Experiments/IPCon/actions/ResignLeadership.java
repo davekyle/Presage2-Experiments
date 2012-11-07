@@ -136,14 +136,15 @@ public class ResignLeadership extends IPConAction {
 				+ ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 	
-	@Override
+	/*@Override
 	public boolean fulfils(IPConAction obligation) {
 		return ( (this.equals(obligation)) || (
 				(this.getClass().isAssignableFrom(obligation.getClass())) &&
 				(((ResignLeadership)obligation).getAgent()==null) &&
 				(this.getCluster().equals(((ResignLeadership)obligation).getCluster()))
 				) );
-	}
+	}*/
+	
 	@Override
 	public ResignLeadership copy() {
 		return new ResignLeadership(agent, revision, issue, cluster);

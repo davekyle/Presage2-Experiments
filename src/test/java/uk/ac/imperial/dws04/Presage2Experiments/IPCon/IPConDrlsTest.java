@@ -1094,7 +1094,7 @@ public class IPConDrlsTest {
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 5);
 		assertFactCount("ReportedVote", revision, issue, cluster, 7);
-		// except this because obligation was discharged
+		// except this because obligation was discharged - work out why this sometimes fails
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
@@ -1997,6 +1997,7 @@ public class IPConDrlsTest {
 			checkAccPowPer(ag, revision2, issue, cluster, 0, 0);
 		}
 		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
+			// TODO FIXME work out why this sometimes fails
 			assertActionCount("getObligations", null, ag, null, null, null, 0);
 		}
 		

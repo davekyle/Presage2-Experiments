@@ -100,24 +100,6 @@ public class JoinAsLearner extends IPConAction {
 	}
 
 
-
-	@Override
-	/* (non-Javadoc)
-	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction#fulfils(uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction)
-	 */
-	public boolean fulfils(IPConAction obligation) {
-		return ( (this.equals(obligation)) || (
-				(this.getClass().isAssignableFrom(obligation.getClass())) &&
-				(((JoinAsLearner)obligation).getAgent()==null) &&
-				(this.getRevision().equals(((JoinAsLearner)obligation).getRevision())) &&
-				(this.getIssue().equals(((JoinAsLearner)obligation).getIssue())) &&
-				(this.getCluster().equals(((JoinAsLearner)obligation).getCluster()))
-				) );
-
-}
-
-
-
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -132,8 +114,6 @@ public class JoinAsLearner extends IPConAction {
 				+ ((revision == null) ? 0 : revision.hashCode());
 		return result;
 	}
-
-
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
@@ -181,7 +161,17 @@ public class JoinAsLearner extends IPConAction {
 				+ ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 
+	/*@Override
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((JoinAsLearner)obligation).getAgent()==null) &&
+				(this.getRevision().equals(((JoinAsLearner)obligation).getRevision())) &&
+				(this.getIssue().equals(((JoinAsLearner)obligation).getIssue())) &&
+				(this.getCluster().equals(((JoinAsLearner)obligation).getCluster()))
+				) );
 
+	}*/
 
 	@Override
 	public JoinAsLearner copy() {
