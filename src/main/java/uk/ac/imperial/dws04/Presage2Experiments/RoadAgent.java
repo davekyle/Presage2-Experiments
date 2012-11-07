@@ -357,9 +357,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					Pair<Integer, Integer> pair = ipconService.getHighestRevisionBallotPair(issue, cluster);
 					// If we found some valid ones but not in the right revision, then throw an exception anyway
 					if (pair.getA()!=revision) {
-						// FIXME TODO technically we should check for higher revisions and adjust based on that, 
+						// FIXME technically we should check for higher revisions and adjust based on that, 
 						// but you would hope that you never get obligated to do something in an old revision...
-						throw new IPConException(getID() + " only found ballots in the wrong revision");
+						throw new IPConException(getID() + " only found ballots in the wrong revision. Highest was " + pair);
 					}
 					else {
 						// FIXME TODO technically this should guarantee uniqueness
@@ -478,7 +478,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		// If there is more than one, pick one at random ?
 		else {
-			// FIXME TODO 
 			try {
 				logger.trace(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
 				//FIXME TODO need to pick more sensibly... eg in SyncAck you need to choose value not at random :P
