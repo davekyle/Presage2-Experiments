@@ -21,6 +21,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
 //declare any global variables here
 global org.apache.log4j.Logger logger
 global Object IPCNV_val
+global Integer IPCNV_bal
 
 // fact indicating that if the person about to sync says no, there should be a revision after
 declare PossibleAddRevision

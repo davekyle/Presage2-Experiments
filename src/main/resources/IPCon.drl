@@ -24,6 +24,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
 //declare any global variables here
 global org.apache.log4j.Logger logger
 global Object IPCNV_val
+global Integer IPCNV_bal
 
 // drls stuff here - 1s expiry makes them last 1 cycle
 
@@ -474,8 +475,8 @@ salience 2 // needs to happen before QS update and before obligation to revise
 		Chosen( revision==$revision, $ballot : ballot, issue==$issue, cluster==$cluster )
 		not SyncNo( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("SyncAck no inserted ReportedVote( " + $agent + " , " + $revision + " , 0 , " + $answer + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
-		insert( new ReportedVote( $agent, $revision, 0, IPCNV.val(), $revision, $ballot, $issue, $cluster ) );
+		logger.trace("SyncAck no inserted ReportedVote( " + $agent + " , " + $revision + IPCNV_bal + $answer + " , " + $revision + " , " + $ballot + " , " + $issue + " , " + $cluster + " )");
+		insert( new ReportedVote( $agent, $revision, IPCNV_bal, IPCNV_val, $revision, $ballot, $issue, $cluster ) );
 		// insert a flag event since we can't use SyncAck and Pow(SyncAck) to calc obl to revise...
 		insert( new SyncNo( $agent, $revision, $ballot, $issue, $cluster ) );
 		retract( $sync ); 

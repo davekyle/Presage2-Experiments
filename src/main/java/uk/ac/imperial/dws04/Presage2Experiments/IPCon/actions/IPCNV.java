@@ -25,5 +25,7 @@ public class IPCNV {
 		return "#:IPCon_No_Vote:#";
 	}
 	
-	
+	public static final Integer bal() {
+		return Integer.MIN_VALUE;
+	}
 }

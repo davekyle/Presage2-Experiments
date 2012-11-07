@@ -25,6 +25,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role
 //declare any global variables here
 global org.apache.log4j.Logger logger
 global Object IPCNV_val
+global Integer IPCNV_bal
 
 // obligation
 

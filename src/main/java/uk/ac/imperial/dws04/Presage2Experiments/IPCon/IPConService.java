@@ -70,6 +70,7 @@ public class IPConService extends EnvironmentService {
 		if (session.getGlobal("logger")==null) {
 			session.setGlobal("logger", this.logger);
 			session.setGlobal("IPCNV_val", IPCNV.val());
+			session.setGlobal("IPCNV_bal", IPCNV.bal());
 			
 			for (Role role : Role.values()) {
 				session.insert(role);

@@ -85,6 +85,7 @@ public class IPConDrlsTest {
 	public void initSession() {
 		session.setGlobal("logger", this.logger);
 		session.setGlobal("IPCNV_val", IPCNV.val());
+		session.setGlobal("IPCNV_bal", IPCNV.bal());
 		//session.setGlobal("session", session);
 		//session.setGlobal("storage", null);
 		
@@ -149,7 +150,7 @@ public class IPConDrlsTest {
 		votedType.set(v1Vote, "value", IPCNV.val());
 		votedType.set(v1Vote, "issue", issue);
 		votedType.set(v1Vote, "cluster", cluster);*/
-		session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
+		session.insert(new Voted(agent, revision, IPCNV.bal(), IPCNV.val(), issue, cluster));
 		
 		// And the reportedvote for the initially
 		/*final FactType reportedVoteType = typeFromString("ReportedVote");
@@ -162,7 +163,7 @@ public class IPConDrlsTest {
 		reportedVoteType.set(v1RVote, "ballot", 0);
 		reportedVoteType.set(v1RVote, "issue", issue);
 		reportedVoteType.set(v1RVote, "cluster", cluster);*/
-		session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
+		session.insert(new ReportedVote(agent, revision, IPCNV.bal(), IPCNV.val(), revision, 0, issue, cluster));
 	}
 	
 	@Test
@@ -241,8 +242,8 @@ public class IPConDrlsTest {
 		assertActionCount("getPermissions", "Response1B", a1, revision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Response1B", a2, revision, issue, cluster, 1);
 
-		session.insert(new Response1B(a1, 0, 0, IPCNV.val(), revision, 0, issue, cluster));
-		session.insert(new Response1B(a2, 0, 0, IPCNV.val(), revision, 0, issue, cluster));
+		session.insert(new Response1B(a1, 0, IPCNV.bal(), IPCNV.val(), revision, 0, issue, cluster));
+		session.insert(new Response1B(a2, 0, IPCNV.bal(), IPCNV.val(), revision, 0, issue, cluster));
 		rules.incrementTime();
 		
 		session.insert(new Submit2A(a1, revision, 1, 5, issue, cluster));
@@ -675,15 +676,15 @@ public class IPConDrlsTest {
 		 * Time step 3 :
 		 * All agents send a response, check the responsecount and per/obl to submit
 		 */
-		session.insert(new Response1B( a1, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
+		session.insert(new Response1B( a1, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
 		session.insert(new Response1B( a2, 1, 1, 4, 1, 10, issue, cluster));
 		session.insert(new Response1B( a3, 1, 1, 4, 1, 10, issue, cluster));
 		if (pass) {
-			session.insert(new Response1B( a4, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
+			session.insert(new Response1B( a4, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
 		} else {
 			session.insert(new Response1B( a4, 1, 2, 5, 1, 10, issue, cluster));
 		}
-		session.insert(new Response1B( a5, 1, 0, IPCNV.val(), 1, 10, issue, cluster));
+		session.insert(new Response1B( a5, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
 		rules.incrementTime();
 		if (pass) {
 			assertActionCount("getPowers", "Submit2A", null, revision, issue, cluster, 1);
@@ -1236,9 +1237,9 @@ public class IPConDrlsTest {
 		 * Agents respond
 		 * Leader is obligated to submit
 		 */
-		session.insert(new Response1B(a1, newRevision, 0, IPCNV.val(), newRevision, ballot, issue, cluster));
-		session.insert(new Response1B(a2, newRevision, 0, IPCNV.val(), newRevision, ballot, issue, cluster));
-		session.insert(new Response1B(a3, newRevision, 0, IPCNV.val(), newRevision, ballot, issue, cluster));
+		session.insert(new Response1B(a1, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
+		session.insert(new Response1B(a2, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
+		session.insert(new Response1B(a3, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
 		rules.incrementTime();
 		
 		assertActionCount("getPowers", "Prepare1A", null, newRevision, issue, cluster, 1);
@@ -1461,8 +1462,8 @@ public class IPConDrlsTest {
 		session.insert(new Voted(a5, revision, ballot1, v1, issue, cluster));
 		session.insert(new ReportedVote(a1, revision, ballot1, v1, revision, ballot1, issue, cluster));
 		session.insert(new ReportedVote(a2, revision, ballot1, v1, revision, ballot1, issue, cluster));
-		session.insert(new ReportedVote(a3, revision, 0, IPCNV.val(), revision, ballot1, issue, cluster));
-		session.insert(new ReportedVote(a4, revision, 0, IPCNV.val(), revision, ballot1, issue, cluster));
+		session.insert(new ReportedVote(a3, revision, IPCNV.bal(), IPCNV.val(), revision, ballot1, issue, cluster));
+		session.insert(new ReportedVote(a4, revision, IPCNV.bal(), IPCNV.val(), revision, ballot1, issue, cluster));
 		session.insert(new ReportedVote(a5, revision, ballot1, v1, revision, ballot1, issue, cluster));
 		session.insert(new Pre_Vote(revision, ballot1, issue, cluster));
 		session.insert(new Open_Vote(revision, ballot1, v1, issue, cluster));
@@ -1729,11 +1730,11 @@ public class IPConDrlsTest {
 		session.insert(new Open_Vote(revision2, ballot5, v1, issue, cluster));
 		session.insert(new Voted(a2, revision2, ballot5, v1, issue, cluster));
 		session.insert(new ReportedVote(a2, revision2, ballot5, v1, revision2, ballot5, issue, cluster));
-		session.insert(new ReportedVote(a1, revision2, 0, IPCNV.val(), revision2, ballot5, issue, cluster));
+		session.insert(new ReportedVote(a1, revision2, IPCNV.bal(), IPCNV.val(), revision2, ballot5, issue, cluster));
 
 		session.insert(new Pre_Vote(revision2, ballot10, issue, cluster));
 		session.insert(new ReportedVote(a2, revision2, ballot5, v1, revision2, ballot10, issue, cluster));
-		session.insert(new ReportedVote(a1, revision2, 0, IPCNV.val(), revision2, ballot10, issue, cluster));
+		session.insert(new ReportedVote(a1, revision2, IPCNV.bal(), IPCNV.val(), revision2, ballot10, issue, cluster));
 		session.insert(new Open_Vote(revision2, ballot10, v2, issue, cluster));
 		session.insert(new Voted(a1, revision2, ballot10, v2, issue, cluster));
 		session.insert(new ReportedVote(a1, revision2, ballot10, v2, revision2, ballot10, issue, cluster));
@@ -1827,6 +1828,9 @@ public class IPConDrlsTest {
 	
 	@Test
 	public void demoNarrative() throws Exception {
+		
+		logger.info("Starting demo narrative....\n");
+		
 		Integer revision1 = 1;
 		Integer revision2 = 2;
 		String issue = "IssueString";
@@ -2058,7 +2062,7 @@ public class IPConDrlsTest {
 		 * A1 gains permission to, and is obligated to, submit
 		 */
 		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
-			session.insert(new Response1B(ag, revision2, 0, IPCNV.val(), revision2, ballot1, issue, cluster));
+			session.insert(new Response1B(ag, revision2, IPCNV.bal(), IPCNV.val(), revision2, ballot1, issue, cluster));
 		}
 		rules.incrementTime();
 		
@@ -2155,6 +2159,8 @@ public class IPConDrlsTest {
 		none = new IPConAgent[]{a4, a5, a6};
 		checkNoPowPerObl(none);
 		assertFactCount("Chosen", revision2, issue, cluster, 1);
+		
+		logger.info("\nFinished demo narrative.");
 	}
 	
 	private void checkNoPowPerObl(IPConAgent[] list) {

@@ -18,6 +18,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
 //declare any global variables here
 global org.apache.log4j.Logger logger
 global Object IPCNV_val
+global Integer IPCNV_bal
 
 declare Power
 	agent : IPConAgent
@@ -315,8 +316,8 @@ rule "holdsAt for permission to response1b (with indicators if didn't vote in th
 		//ResponsePow( $agent : agent, voteRevision==$revision, voteBallot==0, voteValue==null, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		not Voted( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically toggling ResponsePer( " + $agent + " , " + $revision + " , 0 , " + IPCNV.val() + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
-		Response1B $response = new Response1B( $agent, $revision, 0, IPCNV.val(), $revision, $ballot, $issue, $cluster );
+		logger.trace("Logically toggling ResponsePer( " + $agent + " , " + $revision + IPCNV_bal + IPCNV_val + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		Response1B $response = new Response1B( $agent, $revision, IPCNV_bal, IPCNV_val, $revision, $ballot, $issue, $cluster );
 		insertLogical( new Permission( $agent, $response ) );
 end
 
@@ -348,7 +349,7 @@ rule "holdsAt for permission to submit2a"
 		//	// not ReportedVote( $a, b1>$B, $RIC)
 		//	// (this solution presumes nullvotes are reported by the agents... )
 		$reportedVotes : List(size >= $quorumSize) from accumulate (
-				$rVote : ReportedVote( $a : agent, voteRevision==$revision, voteBallot<=$ballot, (voteValue==$value || voteValue==IPCNV.val()), revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) and
+				$rVote : ReportedVote( $a : agent, voteRevision==$revision, voteBallot<=$ballot, (voteValue==$value || voteValue==IPCNV_val), revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster ) and
 				not ReportedVote( agent==$a, voteRevision>$revision, issue==$issue, cluster==$cluster ) and
 				not ReportedVote( agent==$a, voteRevision==$revision, voteBallot>$ballot, issue==$issue, cluster==$cluster )
 				, collectList( $rVote ) ) 
@@ -567,7 +568,7 @@ rule "holdsAt for pow to SyncAck (no)"
 		// FIXME TODO work out how to do this
 		//( $answer==$value || $answer==null )
 	then
-		logger.trace("Logically toggling SyncAckPow( " + $agent + " , " + IPCN_val + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling SyncAckPow( " + $agent + " , " + IPCNV_val + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		SyncAck $syncAck = new SyncAck( $agent, IPCNV_val, $revision, $issue, $cluster );
 		insertLogical( new Power( $agent, $syncAck ) );
 end
