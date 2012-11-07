@@ -18,8 +18,4 @@ public class IPConException extends Exception {
 		super(string);
 	}
 
-	public IPConException() {
-		// TODO Auto-generated constructor stub
-	}
-
 }
