@@ -16,7 +16,7 @@ import java.util.UUID;
 import org.apache.log4j.Level;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCNV_Exception;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -357,14 +357,16 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					Pair<Integer, Integer> pair = ipconService.getHighestRevisionBallotPair(issue, cluster);
 					// If we found some valid ones but not in the right revision, then throw an exception anyway
 					if (pair.getA()!=revision) {
-						throw new IPCNV_Exception();
+						// FIXME TODO technically we should check for higher revisions and adjust based on that, 
+						// but you would hope that you never get obligated to do something in an old revision...
+						throw new IPConException(getID() + " only found ballots in the wrong revision");
 					}
 					else {
 						// FIXME TODO technically this should guarantee uniqueness
 						// If you found one, then add one to the ballot :D
 						bal = pair.getB()+1;
 					}
-				} catch (IPCNV_Exception e) {
+				} catch (IPConException e) {
 					// FIXME TODO technically this should guarantee uniqueness
 					// no valid votes, so just go with 0
 					logger.trace(getID() + " couldn't find any ballots so is picking 0...");
@@ -384,78 +386,83 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					e.printStackTrace();
 				}
 			}
-			else if (fName.equals("value")) {
+			// biiiiiig if statement...
+			else if ( (fName.equals("value")) ||
 				// pick one - from your goals ?
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! (value is constrained to one of two options by permissions in SyncAck)
 				 */
-			}
-			else if (fName.equals("agent")) {
+			
+				(fName.equals("agent")) ||
 				// pick an agent to act on
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! (constrained by permission to be yourself, or in case of leader/agent difference, you should never be obligated to do something to *just anyone*)
 				 */
-			}
-			else if (fName.equals("leader")) {
+			
+				(fName.equals("leader")) ||
 				// this should probably be yourself
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! (constrained by permission to be yourself)
 				 */
-			}
-			else if (fName.equals("revision")) {
+			
+				(fName.equals("revision")) ||
 				// pick a revision - probably this one ?
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! Always have a specific revision in mind when an obligation is formed....
 				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
-			}
-			else if (fName.equals("issue")) {
+			
+				(fName.equals("issue")) ||
 				// pick an issue - probably this one ?
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! Always have a specific issue in mind when an obligation is formed....
 				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
-			}
-			else if (fName.equals("cluster")) {
+			
+				(fName.equals("cluster")) ||
 				// pick a cluster - probably this one ?
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! Always have a specific cluster in mind when an obligation is formed....
 				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
-			}
-			else if (fName.equals("voteBallot")) {
+			
+				(fName.equals("voteBallot")) ||
 				// pick one
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! Will either be 0 (if you didn't vote yet) or the ballot you voted in...
 				 */
-			}
-			else if (fName.equals("voteRevision")) {
+			
+				(fName.equals("voteRevision")) ||
 				// pick one
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! Will either be the current revision (if you didn't vote yet) or the revision you voted in...
 				 */
-			}
-			else if (fName.equals("voteValue")) {
+			
+				(fName.equals("voteValue")) ||
 				// pick one
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! Will either be IPCNV.val() (if you didn't vote yet) or the value you voted for...
 				 */
-			}
-			else if (fName.equals("role")) {
+				
+				(fName.equals("role")) ) {
 				// pick one
 				/*
 				 * Possible situations where is will be null:
 				 * Should be never ! No obligated actions concern roles...
 				 */
+				logger.warn(getID() + " encountered a null \"" + fName + "\" field, which should never happen! Obligation was " + obl);
+			}
+			else {
+				logger.warn(getID() + " encountered the unrecognised field \"" + fName + "\" in " + obl);
 			}
 		}
 		// If there is only one then use that.

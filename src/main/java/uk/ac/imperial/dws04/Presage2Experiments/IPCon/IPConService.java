@@ -393,9 +393,9 @@ public class IPConService extends EnvironmentService {
 	 * @param issue may not be null
 	 * @param cluster may not be null
 	 * @return the highest revision/ballot pair that has been made in a pre_vote, open_vote, voted, or reported_vote fact
-	 * @throws IPCNV_Exception if no suitable facts can be found
+	 * @throws IPConException if no suitable facts can be found
 	 */
-	public Pair<Integer, Integer> getHighestRevisionBallotPair(String issue, UUID cluster) throws IPCNV_Exception {
+	public Pair<Integer, Integer> getHighestRevisionBallotPair(String issue, UUID cluster) throws IPConException {
 		ArrayList<Pair<Integer,Integer>> list = new ArrayList<Pair<Integer,Integer>>();
 		QueryResults pvFacts = session.getQueryResults("getHighestBallotPV", new Object[]{issue, cluster});
 		for (QueryResultsRow row : pvFacts) {
@@ -419,7 +419,7 @@ public class IPConService extends EnvironmentService {
 			return list.get(list.size()-1);
 		}
 		else
-			throw new IPCNV_Exception("No votes found");
+			throw new IPConException("No votes found");
 		
 	}
 	
