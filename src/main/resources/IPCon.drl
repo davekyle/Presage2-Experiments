@@ -516,6 +516,26 @@ query "getAgentRoles" ( IPConAgent $agent, Integer $revision, String $issue, UUI
 	$role : HasRole( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) 
 end
 
+query "getHighestBallotPV" ( String $issue, UUID $cluster )
+	$preVote : Pre_Vote( $pvBal : ballot, $pvRev : revision, issue==$issue, cluster==$cluster )
+	not Pre_Vote( ballot>$pvBal, revision>=$pvRev, issue==$issue, cluster==$cluster ) 
+end
+
+query "getHighestBallotOV" ( String $issue, UUID $cluster )
+	$openVote : Open_Vote( $ovBal : ballot, $ovRev : revision, issue==$issue, cluster==$cluster )
+	not Open_Vote( ballot>$ovBal, revision>=$ovRev, issue==$issue, cluster==$cluster ) 
+end
+
+query "getHighestBallotV" ( String $issue, UUID $cluster )
+	$voted : Voted( $vBal : ballot, $vRev : revision, issue==$issue, cluster==$cluster )
+	not Voted( ballot>$vBal, revision>=$vRev, issue==$issue, cluster==$cluster ) 
+end
+
+query "getHighestBallotRV" ( String $issue, UUID $cluster )
+	$rVote : ReportedVote( $rvBal : ballot, $rvRev : revision, issue==$issue, cluster==$cluster )
+	not ReportedVote( ballot>$rvBal, revision>=$rvRev, issue==$issue, cluster==$cluster )
+end
+
 
 
 

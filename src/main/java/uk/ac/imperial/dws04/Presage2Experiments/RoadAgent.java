@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.apache.log4j.Level;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPCNV_Exception;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -348,6 +349,40 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				 * or pull highest vote/pre_vote/open_vote for RIC and get highest ballot, then add some value
 				 *  ( FIXME TODO The finally chosen ballot number should be unique to each leader to comply with Paxos)
 				 */
+				Integer bal = null;
+				try {
+					Integer revision = (Integer)obl.getClass().getField("revision").get(obl);
+					String issue = (String)obl.getClass().getField("issue").get(obl);
+					UUID cluster = (UUID)obl.getClass().getField("cluster").get(obl);
+					Pair<Integer, Integer> pair = ipconService.getHighestRevisionBallotPair(issue, cluster);
+					// If we found some valid ones but not in the right revision, then throw an exception anyway
+					if (pair.getA()!=revision) {
+						throw new IPCNV_Exception();
+					}
+					else {
+						// FIXME TODO technically this should guarantee uniqueness
+						// If you found one, then add one to the ballot :D
+						bal = pair.getB()+1;
+					}
+				} catch (IPCNV_Exception e) {
+					// FIXME TODO technically this should guarantee uniqueness
+					// no valid votes, so just go with 0
+					logger.trace(getID() + " couldn't find any ballots so is picking 0...");
+					bal = 0;
+				} catch (Exception e) {
+					// FIXME TODO technically this should guarantee uniqueness
+					// from the getFields... something went wrong...
+					logger.trace(getID() + " had a problem getting the issue or cluster from " + obl + " so is picking a ballot of 0...");
+					bal = 0;
+				}
+				try {
+					logger.trace(getID() + " set the value of field " + fName + " to be " + bal + " in " + actToDo);
+					f.set(actToDo, bal);
+					logger.trace(getID() + " now has " + actToDo);
+				} catch (Exception e) {
+					logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
+					e.printStackTrace();
+				}
 			}
 			else if (fName.equals("value")) {
 				// pick one - from your goals ?

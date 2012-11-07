@@ -6,6 +6,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -26,6 +27,8 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
+import uk.ac.imperial.dws04.utils.record.Pair;
+import uk.ac.imperial.dws04.utils.record.PairAThenBAscComparator;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
@@ -383,6 +386,41 @@ public class IPConService extends EnvironmentService {
 			result.add((IPConRIC)fact);
 		}
 		return result;
+	}
+	
+	/**
+	 * 
+	 * @param issue may not be null
+	 * @param cluster may not be null
+	 * @return the highest revision/ballot pair that has been made in a pre_vote, open_vote, voted, or reported_vote fact
+	 * @throws IPCNV_Exception if no suitable facts can be found
+	 */
+	public Pair<Integer, Integer> getHighestRevisionBallotPair(String issue, UUID cluster) throws IPCNV_Exception {
+		ArrayList<Pair<Integer,Integer>> list = new ArrayList<Pair<Integer,Integer>>();
+		QueryResults pvFacts = session.getQueryResults("getHighestBallotPV", new Object[]{issue, cluster});
+		for (QueryResultsRow row : pvFacts) {
+			list.add(new Pair<Integer,Integer>((Integer)row.get("$pvRev"), (Integer)row.get("$pvBal")));
+		}
+		QueryResults ovFacts = session.getQueryResults("getHighestBallotOV", new Object[]{issue, cluster});
+		for (QueryResultsRow row : ovFacts) {
+			list.add(new Pair<Integer,Integer>((Integer)row.get("$ovRev"), (Integer)row.get("$ovBal")));
+		}
+		QueryResults vFacts = session.getQueryResults("getHighestBallotV", new Object[]{issue, cluster});
+		for (QueryResultsRow row : vFacts) {
+			list.add(new Pair<Integer,Integer>((Integer)row.get("$vRev"), (Integer)row.get("$vBal")));
+		}
+		QueryResults rvFacts = session.getQueryResults("getHighestBallotRV", new Object[]{issue, cluster});
+		for (QueryResultsRow row : rvFacts) {
+			list.add(new Pair<Integer,Integer>((Integer)row.get("$rvRev"), (Integer)row.get("$rvBal")));
+		}
+		Collections.sort(list, new PairAThenBAscComparator<Integer,Integer>());
+		if (!list.isEmpty()) {
+			logger.trace("Found highest rev/bal in issue:" + issue + " / cluster:" + cluster + " to be " + list.get(list.size()-1));
+			return list.get(list.size()-1);
+		}
+		else
+			throw new IPCNV_Exception("No votes found");
+		
 	}
 	
 }

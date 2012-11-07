@@ -184,8 +184,9 @@ public class IPConAgentTest {
 		
 		ArrayList<IPConAction> a1Obl = a1.TESTgetInstantiatedObligatedActionQueue();
 		assertEquals(1, a1Obl.size());
+		logger.info("A1 obligated to: " + obl.toArray()[0]);
+		logger.info("A1 instantiated: " + a1Obl.get(0));
 		assertTrue(a1Obl.get(0).fulfils((IPConAction)obl.toArray()[0]));
-		logger.info("A1 instantiated: " + a1Obl);
 		
 		
 		/*
