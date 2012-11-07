@@ -137,13 +137,13 @@ public class Revise extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((Revise)action).getAgent()==null) &&
-				(this.getRevision().equals(((Revise)action).getRevision())) &&
-				(this.getIssue().equals(((Revise)action).getIssue())) &&
-				(this.getCluster().equals(((Revise)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((Revise)obligation).getAgent()==null) &&
+				(this.getRevision().equals(((Revise)obligation).getRevision())) &&
+				(this.getIssue().equals(((Revise)obligation).getIssue())) &&
+				(this.getCluster().equals(((Revise)obligation).getCluster()))
 				) );
 	}
 	@Override

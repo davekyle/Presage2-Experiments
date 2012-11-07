@@ -161,14 +161,14 @@ public class Prepare1A extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((Prepare1A)action).getAgent()==null) &&
-				(this.getBallot().equals(((Prepare1A)action).getBallot())) &&
-				(this.getRevision().equals(((Prepare1A)action).getRevision())) &&
-				(this.getIssue().equals(((Prepare1A)action).getIssue())) &&
-				(this.getCluster().equals(((Prepare1A)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				( (((Prepare1A)obligation).getAgent()==null) || (this.getAgent().equals(((Prepare1A)obligation).getAgent())) ) &&
+				( (((Prepare1A)obligation).getBallot()==null) || (this.getBallot().equals(((Prepare1A)obligation).getBallot())) ) &&
+				( (((Prepare1A)obligation).getRevision()==null) || (this.getRevision().equals(((Prepare1A)obligation).getRevision())) ) &&
+				( (((Prepare1A)obligation).getIssue()==null) || (this.getIssue().equals(((Prepare1A)obligation).getIssue())) ) &&
+				( (((Prepare1A)obligation).getCluster()==null) || (this.getCluster().equals(((Prepare1A)obligation).getCluster())) )
 				) );
 	}
 	@Override

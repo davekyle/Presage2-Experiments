@@ -92,11 +92,11 @@ public class LeaveCluster extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((LeaveCluster)action).getAgent()==null) &&
-				(this.getCluster().equals(((LeaveCluster)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((LeaveCluster)obligation).getAgent()==null) &&
+				(this.getCluster().equals(((LeaveCluster)obligation).getCluster()))
 				) );
 	}
 	@Override

@@ -160,14 +160,14 @@ public class Request0A extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((Request0A)action).getAgent()==null) &&
-				(this.getValue().equals(((Request0A)action).getValue())) &&
-				(this.getRevision().equals(((Request0A)action).getRevision())) &&
-				(this.getIssue().equals(((Request0A)action).getIssue())) &&
-				(this.getCluster().equals(((Request0A)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((Request0A)obligation).getAgent()==null) &&
+				(this.getValue().equals(((Request0A)obligation).getValue())) &&
+				(this.getRevision().equals(((Request0A)obligation).getRevision())) &&
+				(this.getIssue().equals(((Request0A)obligation).getIssue())) &&
+				(this.getCluster().equals(((Request0A)obligation).getCluster()))
 				) );
 	}
 	@Override

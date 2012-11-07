@@ -178,15 +178,15 @@ public class AddRole extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((AddRole)action).getAgent()==null) &&
-				(this.getAgent().equals(((AddRole)action).getAgent())) &&
-				(this.getRole().equals(((AddRole)action).getRole())) &&
-				(this.getRevision().equals(((AddRole)action).getRevision())) &&
-				(this.getIssue().equals(((AddRole)action).getIssue())) &&
-				(this.getCluster().equals(((AddRole)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((AddRole)obligation).getAgent()==null) &&
+				(this.getAgent().equals(((AddRole)obligation).getAgent())) &&
+				(this.getRole().equals(((AddRole)obligation).getRole())) &&
+				(this.getRevision().equals(((AddRole)obligation).getRevision())) &&
+				(this.getIssue().equals(((AddRole)obligation).getIssue())) &&
+				(this.getCluster().equals(((AddRole)obligation).getCluster()))
 				) );
 	}
 	

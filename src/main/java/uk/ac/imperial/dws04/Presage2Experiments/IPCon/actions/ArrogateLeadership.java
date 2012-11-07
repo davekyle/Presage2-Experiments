@@ -150,11 +150,11 @@ public class ArrogateLeadership extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((ArrogateLeadership)action).getAgent()==null) &&
-				(this.getCluster().equals(((ArrogateLeadership)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((ArrogateLeadership)obligation).getAgent()==null) &&
+				(this.getCluster().equals(((ArrogateLeadership)obligation).getCluster()))
 				) );
 	}
 

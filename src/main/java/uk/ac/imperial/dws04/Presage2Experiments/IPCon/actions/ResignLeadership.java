@@ -137,11 +137,11 @@ public class ResignLeadership extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((ResignLeadership)action).getAgent()==null) &&
-				(this.getCluster().equals(((ResignLeadership)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((ResignLeadership)obligation).getAgent()==null) &&
+				(this.getCluster().equals(((ResignLeadership)obligation).getCluster()))
 				) );
 	}
 	@Override

@@ -180,15 +180,15 @@ public class SyncReq extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((SyncReq)action).getLeader()==null) &&
-				(this.getAgent().equals(((SyncReq)action).getAgent())) &&
-				(this.getValue().equals(((SyncReq)action).getValue())) &&
-				(this.getRevision().equals(((SyncReq)action).getRevision())) &&
-				(this.getIssue().equals(((SyncReq)action).getIssue())) &&
-				(this.getCluster().equals(((SyncReq)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				( (((SyncReq)obligation).getLeader()==null) || (this.getLeader().equals(((SyncReq)obligation).getLeader())) ) &&
+				( (((SyncReq)obligation).getAgent()==null) || (this.getAgent().equals(((SyncReq)obligation).getAgent())) ) &&
+				( (((SyncReq)obligation).getValue()==null) || (this.getValue().equals(((SyncReq)obligation).getValue())) ) &&
+				( (((SyncReq)obligation).getRevision()==null) || (this.getRevision().equals(((SyncReq)obligation).getRevision())) ) &&
+				( (((SyncReq)obligation).getIssue()==null) || (this.getIssue().equals(((SyncReq)obligation).getIssue())) ) &&
+				( (((SyncReq)obligation).getCluster()==null) || (this.getCluster().equals(((SyncReq)obligation).getCluster())) )
 				) );
 	}
 	@Override

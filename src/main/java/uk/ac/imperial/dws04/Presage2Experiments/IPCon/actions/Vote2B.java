@@ -179,15 +179,15 @@ public class Vote2B extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((Vote2B)action).getAgent()==null) &&
-				(this.getValue().equals(((Vote2B)action).getValue())) &&
-				(this.getBallot().equals(((Vote2B)action).getBallot())) &&
-				(this.getRevision().equals(((Vote2B)action).getRevision())) &&
-				(this.getIssue().equals(((Vote2B)action).getIssue())) &&
-				(this.getCluster().equals(((Vote2B)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				( (((Vote2B)obligation).getAgent()==null) || (this.getAgent().equals(((Vote2B)obligation).getAgent())) ) &&
+				( (((Vote2B)obligation).getValue()==null) || (this.getValue().equals(((Vote2B)obligation).getValue())) ) &&
+				( (((Vote2B)obligation).getBallot()==null) || (this.getBallot().equals(((Vote2B)obligation).getBallot())) ) &&
+				( (((Vote2B)obligation).getRevision()==null) || (this.getRevision().equals(((Vote2B)obligation).getRevision())) ) &&
+				( (((Vote2B)obligation).getIssue()==null) || (this.getIssue().equals(((Vote2B)obligation).getIssue())) ) &&
+				( (((Vote2B)obligation).getCluster()==null) || (this.getCluster().equals(((Vote2B)obligation).getCluster())) ) 
 				) );
 	}
 	@Override

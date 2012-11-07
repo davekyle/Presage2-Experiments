@@ -178,15 +178,15 @@ public class RemRole extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((RemRole)action).getAgent()==null) &&
-				(this.getAgent().equals(((RemRole)action).getAgent())) &&
-				(this.getRole().equals(((RemRole)action).getRole())) &&
-				(this.getRevision().equals(((RemRole)action).getRevision())) &&
-				(this.getIssue().equals(((RemRole)action).getIssue())) &&
-				(this.getCluster().equals(((RemRole)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((RemRole)obligation).getAgent()==null) &&
+				(this.getAgent().equals(((RemRole)obligation).getAgent())) &&
+				(this.getRole().equals(((RemRole)obligation).getRole())) &&
+				(this.getRevision().equals(((RemRole)obligation).getRevision())) &&
+				(this.getIssue().equals(((RemRole)obligation).getIssue())) &&
+				(this.getCluster().equals(((RemRole)obligation).getCluster()))
 				) );
 	}
 	@Override

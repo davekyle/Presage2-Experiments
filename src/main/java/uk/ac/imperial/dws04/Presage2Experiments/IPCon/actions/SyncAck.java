@@ -160,14 +160,14 @@ public class SyncAck extends IPConAction {
 	}
 	
 	@Override
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((SyncAck)action).getAgent()==null) &&
-				(this.getValue().equals(((SyncAck)action).getValue())) &&
-				(this.getRevision().equals(((SyncAck)action).getRevision())) &&
-				(this.getIssue().equals(((SyncAck)action).getIssue())) &&
-				(this.getCluster().equals(((SyncAck)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				( (((SyncAck)obligation).getAgent()==null) || (this.getAgent().equals(((SyncAck)obligation).getAgent())) ) &&
+				( (((SyncAck)obligation).getValue()==null) || (this.getValue().equals(((SyncAck)obligation).getValue())) ) &&
+				( (((SyncAck)obligation).getRevision()==null) || (this.getRevision().equals(((SyncAck)obligation).getRevision())) ) &&
+				( (((SyncAck)obligation).getIssue()==null) || (this.getIssue().equals(((SyncAck)obligation).getIssue())) ) &&
+				( (((SyncAck)obligation).getCluster()==null) || (this.getCluster().equals(((SyncAck)obligation).getCluster())) )
 				) );
 	}
 	@Override

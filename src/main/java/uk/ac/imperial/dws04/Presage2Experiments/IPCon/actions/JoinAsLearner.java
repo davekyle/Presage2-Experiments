@@ -105,13 +105,13 @@ public class JoinAsLearner extends IPConAction {
 	/* (non-Javadoc)
 	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction#fulfils(uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction)
 	 */
-	public boolean fulfils(IPConAction action) {
-		return ( (this.equals(action)) || (
-				(this.getClass().isAssignableFrom(action.getClass())) &&
-				(((JoinAsLearner)action).getAgent()==null) &&
-				(this.getRevision().equals(((JoinAsLearner)action).getRevision())) &&
-				(this.getIssue().equals(((JoinAsLearner)action).getIssue())) &&
-				(this.getCluster().equals(((JoinAsLearner)action).getCluster()))
+	public boolean fulfils(IPConAction obligation) {
+		return ( (this.equals(obligation)) || (
+				(this.getClass().isAssignableFrom(obligation.getClass())) &&
+				(((JoinAsLearner)obligation).getAgent()==null) &&
+				(this.getRevision().equals(((JoinAsLearner)obligation).getRevision())) &&
+				(this.getIssue().equals(((JoinAsLearner)obligation).getIssue())) &&
+				(this.getCluster().equals(((JoinAsLearner)obligation).getCluster()))
 				) );
 
 }
