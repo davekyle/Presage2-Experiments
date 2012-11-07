@@ -16,7 +16,7 @@ public abstract class IPConAction {
 	 * @param obligation
 	 * @return true if this action is "the same as" the argument with the exception of the agent
 	 */
-	public final boolean fulfils(IPConAction obligation) {
+	public boolean fulfils(IPConAction obligation) {
 		// check for equality
 		if (this.equals(obligation)) return true;
 		// check for different class
