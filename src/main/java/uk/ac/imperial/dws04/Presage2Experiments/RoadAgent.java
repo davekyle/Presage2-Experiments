@@ -502,6 +502,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						val = vals.get(0);
 					}
 					else {
+						// FIXME TODO other descision-making stuff here...
+						
 						// choose between ipcnv and the given value
 						/*
 						 * Need to work out what the issue is, which goal that corresponds to, and then
