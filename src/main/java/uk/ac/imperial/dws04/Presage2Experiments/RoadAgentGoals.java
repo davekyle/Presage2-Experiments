@@ -20,10 +20,23 @@ public class RoadAgentGoals {
 	 */
 	private final Integer spacing;
 	
+	private final Integer speedTolerance;
+	private final Integer spacingTolerance;
+	
 	public RoadAgentGoals(Integer speed, Integer dest, Integer spacing) {
 		this.speed = speed;
 		this.dest = dest;
 		this.spacing = spacing;
+		this.speedTolerance = 2;
+		this.spacingTolerance = 2;
+	}
+	
+	public RoadAgentGoals(Integer speed, Integer speedTolerance, Integer dest, Integer spacing, Integer spacingTolerance) {
+		this.speed = speed;
+		this.dest = dest;
+		this.spacing = spacing;
+		this.speedTolerance = speedTolerance;
+		this.spacingTolerance = spacingTolerance;
 	}
 
 	/**
@@ -45,5 +58,19 @@ public class RoadAgentGoals {
 	 */
 	public Integer getSpacing() {
 		return spacing;
+	}
+
+	/**
+	 * @return the speedTolerance
+	 */
+	public Integer getSpeedTolerance() {
+		return speedTolerance;
+	}
+
+	/**
+	 * @return the spacingTolerance
+	 */
+	public Integer getSpacingTolerance() {
+		return spacingTolerance;
 	}
 }

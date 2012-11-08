@@ -509,15 +509,31 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						 * If not (or if you can't work out which goal it matched), then reply IPCNV.val().... 
 						 */
 						String issue = (String)obl.getClass().getField("issue").get(obl);
-						if (issue.equalsIgnoreCase("speed")) {
-							
-						}
-						else if (issue.equalsIgnoreCase("spacing")) {
-							
+						
+						// vals is only 2 values and contains IPCNV
+						//remove the IPCNV so you can get the proposed val
+						vals.remove(IPCNV.val());
+						
+						if (vals.get(0).getClass().isAssignableFrom(Integer.class)) {
+							if (
+								(	(issue.equalsIgnoreCase("speed")) && 
+									(Math.abs( (Integer)vals.get(0) - this.goals.getSpeed()  ) <= this.goals.getSpeedTolerance() )
+								) &&
+								(	(issue.equalsIgnoreCase("spacing")) && 
+									(Math.abs( (Integer)vals.get(0) - this.goals.getSpacing()  ) <= this.goals.getSpacingTolerance() )
+								)
+								) {
+									logger.trace(getID() + " chose the current value " + vals.get(0) + " for the issue " + issue);
+									val = vals.get(0);
+							}
+							else {
+								logger.trace(getID() + " did not like the current value " + vals.get(0) + " for the issue " + issue);
+								val = IPCNV.val();
+							}
 						}
 						else {
-							vals.remove(IPCNV.val());
-							logger.warn(getID() + " doesn't have a goal for the issue (" + issue + ") so is happy with the current value " + vals.get(0));
+							//vals.remove(IPCNV.val());
+							logger.warn(getID() + " doesn't have a goal for the issue (" + issue + ") or the types didn't match so is happy with the current value " + vals.get(0));
 							val = vals.get(0);
 						}
 					}
