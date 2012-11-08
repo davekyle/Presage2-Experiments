@@ -18,7 +18,10 @@ import org.apache.log4j.Level;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
@@ -310,6 +313,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 							}
 						}
 						
+						// Take the permitted actions and choose one to instantiate with
 						instantiateFieldInObligatedAction(f, actToDo, obl, vals);
 						
 					}
@@ -343,7 +347,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			if (fName.equals("ballot")) {
 				// choose a valid ballot number
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Prepare1A - need to pick a ballot number that is higher than all current ballot numbers in the same RIC
 				 * Can either rely on responses to tell you to retry with a higher ballot (obligation not implemented yet)
 				 * or pull highest vote/pre_vote/open_vote for RIC and get highest ballot, then add some value
@@ -351,6 +355,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				 */
 				Integer bal = null;
 				try {
+					if (!obl.getClass().isAssignableFrom(Prepare1A.class)) {
+						throw new IPConException("Obligation was not to Prepare1A. Class was: " + obl.getClass().getSimpleName());
+					}
 					Integer revision = (Integer)obl.getClass().getField("revision").get(obl);
 					String issue = (String)obl.getClass().getField("issue").get(obl);
 					UUID cluster = (UUID)obl.getClass().getField("cluster").get(obl);
@@ -359,7 +366,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					if (pair.getA()!=revision) {
 						// FIXME technically we should check for higher revisions and adjust based on that, 
 						// but you would hope that you never get obligated to do something in an old revision...
-						throw new IPConException(getID() + " only found ballots in the wrong revision. Highest was " + pair);
+						throw new IPConException("Only found ballots in the wrong revision. Highest was " + pair);
 					}
 					else {
 						// FIXME TODO technically this should guarantee uniqueness
@@ -369,7 +376,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				} catch (IPConException e) {
 					// FIXME TODO technically this should guarantee uniqueness
 					// no valid votes, so just go with 0
-					logger.trace(getID() + " couldn't find any ballots so is picking 0...");
+					logger.trace(getID() + " couldn't find any ballots so is picking 0 due to error: " + e);
 					bal = 0;
 				} catch (Exception e) {
 					// FIXME TODO technically this should guarantee uniqueness
@@ -390,28 +397,28 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			else if ( (fName.equals("value")) ||
 				// pick one - from your goals ?
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! (value is constrained to one of two options by permissions in SyncAck)
 				 */
 			
 				(fName.equals("agent")) ||
 				// pick an agent to act on
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! (constrained by permission to be yourself, or in case of leader/agent difference, you should never be obligated to do something to *just anyone*)
 				 */
 			
 				(fName.equals("leader")) ||
 				// this should probably be yourself
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! (constrained by permission to be yourself)
 				 */
 			
 				(fName.equals("revision")) ||
 				// pick a revision - probably this one ?
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! Always have a specific revision in mind when an obligation is formed....
 				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
@@ -419,7 +426,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				(fName.equals("issue")) ||
 				// pick an issue - probably this one ?
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! Always have a specific issue in mind when an obligation is formed....
 				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
@@ -427,7 +434,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				(fName.equals("cluster")) ||
 				// pick a cluster - probably this one ?
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! Always have a specific cluster in mind when an obligation is formed....
 				 * If we expand to non-obligated actions, then permissions in general can be null... (eg arrogate)
 				 */
@@ -435,28 +442,28 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				(fName.equals("voteBallot")) ||
 				// pick one
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! Will either be 0 (if you didn't vote yet) or the ballot you voted in...
 				 */
 			
 				(fName.equals("voteRevision")) ||
 				// pick one
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! Will either be the current revision (if you didn't vote yet) or the revision you voted in...
 				 */
 			
 				(fName.equals("voteValue")) ||
 				// pick one
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! Will either be IPCNV.val() (if you didn't vote yet) or the value you voted for...
 				 */
 				
 				(fName.equals("role")) ) {
 				// pick one
 				/*
-				 * Possible situations where is will be null:
+				 * Possible situations where it will be null:
 				 * Should be never ! No obligated actions concern roles...
 				 */
 				logger.warn(getID() + " encountered a null \"" + fName + "\" field, which should never happen! Obligation was " + obl);
@@ -478,13 +485,96 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		// If there is more than one, pick one at random ?
 		else {
-			try {
+			if (fName.equals("value")) {
+				Object val = null;
+				try {
+					// choose a valid response
+					/*
+					 * Only possible in a Syncack - two options of IPCNV.val or the value proposed:
+					 * 
+					 */
+	
+					if (!obl.getClass().isAssignableFrom(SyncAck.class)) {
+						throw new IPConException("Obligation was not to SyncAck. Class was: " + obl.getClass().getSimpleName());
+					}
+					if ((vals.size()!=2) || (!vals.contains(IPCNV.val())) ){
+						logger.warn(getID() + " encountered too many, or unexpected, options than usual for a SyncAck (" + vals + ") so is psuedorandomly picking " + vals.get(0));
+						val = vals.get(0);
+					}
+					else {
+						// choose between ipcnv and the given value
+						/*
+						 * Need to work out what the issue is, which goal that corresponds to, and then
+						 * decide whether the given value is close enough to your goal to be acceptable.
+						 * If not (or if you can't work out which goal it matched), then reply IPCNV.val().... 
+						 */
+						String issue = (String)obl.getClass().getField("issue").get(obl);
+						if (issue.equalsIgnoreCase("speed")) {
+							
+						}
+						else if (issue.equalsIgnoreCase("spacing")) {
+							
+						}
+						else {
+							vals.remove(IPCNV.val());
+							logger.warn(getID() + " doesn't have a goal for the issue (" + issue + ") so is happy with the current value " + vals.get(0));
+							val = vals.get(0);
+						}
+					}
+				} catch (IPConException e) {
+					// no valid votes, so just go with 0
+					logger.trace(getID() + " couldn't find any values so is picking " + IPCNV.val() + " due to error: " + e);
+					val = IPCNV.val();
+				} catch (Exception e) {
+					// from the getFields... something went wrong...
+					logger.trace(getID() + " had a problem getting the issue or cluster from " + obl + " so is picking " + IPCNV.val());
+					val = IPCNV.val();
+				}
+				try {
+					logger.trace(getID() + " set the value of field " + fName + " to be " + val + " in " + actToDo);
+					f.set(actToDo, val);
+					logger.trace(getID() + " now has " + actToDo);
+				} catch (Exception e) {
+					logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
+					e.printStackTrace();
+				}
+			}
+			// biiiiiig if statement...
+			else if ( (fName.equals("ballot")) ||
+			
+				(fName.equals("agent")) ||
+				
+				(fName.equals("leader")) ||
+			
+				(fName.equals("revision")) ||
+			
+				(fName.equals("issue")) ||
+			
+				(fName.equals("cluster")) ||
+			
+				(fName.equals("voteBallot")) ||
+			
+				(fName.equals("voteRevision")) ||
+			
+				(fName.equals("voteValue")) ||
+				
+				(fName.equals("role")) ) {
+					logger.warn(getID() + " encountered a multivalue \"" + fName + "\" field (" + vals + "), which should never happen! Obligation was " + obl);
+					logger.trace(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
+					try {
+						f.set(actToDo, vals.get(0));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+			}
+			else {
+				logger.warn(getID() + " encountered the unrecognised field \"" + fName + "\" in " + obl);
 				logger.trace(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
-				//FIXME TODO need to pick more sensibly... eg in SyncAck you need to choose value not at random :P
-				f.set(actToDo, vals.get(0));
-			} catch (Exception e) {
-				logger.error(getID() + " had a problem setting the fields of an action to discharge " + obl + "...");
-				e.printStackTrace();
+				try {
+					f.set(actToDo, vals.get(0));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
