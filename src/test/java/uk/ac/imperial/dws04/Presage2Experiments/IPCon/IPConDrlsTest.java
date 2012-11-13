@@ -1670,7 +1670,7 @@ public class IPConDrlsTest {
 		assertActionCount("getObligations", "Prepare1A", a1, revision, issue, cluster, 1);
 		assertActionCount("getObligations", "Prepare1A", a2, revision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Prepare1A", a1, revision, issue, cluster, 1);
-		assertActionCount("getPermissions", "Prepare1A", a2, revision, issue, cluster, 1);
+		assertActionCount("getPermissions", "Prepare1A", a2, revision, issue, cluster, 1); // FIXME TODO why does this fail sometimes ?
 
 		/*
 		 * Time step 2

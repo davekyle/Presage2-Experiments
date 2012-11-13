@@ -9,6 +9,8 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -26,10 +28,13 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
@@ -92,6 +97,7 @@ public class IPConAgentTest {
 					.addParticipantEnvironmentService(ParticipantSpeedService.class)
 					.addParticipantEnvironmentService(ParticipantIPConService.class)
 					.addGlobalEnvironmentService(RoadEnvironmentService.class)
+					.addGlobalEnvironmentService(IPConService.class)
 					.setStorage(RuleStorage.class),
 				Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX,
 						WrapEdgeHandler.class), new EventBusModule(),
@@ -120,6 +126,31 @@ public class IPConAgentTest {
 	@After
 	public void tearDown() throws Exception {
 		session.dispose();
+	}
+	
+	public void outputObjects() {
+		Collection<Object> objects = session.getObjects();
+		logger.info("\nObjects: " + objects.toString() + " are :");
+		for (Object object : objects) {
+			logger.info(object);
+		}
+		logger.info("/objects");
+		analyseDroolsUsage();
+		logger.info("/usage");
+	}
+	
+	private void analyseDroolsUsage() {
+		Map<Class<?>, Integer> typeCards = new HashMap<Class<?>, Integer>();
+		for (Object o : session.getObjects()) {
+				if (!typeCards.containsKey(o.getClass())) {
+					typeCards.put(o.getClass(), 0);
+				}
+				typeCards.put(o.getClass(), typeCards.get(o.getClass()) + 1);
+		}
+		logger.info("Drools memory usage:");
+		for (Map.Entry<Class<?>, Integer> entry : typeCards.entrySet()) {
+			logger.info(entry.getKey().getSimpleName() + " - " + entry.getValue());
+		}
 	}
 	
 	private RoadAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
@@ -171,12 +202,15 @@ public class IPConAgentTest {
 		 * options, no options, single options, and unconstrained(-ish) options. 
 		 */
 		/*
-		 * A2 requests. A1 now should be obligated to prepare
+		 * A2 requests.
+		 * A1 now should be obligated to prepare.
 		 */
 		session.insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
 		rules.incrementTime();
 		Collection<IPConAction> obl1 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
 		logger.info("A1 obligated to :" + obl1);
+		assertEquals(1,obl1.size());
+		Collection<IPConAction> obl1a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
 		assertEquals(1,obl1.size());
 		Collection<IPConAction> per1 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
 		logger.info("A1 permitted to :" + per1);
@@ -190,19 +224,79 @@ public class IPConAgentTest {
 		logger.info("** Unconstrained instantiation test passed **");
 		
 		/*
-		 * A1 sends prepare message. A2 and A3 not obligated to respond, but should respond with IPCNV
+		 * A1 sends instantiated prepare message.
+		 * A2 and A3 not obligated to respond, but should respond with IPCNV.
 		 */
 		session.insert(a1Obl1.get(0));
 		rules.incrementTime();
 		Collection<IPConAction> obl2 = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
-		logger.info("Agents obligated to :" + obl2);
+		logger.info("Agents not obligated :" + obl2);
 		assertEquals(0,obl2.size());
 		Collection<IPConAction> per2 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Response1B", null, revision, issue, cluster);
 		logger.info("Agents permitted to :" + per2);
 		assertEquals(3,per2.size());
 		
+		/*
+		 * Cheat a bit and just insert the permitted response actions for A1-3.
+		 * A1 should be obligated to submit the proposed value.
+		 */
+		for (IPConAction act : per2) {
+			session.insert(act);
+		}
+		rules.incrementTime();
+		Collection<IPConAction> obl3 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Submit2A", a1.getIPConHandle(), revision, issue, cluster);
+		logger.info("A1 obligated to :" + obl3);
+		assertEquals(1,obl3.size());
+		Collection<IPConAction> obl3a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
+		assertEquals(1,obl3a.size());
 		
+		ArrayList<IPConAction> a1Obl3 = a1.TESTgetInstantiatedObligatedActionQueue();
+		assertEquals(1, a1Obl3.size());
+		logger.info("A1 obligated to: " + obl3.toArray()[0]);
+		logger.info("A1 instantiated: " + a1Obl3.get(0));
+		assertTrue(a1Obl3.get(0).fulfils((IPConAction)obl3.toArray()[0]));
+		logger.info("** One-option-constrained instantiation test passed **");
 		
+		/*
+		 * Insert A1's instantiated submit action.
+		 * A1-3 not obligated to vote, but permitted to.
+		 */
+		session.insert(a1Obl3.get(0));
+		rules.incrementTime();
+		Collection<IPConAction> per3 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Vote2B", null, revision, issue, cluster);
+		logger.info("Agents permitted to :" + per3);
+		assertEquals(3,per3.size());
+		
+		/*
+		 * Cheat a bit again and send the permitted vote actions for A1-3.
+		 * Agents should not be obligated to do anything.
+		 * VALUE should be chosen.
+		 */
+		for (IPConAction act : per3) {
+			session.insert(act);
+		}
+		rules.incrementTime();
+		Collection<IPConAction> obl4 = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
+		logger.info("Agents not obligated :" + obl4);
+		assertEquals(0,obl4.size());
+		Collection<IPConFact> fact4 = globalIPConService.getFactQueryResults("Chosen", revision, issue, cluster);
+		assertEquals(1,fact4.size());
+		Chosen chosen = globalIPConService.getChosen(revision, issue, cluster);
+		assertEquals(value, chosen.getValue());
+		
+		/*
+		 * Add a new agent to check syncreq obligation.
+		 * A1 should be obligated to SyncReq the new agent.
+		 */
+		RoadAgent a4 = createAgent("a4", new RoadLocation(0,2), 1);
+		session.insert(new AddRole(a1.getIPConHandle(), a4.getIPConHandle(), Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		Collection<IPConAction> obl5 = globalIPConService.getActionQueryResultsForRIC("getObligations", "SyncReq", a1.getIPConHandle(), revision, issue, cluster);
+		logger.info("A1 obligated to :" + obl5);
+		assertEquals(1,obl5.size());
+		Collection<IPConAction> obl5a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
+		assertEquals(1,obl5a.size());
 	}
 	
 	@Test

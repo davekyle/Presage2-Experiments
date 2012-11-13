@@ -187,6 +187,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * Get obligations
 		 * Get permissions
 		 * Use permissions to instantiate obligations
+		 * IF no obligations, do something sensible from your permissions (eg responses if you didn't vote yet, and voting itself !)
 		 * Check for conflicting obligations/permissions
 		 * Take note of permission to vote
 		 * Add all relevant actions to queue of actions
