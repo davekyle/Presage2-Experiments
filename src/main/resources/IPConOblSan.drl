@@ -87,6 +87,23 @@ rule "holdsAt for obligation to respond"
 		insertLogical( new Obligation( $agent, $response, false, Role.ACCEPTOR ) );
 end
 
+/*
+rule "holdsAt for obligation to respond if you haven't voted"
+// if you haven't responded when you have permission to do so, and have not voted, you must respond saying so
+// not obligated if a higher prevote exists (FIXME TODO maybe put this in the permission?)
+	when
+		Permission( $agent : agent, $action : action )
+		Response1B( agent==$agent, $voteRevision : voteRevision, $voteBallot : voteBallot, $voteValue : voteValue, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster, $revision==$voteRevision ) from $action
+		not Pre_Vote( revision==$voteRevision, ballot>$ballot, issue==$issue, cluster==$cluster )
+		not Voted( agent==$agent, revision==$revision, ballot<$ballot, issue==$issue, cluster==$cluster )
+		not ReportedVote( agent==$agent, voteRevision==$voteRevision, voteBallot==$voteBallot, voteValue==$voteValue, revision==$revision, ballot==$ballot, issue==$issue, cluster==$cluster )
+	then
+		Response1B $response = new Response1B( $agent, $voteRevision, $voteBallot, $voteValue, $revision, $ballot, $issue, $cluster );
+		logger.trace("Logically toggling obligation for " + $agent + "  to " + $response );
+		insertLogical( new Obligation( $agent, $response, false, Role.ACCEPTOR ) );
+end
+*/
+
 rule "holdsAt for obligation to submit"
 // if you have permission (which is pretty explicitly done) and haven't yet, you must
 	when
