@@ -31,6 +31,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -221,7 +222,7 @@ public class IPConAgentTest {
 		logger.info("A1 obligated to: " + obl1.toArray()[0]);
 		logger.info("A1 instantiated: " + a1Obl1.get(0));
 		assertTrue(a1Obl1.get(0).fulfils((IPConAction)obl1.toArray()[0]));
-		logger.info("** Unconstrained instantiation test passed **");
+		logger.info("** Unconstrained instantiation (Prepare1A) test passed **");
 		
 		/*
 		 * A1 sends instantiated prepare message.
@@ -235,6 +236,14 @@ public class IPConAgentTest {
 		Collection<IPConAction> per2 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Response1B", null, revision, issue, cluster);
 		logger.info("Agents permitted to :" + per2);
 		assertEquals(3,per2.size());
+		
+		/*
+		 * Check that agents with no obligations don't try instantiating anything
+		 */
+		for (RoadAgent ag : new RoadAgent[]{a1, a2, a3}) {
+			assertEquals(0, ag.TESTgetInstantiatedObligatedActionQueue().size());
+		}
+		logger.info("** No obligations to instantiate test passed **");
 		
 		/*
 		 * Cheat a bit and just insert the permitted response actions for A1-3.
@@ -255,7 +264,7 @@ public class IPConAgentTest {
 		logger.info("A1 obligated to: " + obl3.toArray()[0]);
 		logger.info("A1 instantiated: " + a1Obl3.get(0));
 		assertTrue(a1Obl3.get(0).fulfils((IPConAction)obl3.toArray()[0]));
-		logger.info("** One-option-constrained instantiation test passed **");
+		logger.info("** One-option-constrained instantiation (Submit2A) test passed **");
 		
 		/*
 		 * Insert A1's instantiated submit action.
@@ -297,6 +306,39 @@ public class IPConAgentTest {
 		assertEquals(1,obl5.size());
 		Collection<IPConAction> obl5a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
 		assertEquals(1,obl5a.size());
+		
+		ArrayList<IPConAction> a1Obl5 = a1.TESTgetInstantiatedObligatedActionQueue();
+		assertEquals(1, a1Obl5.size());
+		logger.info("A1 obligated to: " + obl5.toArray()[0]);
+		logger.info("A1 instantiated: " + a1Obl5.get(0));
+		assertTrue(a1Obl5.get(0).fulfils((IPConAction)obl5.toArray()[0]));
+		logger.info("** One-option-constrained (self-)instantiation (SyncReq) test passed **");
+		
+		/*
+		 * A1 sends instantiated SyncReq.
+		 * A4 should be obligated to reply (multiple choice).
+		 * A1-3 should not be obligated.
+		 */
+		session.insert(a1Obl5.get(0));
+		rules.incrementTime();
+		Collection<IPConAction> obl6 = globalIPConService.getActionQueryResultsForRIC("getObligations", "SyncAck", a4.getIPConHandle(), revision, issue, cluster);
+		logger.info("A4 obligated to :" + obl6);
+		assertEquals(1,obl6.size());
+		Collection<IPConAction> obl6a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
+		assertEquals(1,obl6a.size());
+		
+		ArrayList<IPConAction> a4Obl6 = a4.TESTgetInstantiatedObligatedActionQueue();
+		assertEquals(1, a4Obl6.size());
+		logger.info("A4 obligated to: " + obl6.toArray()[0]);
+		logger.info("A4 instantiated: " + a4Obl6.get(0));
+		assertTrue(a4Obl6.get(0).fulfils((IPConAction)obl6.toArray()[0]));
+		assertEquals( value, ((SyncAck)a4Obl6.get(0)).getValue() );
+		logger.info("** Multi-option-constrained instantiation (SyncAck to unknown issue) test passed **");
+		
+		
+		/*
+		 * FIXME TODO Also check self-instantiation of agent-neutral obligations in the face of multiple leaders
+		 */
 	}
 	
 	@Test
