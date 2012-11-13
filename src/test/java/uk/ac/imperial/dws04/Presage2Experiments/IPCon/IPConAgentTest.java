@@ -4,6 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
 import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.*;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
@@ -180,6 +182,7 @@ public class IPConAgentTest {
 	
 	@Test
 	public void testObligationInstantiation() throws Exception {
+		logger.info("\nBeginning test of obligation instantiation...");
 		/**
 		 * This requires access to a fn which should be private, so calling public wrapper fn
 		 */
@@ -212,7 +215,7 @@ public class IPConAgentTest {
 		logger.info("A1 obligated to :" + obl1);
 		assertEquals(1,obl1.size());
 		Collection<IPConAction> obl1a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
-		assertEquals(1,obl1.size());
+		assertEquals(1,obl1a.size());
 		Collection<IPConAction> per1 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
 		logger.info("A1 permitted to :" + per1);
 		assertEquals(1,per1.size());
@@ -335,10 +338,75 @@ public class IPConAgentTest {
 		assertEquals( value, ((SyncAck)a4Obl6.get(0)).getValue() );
 		logger.info("** Multi-option-constrained instantiation (SyncAck to unknown issue) test passed **");
 		
+		logger.info("Finished test of obligation instantiation.\n");
+	}
+	
+	@Test
+	public void multiLeaderObligationSelfInstantiationTest() throws Exception {
+		logger.info("\nBeginning test of obligation self-instantiation in the face of multiple leaders...");
+		/**
+		 * This requires access to a fn which should be private, so calling public wrapper fn
+		 */
+		final Integer revision = 1;
+		final String issue = "IssueString";
+		final UUID cluster = Random.randomUUID();
+		Object value = "VALUE";
+		/*
+		 * Create agents
+		 */
+		RoadAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
+		RoadAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
+		addRoles(a2.getIPConHandle(), new Role[]{Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
+		RoadAgent a3 = createAgent("a3", new RoadLocation(2,0), 1);
+		addRoles(a3.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
 		
 		/*
-		 * FIXME TODO Also check self-instantiation of agent-neutral obligations in the face of multiple leaders
+		 * A2 requests.
+		 * A1 and A3 now should be obligated to prepare.
 		 */
+		session.insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
+		rules.incrementTime();
+		Collection<IPConAction> obl1 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
+		logger.info("A1 obligated to :" + obl1);
+		assertEquals(1,obl1.size());
+		Collection<IPConAction> obl3 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a3.getIPConHandle(), revision, issue, cluster);
+		logger.info("A3 obligated to :" + obl1);
+		assertEquals(1,obl3.size());
+		Collection<IPConAction> obla = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
+		assertEquals(1,obla.size()); // NB. there is only one actual obligation, but 2 agents consider it "theirs"
+		Collection<IPConAction> per1 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
+		logger.info("A1 permitted to :" + per1);
+		assertEquals(1,per1.size());
+		Collection<IPConAction> per3 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Prepare1A", a3.getIPConHandle(), revision, issue, cluster);
+		logger.info("A3 permitted to :" + per3);
+		assertEquals(1,per3.size());
+		
+		ArrayList<IPConAction> a1Obl1 = a1.TESTgetInstantiatedObligatedActionQueue();
+		assertEquals(1, a1Obl1.size());
+		logger.info("A1 obligated to: " + obl1.toArray()[0]);
+		logger.info("A1 instantiated: " + a1Obl1.get(0));
+		assertTrue(a1Obl1.get(0).fulfils((IPConAction)obl1.toArray()[0]));
+		
+		ArrayList<IPConAction> a3Obl1 = a3.TESTgetInstantiatedObligatedActionQueue();
+		assertEquals(1, a3Obl1.size());
+		logger.info("A3 obligated to: " + obl3.toArray()[0]);
+		logger.info("A3 instantiated: " + a3Obl1.get(0));
+		assertTrue(a3Obl1.get(0).fulfils((IPConAction)obl3.toArray()[0]));
+		
+		Prepare1A a1Prep = ((Prepare1A)a1Obl1.get(0));
+		Prepare1A a3Prep = ((Prepare1A)a3Obl1.get(0));
+
+		// FIXME TODO this needs doing...
+		// assertThat(a1Prep.getBallot(), is ( not( a3Prep.getBallot() ) ) );
+		assertEquals(a1Prep.getRevision(), a3Prep.getRevision());
+		assertEquals(a1Prep.getIssue(), a3Prep.getIssue());
+		assertEquals(a1Prep.getCluster(), a3Prep.getCluster());
+		
+		logger.info("** Multiple leader self-instantiation test passed **");
+		
+
+		logger.info("Finished test of obligation self-instantiation in the face of multiple leaders.\n");
 	}
 	
 	@Test
