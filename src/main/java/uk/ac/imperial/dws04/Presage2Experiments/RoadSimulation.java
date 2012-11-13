@@ -213,6 +213,7 @@ public class RoadSimulation extends InjectedSimulation {
 			.addParticipantEnvironmentService(ParticipantIPConService.class)
 			//.addGlobalEnvironmentService(RoadLocationService.class)
 			.addGlobalEnvironmentService(RoadEnvironmentService.class)
+			.addGlobalEnvironmentService(IPConService.class)
 			.setStorage(RuleStorage.class)
 			);
 		// No network
