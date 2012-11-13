@@ -11,11 +11,14 @@ import org.drools.runtime.StatefulKnowledgeSession;
 
 import com.google.inject.Inject;
 
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
+import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.SharedStateAccessException;
@@ -43,6 +46,13 @@ public class ParticipantIPConService extends IPConService {
 			logger.error(p.getID() + " does not have an IPCon handle...");
 		}
     }
+	
+/*	@Override
+	public void registerParticipant(EnvironmentRegistrationRequest req) {
+		// do insertion of IPConAgent fact and such
+		logger.trace("Inserting agent via ParticipantIPConService " + ((RoadAgent)req.getParticipant()).getIPConHandle());
+		session.insert( ((RoadAgent)req.getParticipant()).getIPConHandle() );
+	}*/
 	
 	private StatefulKnowledgeSession getSession() {
 		if (this.session==null) {
@@ -140,6 +150,19 @@ public class ParticipantIPConService extends IPConService {
 	public Integer getQuorumSize(Integer revision, String issue, UUID cluster) {
 		if ( revision!=null && issue!=null && cluster!=null && (!super.getAgentRoles(this.handle, revision, issue, cluster).isEmpty()) ) {
 			return super.getQuorumSize(revision, issue, cluster);
+		}
+		else {
+			throw new SharedStateAccessException("A participant may not view info about a RIC they are not in!");
+		}
+	}
+	
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getChosen(java.lang.Integer, java.lang.String, java.util.UUID)
+	 */
+	@Override
+	public Chosen getChosen(Integer revision, String issue, UUID cluster) {
+		if ( revision!=null && issue!=null && cluster!=null && (!super.getAgentRoles(this.handle, revision, issue, cluster).isEmpty()) ) {
+			return super.getChosen(revision, issue, cluster);
 		}
 		else {
 			throw new SharedStateAccessException("A participant may not view info about a RIC they are not in!");

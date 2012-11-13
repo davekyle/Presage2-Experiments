@@ -516,6 +516,10 @@ query "getAgentRoles" ( IPConAgent $agent, Integer $revision, String $issue, UUI
 	$role : HasRole( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) 
 end
 
+query "getChosen" ( Integer $revision, String $issue, UUID $cluster )
+	$chosen : Chosen( revision==$revision, $ballot : ballot, $value : value, issue==$issue, cluster==$cluster ) 
+end
+
 query "getHighestBallotPV" ( String $issue, UUID $cluster )
 	$preVote : Pre_Vote( $pvBal : ballot, $pvRev : revision, issue==$issue, cluster==$cluster )
 	not Pre_Vote( ballot>$pvBal, revision>=$pvRev, issue==$issue, cluster==$cluster ) 

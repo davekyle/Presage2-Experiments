@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ import com.google.inject.Singleton;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
@@ -85,6 +87,7 @@ public class IPConService extends EnvironmentService {
 	@Override
 	public void registerParticipant(EnvironmentRegistrationRequest req) {
 		// do insertion of IPConAgent fact and such
+		logger.trace("Inserting agent via global IPConService " + ((RoadAgent)req.getParticipant()).getIPConHandle());
 		session.insert( ((RoadAgent)req.getParticipant()).getIPConHandle() );
 	}
 	
@@ -104,6 +107,29 @@ public class IPConService extends EnvironmentService {
 		else {
 			logger.warn("Got multiple values for getQuorumSize(" + revision + "," + issue + "," + cluster  + ") : " + obj);
 			return null;
+		}
+	}
+	
+	public Chosen getChosen(Integer revision, String issue, UUID cluster) {
+		ArrayList<IPConFact> obj = new ArrayList<IPConFact>();
+		if ( (revision==null) || (issue==null) || (cluster==null) ) {
+			logger.warn("Can't call getChosen without specifying the RIC");
+			return null;
+		}
+		else {
+			ArrayList<Object> lookup = new ArrayList<Object>();
+			lookup.addAll(Arrays.asList(new Object[]{revision, issue, cluster}));
+			QueryResults facts = session.getQueryResults("getChosen", lookup.toArray());
+			for (QueryResultsRow row : facts) {
+				obj.add((IPConFact)row.get("$chosen"));
+			}
+			if (obj.size()==1) {
+				return ((Chosen)obj.get(0));
+			}
+			else {
+				logger.warn("Got multiple values for getChosen(" + revision + "," + issue + "," + cluster  + ") : " + obj);
+				return null;
+			}
 		}
 	}
 	
