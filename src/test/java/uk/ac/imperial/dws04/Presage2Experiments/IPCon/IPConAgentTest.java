@@ -175,23 +175,34 @@ public class IPConAgentTest {
 		 */
 		session.insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
 		rules.incrementTime();
-		Collection<IPConAction> obl = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
-		logger.info("A1 obligated to :" + obl);
-		assertEquals(1,obl.size());
-		Collection<IPConAction> per = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
-		logger.info("A1 permitted to :" + per);
-		assertEquals(1,per.size());
+		Collection<IPConAction> obl1 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
+		logger.info("A1 obligated to :" + obl1);
+		assertEquals(1,obl1.size());
+		Collection<IPConAction> per1 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
+		logger.info("A1 permitted to :" + per1);
+		assertEquals(1,per1.size());
 		
-		ArrayList<IPConAction> a1Obl = a1.TESTgetInstantiatedObligatedActionQueue();
-		assertEquals(1, a1Obl.size());
-		logger.info("A1 obligated to: " + obl.toArray()[0]);
-		logger.info("A1 instantiated: " + a1Obl.get(0));
-		assertTrue(a1Obl.get(0).fulfils((IPConAction)obl.toArray()[0]));
-		
+		ArrayList<IPConAction> a1Obl1 = a1.TESTgetInstantiatedObligatedActionQueue();
+		assertEquals(1, a1Obl1.size());
+		logger.info("A1 obligated to: " + obl1.toArray()[0]);
+		logger.info("A1 instantiated: " + a1Obl1.get(0));
+		assertTrue(a1Obl1.get(0).fulfils((IPConAction)obl1.toArray()[0]));
+		logger.info("** Unconstrained instantiation test passed **");
 		
 		/*
-		 * Check resulting actions
+		 * A1 sends prepare message. A2 and A3 not obligated to respond, but should respond with IPCNV
 		 */
+		session.insert(a1Obl1.get(0));
+		rules.incrementTime();
+		Collection<IPConAction> obl2 = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
+		logger.info("Agents obligated to :" + obl2);
+		assertEquals(0,obl2.size());
+		Collection<IPConAction> per2 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Response1B", null, revision, issue, cluster);
+		logger.info("Agents permitted to :" + per2);
+		assertEquals(3,per2.size());
+		
+		
+		
 	}
 	
 	@Test

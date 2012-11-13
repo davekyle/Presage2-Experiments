@@ -316,7 +316,7 @@ rule "holdsAt for permission to response1b (with indicators if didn't vote in th
 		//ResponsePow( $agent : agent, voteRevision==$revision, voteBallot==0, voteValue==null, $revision : revision, $ballot : ballot, $issue : issue, $cluster : cluster )
 		not Voted( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 	then
-		logger.trace("Logically toggling ResponsePer( " + $agent + " , " + $revision + IPCNV_bal + IPCNV_val + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
+		logger.trace("Logically toggling ResponsePer( " + $agent + " , " + $revision + " , " + IPCNV_bal + " , " + IPCNV_val + " , " + $revision + " , " + $issue + " , " + $cluster + ")");
 		Response1B $response = new Response1B( $agent, $revision, IPCNV_bal, IPCNV_val, $revision, $ballot, $issue, $cluster );
 		insertLogical( new Permission( $agent, $response ) );
 end
