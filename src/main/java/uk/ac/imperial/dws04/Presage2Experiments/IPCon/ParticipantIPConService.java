@@ -61,18 +61,18 @@ public class ParticipantIPConService extends IPConService {
 		return this.session;
 	}
 	
-	@Override
 	/**
-	 * Returns the RICs that the agent is a member of
+	 * @return the RICs that the agent is a member of
 	 */
+	@Override
 	public Collection<IPConRIC> getCurrentRICs(){
 		return super.getCurrentRICs(this.handle);
 	}
 	
-	@Override
 	/**
-	 * Returns the RICs that the agent is a member of
+	 * @return the RICs that the agent is a member of
 	 */
+	@Override
 	public Collection<IPConRIC> getCurrentRICs(IPConAgent handle) {
 		if (handle.equals(this.handle)) {
 			return super.getCurrentRICs(handle);

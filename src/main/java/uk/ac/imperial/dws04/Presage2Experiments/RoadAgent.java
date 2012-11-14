@@ -6,6 +6,7 @@ package uk.ac.imperial.dws04.Presage2Experiments;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,7 +24,9 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
@@ -189,9 +192,20 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 *  - get the RIC the agent is in
 		 *  - get the current state for each (ie, cheat :P - maybe this should rely on memory ?)
 		 *  - - this is only to get indication of required speed and spacing
+		 *  - If not in an issue/cluster...
+		 *  - - join nearby cluster's issue
+		 *  - - arrogate if no suitable nearby
+		 *  - If RIC doesn't have a leader, arrogate
 		 * FIXME TODO
 		 */
-		ipconService.getCurrentRICs();
+		HashMap<IPConRIC,Object> institutionalFacts = new HashMap<IPConRIC,Object>();
+		for (IPConRIC ric : ipconService.getCurrentRICs()) {
+			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
+			logger.trace(getID() + " thinks " + value + " has been chosen in " + ric);
+			if (value!=null) {
+				institutionalFacts.put(ric, value);
+			}
+		}
 		
 		/*
 		 * Get obligations
@@ -245,6 +259,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			passJunction();
 		}
 		submitMove(move);
+	}
+	
+	private Chosen getChosenFact(Integer revision, String issue, UUID cluster) {
+		return ipconService.getChosen(revision, issue, cluster);
 	}
 
 	public ArrayList<IPConAction> TESTgetInstantiatedObligatedActionQueue() {
