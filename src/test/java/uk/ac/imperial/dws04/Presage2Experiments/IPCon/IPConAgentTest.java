@@ -101,6 +101,7 @@ public class IPConAgentTest {
 					.addParticipantEnvironmentService(ParticipantIPConService.class)
 					.addGlobalEnvironmentService(RoadEnvironmentService.class)
 					.addGlobalEnvironmentService(IPConService.class)
+					.addParticipantGlobalEnvironmentService(IPConBallotService.class)
 					.setStorage(RuleStorage.class),
 				Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX,
 						WrapEdgeHandler.class), new EventBusModule(),
@@ -400,9 +401,9 @@ public class IPConAgentTest {
 		assertEquals(a1Prep.getRevision(), a3Prep.getRevision());
 		assertEquals(a1Prep.getIssue(), a3Prep.getIssue());
 		assertEquals(a1Prep.getCluster(), a3Prep.getCluster());
-		// FIXME TODO this needs doing...
 		assertThat(a1Prep.getBallot(), is ( not( a3Prep.getBallot() ) ) );
 		
+		logger.info("A1 has " + a1Prep.getBallot() + ", A3 has " + a3Prep.getBallot());
 		logger.info("** Multiple leader self-instantiation test passed **");
 		
 

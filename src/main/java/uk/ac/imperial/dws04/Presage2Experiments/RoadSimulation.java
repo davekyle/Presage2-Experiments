@@ -16,6 +16,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
@@ -214,6 +215,7 @@ public class RoadSimulation extends InjectedSimulation {
 			//.addGlobalEnvironmentService(RoadLocationService.class)
 			.addGlobalEnvironmentService(RoadEnvironmentService.class)
 			.addGlobalEnvironmentService(IPConService.class)
+			.addParticipantGlobalEnvironmentService(IPConBallotService.class)
 			.setStorage(RuleStorage.class)
 			);
 		// No network

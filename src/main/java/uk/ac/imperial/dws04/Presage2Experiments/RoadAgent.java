@@ -362,16 +362,16 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				 * Prepare1A - need to pick a ballot number that is higher than all current ballot numbers in the same RIC
 				 * Can either rely on responses to tell you to retry with a higher ballot (obligation not implemented yet)
 				 * or pull highest vote/pre_vote/open_vote for RIC and get highest ballot, then add some value
-				 *  ( FIXME ballot number is unique unless an error is encountered )
+				 *  ( TODO ballot number is unique unless an error is encountered )
 				 */
 				Integer bal = null;
 				try {
 					if (!obl.getClass().isAssignableFrom(Prepare1A.class)) {
 						throw new IPConException("Obligation was not to Prepare1A. Class was: " + obl.getClass().getSimpleName());
 					}
-					Integer revision = (Integer)obl.getClass().getField("revision").get(obl);
-					String issue = (String)obl.getClass().getField("issue").get(obl);
-					UUID cluster = (UUID)obl.getClass().getField("cluster").get(obl);
+					Integer revision = (Integer)(obl.getClass().getField("revision").get(obl));
+					String issue = (String)(obl.getClass().getField("issue").get(obl));
+					UUID cluster = (UUID)(obl.getClass().getField("cluster").get(obl));
 					
 					bal = ballotService.getNext(revision, issue, cluster);
 					
@@ -394,7 +394,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				} catch (Exception e) {
 					// FIXME TODO technically this should guarantee uniqueness
 					// from the getFields... something went wrong...
-					logger.trace(getID() + " had a problem getting the issue or cluster from " + obl + " so is picking a ballot of 0...");
+					logger.trace(getID() + " had a problem ( " + e + " ) getting the issue or cluster from " + obl + " so is picking a ballot of 0...");
 					bal = 0;
 				}
 				try {

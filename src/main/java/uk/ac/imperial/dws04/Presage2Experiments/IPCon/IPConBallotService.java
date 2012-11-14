@@ -49,7 +49,8 @@ public class IPConBallotService extends EnvironmentService {
 		if (!intMap.containsKey(ric)) {
 			intMap.put(ric, Integer.MIN_VALUE);
 		}
-		return intMap.get(ric)+1;
+		intMap.put(ric, intMap.get(ric)+1);
+		return intMap.get(ric);
 	}
 	
 	/**
@@ -61,7 +62,8 @@ public class IPConBallotService extends EnvironmentService {
 		if (!intMap.containsKey(ric)) {
 			intMap.put(ric, Integer.MIN_VALUE);
 		}
-		return intMap.get(ric)+1;
+		intMap.put(ric, intMap.get(ric)+1);
+		return intMap.get(ric);
 	}
 
 }
