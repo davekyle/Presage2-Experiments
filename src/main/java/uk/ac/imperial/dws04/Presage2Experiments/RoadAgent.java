@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.apache.log4j.Level;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
@@ -82,6 +83,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	ParticipantIPConService ipconService;
 	protected final IPConAgent ipconHandle;
+	
+	IPConBallotService ballotService;
 	 
 	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
@@ -136,6 +139,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// get the IPConService.
 		try {
 			this.ipconService = getEnvironmentService(ParticipantIPConService.class);
+		} catch (UnavailableServiceException e) {
+			logger.warn(e);
+			e.printStackTrace();
+		}
+		// get the BallotService.
+		try {
+			this.ballotService = getEnvironmentService(IPConBallotService.class);
 		} catch (UnavailableServiceException e) {
 			logger.warn(e);
 			e.printStackTrace();
@@ -352,7 +362,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				 * Prepare1A - need to pick a ballot number that is higher than all current ballot numbers in the same RIC
 				 * Can either rely on responses to tell you to retry with a higher ballot (obligation not implemented yet)
 				 * or pull highest vote/pre_vote/open_vote for RIC and get highest ballot, then add some value
-				 *  ( FIXME TODO The finally chosen ballot number should be unique to each leader to comply with Paxos)
+				 *  ( FIXME ballot number is unique unless an error is encountered )
 				 */
 				Integer bal = null;
 				try {
@@ -362,7 +372,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					Integer revision = (Integer)obl.getClass().getField("revision").get(obl);
 					String issue = (String)obl.getClass().getField("issue").get(obl);
 					UUID cluster = (UUID)obl.getClass().getField("cluster").get(obl);
-					Pair<Integer, Integer> pair = ipconService.getHighestRevisionBallotPair(issue, cluster);
+					
+					bal = ballotService.getNext(revision, issue, cluster);
+					
+					/*Pair<Integer, Integer> pair = ipconService.getHighestRevisionBallotPair(issue, cluster);
 					// If we found some valid ones but not in the right revision, then throw an exception anyway
 					if (pair.getA()!=revision) {
 						// FIXME technically we should check for higher revisions and adjust based on that, 
@@ -370,10 +383,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						throw new IPConException("Only found ballots in the wrong revision. Highest was " + pair);
 					}
 					else {
-						// FIXME TODO technically this should guarantee uniqueness
 						// If you found one, then add one to the ballot :D
 						bal = pair.getB()+1;
-					}
+					}*/
 				} catch (IPConException e) {
 					// FIXME TODO technically this should guarantee uniqueness
 					// no valid votes, so just go with 0
