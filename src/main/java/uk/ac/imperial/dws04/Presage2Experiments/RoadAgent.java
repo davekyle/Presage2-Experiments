@@ -261,6 +261,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		submitMove(move);
 	}
 	
+	/**
+	 * FIXME TODO should probably not just get this from IPCon (that's sort of cheating)
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 * @return the Chosen IPConFact for the RIC specified.
+	 */
 	private Chosen getChosenFact(Integer revision, String issue, UUID cluster) {
 		return ipconService.getChosen(revision, issue, cluster);
 	}

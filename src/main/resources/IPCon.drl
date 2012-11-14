@@ -516,6 +516,10 @@ query "getAgentRoles" ( IPConAgent $agent, Integer $revision, String $issue, UUI
 	$role : HasRole( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) 
 end
 
+query "getRICLeader" ( Integer $revision, String $issue, UUID $cluster )
+	HasRole( $leader : agent, role==Role.LEADER, revision==$revision, issue==$issue, cluster==$cluster ) 
+end
+
 query "getChosen" ( Integer $revision, String $issue, UUID $cluster )
 	$chosen : Chosen( revision==$revision, $ballot : ballot, $value : value, issue==$issue, cluster==$cluster ) 
 end

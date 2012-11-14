@@ -176,6 +176,37 @@ public class IPConService extends EnvironmentService {
 		}
 		return set;
 	}
+
+	/**
+	 * 
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 * @return the agents with the role of leader for the specified RIC
+	 */
+	public ArrayList<IPConAgent> getRICLeader(Integer revision, String issue, UUID cluster) {
+		ArrayList<IPConAgent> leaders = new ArrayList<IPConAgent>();
+		if ( (revision==null) || (issue==null) || (cluster==null) ) {
+			logger.warn("Can't call getRICLeader without specifying the RIC");
+			return null;
+		}
+		else {
+			ArrayList<Object> lookup = new ArrayList<Object>();
+			lookup.addAll(Arrays.asList(new Object[]{revision, issue, cluster}));
+			QueryResults facts = session.getQueryResults("getRICLeader", lookup.toArray());
+			for (QueryResultsRow row : facts) {
+				leaders.add((IPConAgent)row.get("$leader"));
+			}
+			if (leaders.size()==0) {
+				logger.trace("Got zero facts for getRICLeader(" + revision + "," + issue + "," + cluster  + ") : " + leaders);
+				return null;
+			}
+			else {
+				logger.trace("Got the following for getRICLeader(" + revision + "," + issue + "," + cluster  + ") : " + leaders);
+				return leaders;
+			}
+		}
+	}
 	
 	/**
 	 * 

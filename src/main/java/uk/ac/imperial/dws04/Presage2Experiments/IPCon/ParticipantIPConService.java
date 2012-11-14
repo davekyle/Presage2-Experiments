@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -181,6 +182,20 @@ public class ParticipantIPConService extends IPConService {
 		}
 		else {
 			throw new SharedStateAccessException("A participant may not view another agent's roles unless they are in the same RIC!");
+		}
+	}
+
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getRICLeader(java.lang.Integer, java.lang.String, java.util.UUID)
+	 */
+	@Override
+	public ArrayList<IPConAgent> getRICLeader(Integer revision, String issue,
+			UUID cluster) {
+		if ( revision!=null && issue!=null && cluster!=null && (!super.getAgentRoles(this.handle, revision, issue, cluster).isEmpty()) ) {
+			return super.getRICLeader(revision, issue, cluster);
+		}
+		else {
+			throw new SharedStateAccessException("A participant may not view info about a RIC they are not in!");
 		}
 	}
 
