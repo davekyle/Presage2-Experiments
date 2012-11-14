@@ -397,11 +397,11 @@ public class IPConAgentTest {
 		Prepare1A a1Prep = ((Prepare1A)a1Obl1.get(0));
 		Prepare1A a3Prep = ((Prepare1A)a3Obl1.get(0));
 
-		// FIXME TODO this needs doing...
-		// assertThat(a1Prep.getBallot(), is ( not( a3Prep.getBallot() ) ) );
 		assertEquals(a1Prep.getRevision(), a3Prep.getRevision());
 		assertEquals(a1Prep.getIssue(), a3Prep.getIssue());
 		assertEquals(a1Prep.getCluster(), a3Prep.getCluster());
+		// FIXME TODO this needs doing...
+		assertThat(a1Prep.getBallot(), is ( not( a3Prep.getBallot() ) ) );
 		
 		logger.info("** Multiple leader self-instantiation test passed **");
 		
