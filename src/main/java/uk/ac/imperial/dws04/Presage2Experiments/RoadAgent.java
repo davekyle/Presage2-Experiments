@@ -209,11 +209,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * FIXME TODO
 		 */
 		HashMap<IPConRIC,Object> institutionalFacts = new HashMap<IPConRIC,Object>();
-		Collection<IPConRIC> rics = ipconService.getCurrentRICs();
+		Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
 		ArrayList<IPConRIC> ricsToJoin = new ArrayList<IPConRIC>();
 		ArrayList<IPConRIC> ricsToArrogate = new ArrayList<IPConRIC>();
 		ArrayList<IPConAction> ipconActions = new ArrayList<IPConAction>();
-		for (IPConRIC ric : rics) {
+		for (IPConRIC ric : currentRICs) {
 			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
 			logger.trace(getID() + " thinks " + value + " has been chosen in " + ric);
 			if (value!=null) {
@@ -222,10 +222,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			if (leaders==null) {
 				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + impatience + " cycles left).");
-				updateImpatience();
 				if (!ricsToArrogate.contains(ric) && isImpatient()) {
 					ricsToArrogate.add(ric);
 				}
+				updateImpatience();
 			}
 		}
 		// For all goals
@@ -236,17 +236,35 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// - - Arrogate if no and mayArrogate()
 		for (String issue : getGoalMap().keySet()) {
 			Boolean found = false;
-			for (IPConRIC ric : rics) {
-				if ( !found && !ricsToJoin.contains(ric) && (ric.getIssue().equalsIgnoreCase(issue)) ) {
+			for (IPConRIC ric : currentRICs) {
+				if (!found && ric.getIssue().equalsIgnoreCase(issue)) {
 					found = true;
-					logger.trace(getID() + " found a RIC (" + ric + ") to join.");
-					ricsToJoin.add(ric);
+					logger.trace(getID() + " found a RIC (" + ric + ") for " + issue + ").");
 				}
 			}
-			if (!found && isImpatient()) {
-				logger.trace(getID() + " could not find a RIC for " + issue + " and is impatient so will arrogate");
-				//IPConRIC newRIC = getNewRICFor
-				//ricsToArrogate.add(newRIC);
+			if (!found) {
+				if (isImpatient()) {
+					logger.trace(getID() + " could not find a RIC for " + issue + " and is impatient so will arrogate.");
+					// Make a RIC to arrogate
+					// I = issue
+					// C = cluster you are in, if in one
+					// R = ?
+					IPConRIC newRIC = new IPConRIC();
+					ricsToArrogate.add(newRIC);
+				}
+				else {
+					logger.trace(getID() + " could not find a RIC for " + issue + " so will check nearby clusters.");
+					Collection<IPConRIC> nearbyRICs = getNearbyRICs();
+					Boolean found2 = false;
+					for (IPConRIC nearbyRIC : nearbyRICs) {
+						if (!found2 && nearbyRIC.getIssue().equalsIgnoreCase(issue)) {
+							found2 = true;
+							logger.trace(getID() + " found a nearby RIC (" + nearbyRIC + ") for " + issue + " so will join it.");
+							ricsToJoin.add(nearbyRIC);
+						}
+					}
+				}
+				updateImpatience();
 			}
 		}
 		
@@ -345,9 +363,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 	
 	/**
+	 * Call this after checking for impatience !
+	 * 
 	 * Should only change when the agent has something
 	 * to be impatient about, rather than every cycle, but it's really just
 	 * so that agents don't all arrogate the same RIC at once.
+	 * 
 	 * FIXME TODO should reset impatience when nothing to be impatient about
 	 */
 	private void updateImpatience() {
