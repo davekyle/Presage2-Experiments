@@ -1,11 +1,17 @@
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.util.HashMap;
+
+import uk.ac.imperial.dws04.utils.record.Pair;
+
 /**
  * Class to contain goals for the RoadAgent
  * @author dws04
  *
  */
 public class RoadAgentGoals {
+	private final HashMap<String,Pair<Integer, Integer>> map = new HashMap<String,Pair<Integer, Integer>>();
+	
 	/**
 	 *  Preferred speed
 	 */
@@ -29,6 +35,8 @@ public class RoadAgentGoals {
 		this.spacing = spacing;
 		this.speedTolerance = 2;
 		this.spacingTolerance = 2;
+		map.put("speed", new Pair<Integer, Integer>(getSpeed(),getSpeedTolerance()));
+		map.put("spacing", new Pair<Integer, Integer>(getSpacing(),getSpacingTolerance()));
 	}
 	
 	public RoadAgentGoals(Integer speed, Integer speedTolerance, Integer dest, Integer spacing, Integer spacingTolerance) {
@@ -37,6 +45,8 @@ public class RoadAgentGoals {
 		this.spacing = spacing;
 		this.speedTolerance = speedTolerance;
 		this.spacingTolerance = spacingTolerance;
+		map.put("speed", new Pair<Integer, Integer>(getSpeed(),getSpeedTolerance()));
+		map.put("spacing", new Pair<Integer, Integer>(getSpacing(),getSpacingTolerance()));
 	}
 
 	/**
@@ -72,5 +82,9 @@ public class RoadAgentGoals {
 	 */
 	public Integer getSpacingTolerance() {
 		return spacingTolerance;
+	}
+	
+	public final HashMap<String,Pair<Integer, Integer>> getMap() {
+		return map;
 	}
 }

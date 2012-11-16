@@ -223,11 +223,34 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			if (leaders==null) {
 				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + impatience + " cycles left).");
 				updateImpatience();
-				if (!ricsToArrogate.contains(ric) && mayArrogate()) {
+				if (!ricsToArrogate.contains(ric) && isImpatient()) {
 					ricsToArrogate.add(ric);
 				}
 			}
 		}
+		// For all goals
+		// check if represented by an issue in any RIC
+		// if not,
+		// - Check if a nearby cluster has issue
+		// - - Join if yes
+		// - - Arrogate if no and mayArrogate()
+		for (String issue : getGoalMap().keySet()) {
+			Boolean found = false;
+			for (IPConRIC ric : rics) {
+				if ( !found && !ricsToJoin.contains(ric) && (ric.getIssue().equalsIgnoreCase(issue)) ) {
+					found = true;
+					logger.trace(getID() + " found a RIC (" + ric + ") to join.");
+					ricsToJoin.add(ric);
+				}
+			}
+			if (!found && isImpatient()) {
+				logger.trace(getID() + " could not find a RIC for " + issue + " and is impatient so will arrogate");
+				//IPConRIC newRIC = getNewRICFor
+				//ricsToArrogate.add(newRIC);
+			}
+		}
+		
+		
 		
 		/*
 		 * Arrogate in all RICS you need to
@@ -304,25 +327,41 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		submitMove(move);
 	}
 	
+	private HashMap<String, Pair<Integer, Integer>> getGoalMap() {
+		return getGoals().getMap();
+	}
+	
+	private RoadAgentGoals getGoals() {
+		return this.goals;
+	}
+
 	/**
 	 * Determines whether or not the agent may arrogate in this cycle.
 	 * Should be defined so that all agents do not try to arrogate the same
 	 * thing at the same time.
 	 */
-	private boolean mayArrogate() {
+	private boolean isImpatient() {
 		return (impatience==0);
 	}
 	
 	/**
-	 * FIXME TODO should probably actually only change when the agent has something
+	 * Should only change when the agent has something
 	 * to be impatient about, rather than every cycle, but it's really just
 	 * so that agents don't all arrogate the same RIC at once.
+	 * FIXME TODO should reset impatience when nothing to be impatient about
 	 */
 	private void updateImpatience() {
 		impatience = impatience-1;
 		if (impatience<0) {
 			impatience = startImpatience;
 		}
+	}
+	
+	/**
+	 * Resets impatience to the startImpatience (when agent has nothing to be impatient about)
+	 */
+	private void resetImpatience() {
+		impatience = startImpatience;
 	}
 
 	/**
