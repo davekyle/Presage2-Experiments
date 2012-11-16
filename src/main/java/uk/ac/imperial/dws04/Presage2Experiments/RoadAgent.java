@@ -20,8 +20,10 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.JoinAsLearner;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
@@ -35,6 +37,7 @@ import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.messaging.Input;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
+import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.util.fsm.Action;
 import uk.ac.imperial.presage2.util.fsm.EventTypeCondition;
 import uk.ac.imperial.presage2.util.fsm.FSM;
@@ -88,6 +91,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	protected final IPConAgent ipconHandle;
 	
 	IPConBallotService ballotService;
+	/*
+	 * Should be a long from 0-10 representing how likely an agent is to not arrogate this cycle
+	 */
+	private final int startImpatience;
+	private int impatience;
 	 
 	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
@@ -102,6 +110,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			this.junctionsLeft = null;
 		}
 		this.ipconHandle = new IPConAgent(this.getID(), this.getName());
+		this.startImpatience = (new Long(Math.round(Random.randomDouble()*10))).intValue();
 	}
 	
 	/**
@@ -175,6 +184,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	@Override
 	public void execute() {
+		
 		/*
 		 * Get physical state
 		 */
@@ -199,12 +209,39 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * FIXME TODO
 		 */
 		HashMap<IPConRIC,Object> institutionalFacts = new HashMap<IPConRIC,Object>();
-		for (IPConRIC ric : ipconService.getCurrentRICs()) {
+		Collection<IPConRIC> rics = ipconService.getCurrentRICs();
+		ArrayList<IPConRIC> ricsToJoin = new ArrayList<IPConRIC>();
+		ArrayList<IPConRIC> ricsToArrogate = new ArrayList<IPConRIC>();
+		ArrayList<IPConAction> ipconActions = new ArrayList<IPConAction>();
+		for (IPConRIC ric : rics) {
 			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
 			logger.trace(getID() + " thinks " + value + " has been chosen in " + ric);
 			if (value!=null) {
 				institutionalFacts.put(ric, value);
 			}
+			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			if (leaders==null) {
+				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + impatience + " cycles left).");
+				updateImpatience();
+				if (!ricsToArrogate.contains(ric) && mayArrogate()) {
+					ricsToArrogate.add(ric);
+				}
+			}
+		}
+		
+		/*
+		 * Arrogate in all RICS you need to
+		 */
+		for (IPConRIC ric : ricsToArrogate) {
+			ArrogateLeadership act = new ArrogateLeadership(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
+			ipconActions.add(act);
+		}
+		/*
+		 * Join all RICS you need to
+		 */
+		for (IPConRIC ric : ricsToJoin) {
+			JoinAsLearner act = new JoinAsLearner(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
+			ipconActions.add(act);
 		}
 		
 		/*
@@ -231,6 +268,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * FIXME TODO
 		 */
 		
+		/*
+		 * Do all IPConActions
+		 */
+		for (IPConAction act : ipconActions) {
+			sendIPConActionAsMsg(act);
+		}
 		
 		
 		// FIXME TODO implement these then choose them properly :P
@@ -261,6 +304,27 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		submitMove(move);
 	}
 	
+	/**
+	 * Determines whether or not the agent may arrogate in this cycle.
+	 * Should be defined so that all agents do not try to arrogate the same
+	 * thing at the same time.
+	 */
+	private boolean mayArrogate() {
+		return (impatience==0);
+	}
+	
+	/**
+	 * FIXME TODO should probably actually only change when the agent has something
+	 * to be impatient about, rather than every cycle, but it's really just
+	 * so that agents don't all arrogate the same RIC at once.
+	 */
+	private void updateImpatience() {
+		impatience = impatience-1;
+		if (impatience<0) {
+			impatience = startImpatience;
+		}
+	}
+
 	/**
 	 * FIXME TODO should probably not just get this from IPCon (that's sort of cheating)
 	 * @param revision
@@ -1007,6 +1071,20 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		} catch (ActionHandlingException e) {
 			logger.warn("Error trying to move", e);
 		}
+	}
+	
+	/**
+	 * Convert IPConAction to a message and send it
+	 * @param act IPConAction to send
+	 */
+	private void submitIPConAction(IPConAction act) {
+		logger.debug("[" + getID() + "] Agent " + getName() + " sending IPConAction msg: " + act);
+		sendIPConActionAsMsg(act);
+	}
+
+	private void sendIPConActionAsMsg(IPConAction act) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	/**
