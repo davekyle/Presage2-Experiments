@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.ClusterPing;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
@@ -32,10 +34,13 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
+import uk.ac.imperial.presage2.core.environment.ActionHandler;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.messaging.Input;
+import uk.ac.imperial.presage2.core.messaging.Performative;
+import uk.ac.imperial.presage2.core.network.Message;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.util.fsm.Action;
@@ -96,6 +101,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private final int startImpatience;
 	private int impatience;
+	
+	/*
+	 * Collection for RICs - should be populated every cycle with agents that ping
+	 */
+	private HashMap<IPConRIC,Object> nearbyRICs;
 	 
 	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
@@ -111,6 +121,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		this.ipconHandle = new IPConAgent(this.getID(), this.getName());
 		this.startImpatience = (new Long(Math.round(Random.randomDouble()*10))).intValue();
+		this.nearbyRICs = new HashMap<IPConRIC,Object>();
 	}
 	
 	/**
@@ -184,6 +195,17 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	@Override
 	public void execute() {
+		// clear temp storage
+		this.nearbyRICs.clear();
+		
+		// pull in Messages from the network
+		enqueueInput(this.network.getMessages());
+
+		// process inputs
+		while (this.inputQueue.size() > 0) {
+			this.processInput(this.inputQueue.poll());
+		}
+		
 		
 		/*
 		 * Get physical state
@@ -209,16 +231,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * FIXME TODO
 		 */
 		HashMap<IPConRIC,Object> institutionalFacts = new HashMap<IPConRIC,Object>();
-		Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
+		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
 		ArrayList<IPConRIC> ricsToJoin = new ArrayList<IPConRIC>();
 		ArrayList<IPConRIC> ricsToArrogate = new ArrayList<IPConRIC>();
 		ArrayList<IPConAction> ipconActions = new ArrayList<IPConAction>();
 		for (IPConRIC ric : currentRICs) {
 			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
-			logger.trace(getID() + " thinks " + value + " has been chosen in " + ric);
 			if (value!=null) {
-				institutionalFacts.put(ric, value);
+				logger.trace(getID() + " thinks " + value + " has been chosen in " + ric);
 			}
+			else {
+				logger.trace(getID() + " thinks there is no chosen value in " + ric);
+			}
+			institutionalFacts.put(ric, value);
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			if (leaders==null) {
 				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + impatience + " cycles left).");
@@ -309,11 +334,28 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * FIXME TODO
 		 */
 		
+		
+
+		ArrayList<Message> messageQueue = new ArrayList<Message>();
 		/*
 		 * Do all IPConActions
 		 */
 		for (IPConAction act : ipconActions) {
-			sendIPConActionAsMsg(act);
+			messageQueue.add(generateIPConActionMsg(act));
+		}
+		
+		/*
+		 * Generate broadcast msgs indicating which RICs you're in
+		 */
+		for (Entry<IPConRIC,Object> entry : institutionalFacts.entrySet()) {
+			messageQueue.add(new ClusterPing(Performative.INFORM, getTime(), network.getAddress(), new Pair<IPConRIC,Object>(entry.getKey(),entry.getValue());
+		}
+		
+		/*
+		 * Send all messages queued
+		 */
+		for (Message msg : messageQueue) {
+			sendMessage(msg);
 		}
 		
 		
@@ -345,6 +387,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		submitMove(move);
 	}
 	
+	private Collection<IPConRIC> getNearbyRICs() {
+		return this.nearbyRICs.keySet();
+	}
+
 	private HashMap<String, Pair<Integer, Integer>> getGoalMap() {
 		return getGoals().getMap();
 	}
@@ -1139,12 +1185,20 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private void submitIPConAction(IPConAction act) {
 		logger.debug("[" + getID() + "] Agent " + getName() + " sending IPConAction msg: " + act);
-		sendIPConActionAsMsg(act);
+		generateIPConActionMsg(act);
 	}
 
-	private void sendIPConActionAsMsg(IPConAction act) {
-		// TODO Auto-generated method stub
-		
+	/**
+	 * @param act the IPConAction to be sent as a message
+	 * @return a correctly formed Message to be sent, matching act
+	 */
+	private Message generateIPConActionMsg(IPConAction act) {
+		// TODO FIXME 
+		retun null;
+	}
+	
+	private void sendMessage(Message msg) {
+		this.network.sendMessage(msg);
 	}
 
 	/**
@@ -1166,8 +1220,16 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	@Override
 	protected void processInput(Input arg0) {
-		// TODO Auto-generated method stub
-		logger.info("[" + getID() + "] Agent " + getName() + " not processing input: " + arg0.toString());
+		if (arg0 instanceof ClusterPing) {
+			process((ClusterPing)arg0);
+		}
+		else {
+			logger.info("[" + getID() + "] Agent " + getName() + " not processing input: " + arg0.toString());
+		}
+	}
+
+	private void process(ClusterPing arg0) {
+		this.nearbyRICs.put(arg0.getData().getA(), arg0.getData().getB());
 	}
 
 }
