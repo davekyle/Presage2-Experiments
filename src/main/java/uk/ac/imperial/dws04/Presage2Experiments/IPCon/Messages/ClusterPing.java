@@ -23,7 +23,7 @@ public class ClusterPing extends BroadcastMessage<Pair<IPConRIC,Object>> {
 	 * @param type
 	 * @param timestamp
 	 * @param from
-	 * @param data
+	 * @param data the IPConRIC in question, and the chosen value if one exists, or null otherwise
 	 */
 	public ClusterPing(Performative performative, Time timestamp,
 			NetworkAddress from, final Pair<IPConRIC, Object> data) {
