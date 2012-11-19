@@ -332,6 +332,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		
 
+		@SuppressWarnings("rawtypes")
 		ArrayList<Message> messageQueue = new ArrayList<Message>();
 		/*
 		 * Do all IPConActions
@@ -344,7 +345,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * Generate broadcast msgs indicating which RICs you're in
 		 */
 		for (Entry<IPConRIC,Object> entry : institutionalFacts.entrySet()) {
-			messageQueue.add(new ClusterPing(Performative.INFORM, getTime(), network.getAddress(), new Pair<IPConRIC,Object>(entry.getKey(),entry.getValue());
+			messageQueue.add(
+					new ClusterPing(
+							Performative.INFORM, getTime(), network.getAddress(), new Pair<IPConRIC,Object>(entry.getKey(),entry.getValue())
+					)
+			);
 		}
 		
 		/*
@@ -1191,7 +1196,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private <T extends IPConAction> IPConActionMsg generateIPConActionMsg(T act) {
 		Performative perf = null; 
-		if (act instanceof Prepare1A || act instanceof SyncReq) perf = Performative.REQUEST;
+		if (act instanceof Prepare1A || act instanceof SyncReq || act instanceof Submit2A) perf = Performative.REQUEST;
 		else if (act instanceof Request0A) perf = Performative.QUERY_REF;
 		else if (act instanceof SyncAck) {
 			if (((SyncAck)act).getValue().equals(IPCNV.val())) perf = Performative.REFUSE;
