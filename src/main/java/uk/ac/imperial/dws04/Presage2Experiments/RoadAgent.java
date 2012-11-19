@@ -22,12 +22,8 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.ClusterPing;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.JoinAsLearner;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConActionMsg;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
@@ -1189,12 +1185,22 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 
 	/**
+	 * @param <T>
 	 * @param act the IPConAction to be sent as a message
 	 * @return a correctly formed Message to be sent, matching act
 	 */
-	private Message generateIPConActionMsg(IPConAction act) {
-		// TODO FIXME 
-		retun null;
+	private <T extends IPConAction> IPConActionMsg generateIPConActionMsg(T act) {
+		Performative perf = null; 
+		if (act instanceof Prepare1A || act instanceof SyncReq) perf = Performative.REQUEST;
+		else if (act instanceof Request0A) perf = Performative.QUERY_REF;
+		else if (act instanceof SyncAck) {
+			if (((SyncAck)act).getValue().equals(IPCNV.val())) perf = Performative.REFUSE;
+			else perf = Performative.AGREE;
+		}
+		else {
+			perf = Performative.INFORM;
+		}
+		return new IPConActionMsg(perf, getTime(), network.getAddress(), act);
 	}
 	
 	private void sendMessage(Message msg) {
