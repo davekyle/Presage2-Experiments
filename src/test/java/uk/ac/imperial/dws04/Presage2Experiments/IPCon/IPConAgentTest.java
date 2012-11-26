@@ -38,6 +38,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
@@ -50,6 +51,7 @@ import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
+import uk.ac.imperial.presage2.util.network.NetworkModule;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -105,6 +107,7 @@ public class IPConAgentTest {
 					.setStorage(RuleStorage.class),
 				Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX,
 						WrapEdgeHandler.class), new EventBusModule(),
+				new NetworkModule.fullyConnectedNetworkModule().withNodeDiscovery(),
 				new AbstractModule() {
 					// add in params that are required
 					@Override
@@ -165,6 +168,11 @@ public class IPConAgentTest {
 		//Call this if needed
 		//initAgent(a.getIPConHandle(), roles, 0, issue, cluster);
 		return a;
+	}
+	
+	public void incrementTime(){
+		time.increment();
+		env.incrementTime();
 	}
 	
 	/**
@@ -346,6 +354,7 @@ public class IPConAgentTest {
 	}
 	
 	/**
+	 * Tests self-instantiation of agent-neutral (leader directed) obligations in presence of multiple leaders
 	 * Ignores duelling-leader solution due to not calling the agent's execute()
 	 * @throws Exception
 	 */
@@ -415,6 +424,25 @@ public class IPConAgentTest {
 		
 
 		logger.info("Finished test of obligation self-instantiation in the face of multiple leaders.\n");
+	}
+	
+	@Test
+	public void clusterArrogateTest() throws Exception {
+		logger.info("\nBeginning test of arrogating when no clusters for goals are present...");		
+		// Make an agent, execute() 11 times (impatience<=10), check there are 2 RICs (spacing and speed)
+		RoadAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		logger.info("A1 is : " + a1);
+		for (int i = 1; i<=10; i++) {
+			logger.trace("Execution number " + i);
+			a1.execute();
+			//incrementTime();
+		}
+		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in " + rics);
+		assertThat(rics.size(), is( 2 ) );
+		logger.info("** Arrogate new clusters for goals test passed **");
+		
+		logger.info("Finished test of arrogating when no clusters for goals are present.\n");
 	}
 	
 	@Test

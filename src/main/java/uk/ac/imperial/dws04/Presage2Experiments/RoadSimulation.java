@@ -219,7 +219,7 @@ public class RoadSimulation extends InjectedSimulation {
 			.setStorage(RuleStorage.class)
 			);
 		// No network
-		modules.add(NetworkModule.noNetworkModule());
+		modules.add(NetworkModule.fullyConnectedNetworkModule().withNodeDiscovery());
 		// Location plugin
 		// TODO need to modify the plugin
 		modules.add(new PluginModule().addPlugin(LocationStoragePlugin.class));
