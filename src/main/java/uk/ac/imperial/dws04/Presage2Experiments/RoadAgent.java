@@ -96,7 +96,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * Should be a long from 0-10 representing how likely an agent is to not arrogate this cycle
 	 */
 	private final int startImpatience;
-	private int impatience;
+	private HashMap<String,Integer> impatience;
 	
 	/*
 	 * Collection for RICs - should be populated every cycle with agents that ping
@@ -242,11 +242,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			institutionalFacts.put(ric, value);
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			if (leaders==null) {
-				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + impatience + " cycles left).");
-				if (!ricsToArrogate.contains(ric) && isImpatient()) {
+				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + getImpatience(ric.getIssue()) + " cycles left).");
+				if (!ricsToArrogate.contains(ric) && isImpatient(ric.getIssue())) {
 					ricsToArrogate.add(ric);
 				}
-				updateImpatience();
+				updateImpatience(ric.getIssue());
 			}
 		}
 		// For all goals
@@ -264,7 +264,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				}
 			}
 			if (!found) {
-				if (isImpatient()) {
+				if (isImpatient(issue)) {
 					logger.trace(getID() + " could not find a RIC for " + issue + " and is impatient so will arrogate.");
 					// Make a RIC to arrogate
 					// I = issue
@@ -294,7 +294,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						}
 					}
 				}
-				updateImpatience();
+				updateImpatience(issue);
 			}
 		}
 		
@@ -408,14 +408,22 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private RoadAgentGoals getGoals() {
 		return this.goals;
 	}
+	
+	private Integer getImpatience(String issue) {
+		return impatience.get(issue);
+	}
+	
+	private void setImpatience(String issue, Integer value) {
+		impatience.put(issue,value);
+	}
 
 	/**
 	 * Determines whether or not the agent may arrogate in this cycle.
 	 * Should be defined so that all agents do not try to arrogate the same
 	 * thing at the same time.
 	 */
-	private boolean isImpatient() {
-		return (impatience==0);
+	private boolean isImpatient(String issue) {
+		return (getImpatience(issue)==0);
 	}
 	
 	/**
@@ -427,18 +435,21 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * 
 	 * FIXME TODO should reset impatience when nothing to be impatient about
 	 */
-	private void updateImpatience() {
-		impatience = impatience-1;
-		if (impatience<0) {
-			impatience = startImpatience;
+	private void updateImpatience(String issue) {
+		if (getImpatience(issue)==null) {
+			resetImpatience(issue);
+		}
+		setImpatience(issue, getImpatience(issue)-1);
+		if (getImpatience(issue)<0) {
+			resetImpatience(issue);
 		}
 	}
 	
 	/**
 	 * Resets impatience to the startImpatience (when agent has nothing to be impatient about)
 	 */
-	private void resetImpatience() {
-		impatience = startImpatience;
+	private void resetImpatience(String issue) {
+		setImpatience(issue, startImpatience);
 	}
 
 	/**
