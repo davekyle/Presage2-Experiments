@@ -223,6 +223,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 *  - If not in an issue/cluster...
 		 *  - - join nearby cluster's issue
 		 *  - - arrogate if no suitable nearby
+		 *  - If RIC has a leader, and you're also leader...
+		 *  - - see if you should resign
 		 *  - If RIC doesn't have a leader, arrogate
 		 * FIXME TODO
 		 */
@@ -230,6 +232,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
 		ArrayList<IPConRIC> ricsToJoin = new ArrayList<IPConRIC>();
 		ArrayList<IPConRIC> ricsToArrogate = new ArrayList<IPConRIC>();
+		ArrayList<IPConRIC> ricsToResign = new ArrayList<IPConRIC>();
 		ArrayList<IPConAction> ipconActions = new ArrayList<IPConAction>();
 		for (IPConRIC ric : currentRICs) {
 			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
@@ -240,13 +243,27 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				logger.trace(getID() + " thinks there is no chosen value in " + ric);
 			}
 			institutionalFacts.put(ric, value);
+			// Check for leaders
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			// no leaders, maybe arrogate?
 			if (leaders==null) {
 				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + getImpatience(ric.getIssue()) + " cycles left).");
 				if (!ricsToArrogate.contains(ric) && isImpatient(ric.getIssue())) {
 					ricsToArrogate.add(ric);
 				}
 				updateImpatience(ric.getIssue());
+			}
+			else {
+				// multiple leaders and you're one of them
+				if ( leaders.size()>1 && leaders.contains(getIPConHandle()) ) {
+					leaders.remove(leaders.indexOf(getIPConHandle()));
+					for (IPConAgent leader : leaders) {
+						if (leaderIsMoreSenior(leader)) {
+							ricsToResign.add(ric);
+						}
+					}
+				}
+				// else (1 or more leaders and you're not one, or you're the only leader) do nothing
 			}
 		}
 		// For all goals
@@ -312,6 +329,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 */
 		for (IPConRIC ric : ricsToJoin) {
 			JoinAsLearner act = new JoinAsLearner(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
+			ipconActions.add(act);
+		}
+		
+		/*
+		 * Resign leadership in all RICs you should
+		 */
+		for (IPConRIC ric : ricsToResign) {
+			ResignLeadership act = new ResignLeadership(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
 			ipconActions.add(act);
 		}
 		
@@ -450,6 +475,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private void resetImpatience(String issue) {
 		setImpatience(issue, startImpatience);
+	}
+	
+	/**
+	 * @param leader IPConAgent to compare to
+	 * @return true if the given agent is more senior than you (so you should resign), false otherwise.
+	 */
+	private boolean leaderIsMoreSenior(IPConAgent leader) {
+		 return ( leader.getIPConID().compareTo(getIPConHandle().getIPConID()) == 1); 
 	}
 
 	/**

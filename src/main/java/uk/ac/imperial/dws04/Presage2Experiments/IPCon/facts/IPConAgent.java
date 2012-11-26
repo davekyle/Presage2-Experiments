@@ -105,4 +105,8 @@ public class IPConAgent extends IPConFact {
 		return this.name;
 	}
 	
+	public UUID getIPConID() {
+		return this.uuid;
+	}
+	
 }

@@ -181,6 +181,9 @@ public class IPConAgentTest {
 		//session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
 	}
 	
+	/**
+	 * @throws Exception
+	 */
 	@Test
 	public void testObligationInstantiation() throws Exception {
 		logger.info("\nBeginning test of obligation instantiation...");
@@ -342,6 +345,10 @@ public class IPConAgentTest {
 		logger.info("Finished test of obligation instantiation.\n");
 	}
 	
+	/**
+	 * Ignores duelling-leader solution due to not calling the agent's execute()
+	 * @throws Exception
+	 */
 	@Test
 	public void multiLeaderObligationSelfInstantiationTest() throws Exception {
 		logger.info("\nBeginning test of obligation self-instantiation in the face of multiple leaders...");
