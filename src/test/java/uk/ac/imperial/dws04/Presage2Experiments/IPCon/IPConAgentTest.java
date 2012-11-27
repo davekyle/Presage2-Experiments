@@ -49,6 +49,7 @@ import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.network.ConstrainedNetworkController;
+import uk.ac.imperial.presage2.core.network.NetworkAdaptor;
 import uk.ac.imperial.presage2.core.network.NetworkConstraint;
 import uk.ac.imperial.presage2.core.network.NetworkController;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
@@ -195,8 +196,21 @@ public class IPConAgentTest {
 		}
 	}
 	
-	private RoadAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
-		RoadAgent a = new RoadAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
+	class TestAgent extends RoadAgent {
+
+		public TestAgent(UUID id, String name, RoadLocation myLoc, int mySpeed,
+				RoadAgentGoals goals) {
+			super(id, name, myLoc, mySpeed, goals);
+		}
+		
+		public NetworkAdaptor getNetwork() {
+			return this.network;
+		}
+		
+	}
+	
+	private TestAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
+		TestAgent a = new TestAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
 		// FIXME TODO Not sure if this is needed...?
 		injector.injectMembers(a);
 		a.initialise();
@@ -250,11 +264,11 @@ public class IPConAgentTest {
 		/*
 		 * Create agents
 		 */
-		RoadAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
 		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
-		RoadAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
+		TestAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
 		addRoles(a2.getIPConHandle(), new Role[]{Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
-		RoadAgent a3 = createAgent("a3", new RoadLocation(2,0), 1);
+		TestAgent a3 = createAgent("a3", new RoadLocation(2,0), 1);
 		addRoles(a3.getIPConHandle(), new Role[]{Role.ACCEPTOR}, revision, issue, cluster);
 		
 		/*
@@ -300,7 +314,7 @@ public class IPConAgentTest {
 		/*
 		 * Check that agents with no obligations don't try instantiating anything
 		 */
-		for (RoadAgent ag : new RoadAgent[]{a1, a2, a3}) {
+		for (TestAgent ag : new TestAgent[]{a1, a2, a3}) {
 			assertEquals(0, ag.TESTgetInstantiatedObligatedActionQueue().size());
 		}
 		logger.info("** No obligations to instantiate test passed **");
@@ -357,7 +371,7 @@ public class IPConAgentTest {
 		 * Add a new agent to check syncreq obligation.
 		 * A1 should be obligated to SyncReq the new agent.
 		 */
-		RoadAgent a4 = createAgent("a4", new RoadLocation(0,2), 1);
+		TestAgent a4 = createAgent("a4", new RoadLocation(0,2), 1);
 		session.insert(new AddRole(a1.getIPConHandle(), a4.getIPConHandle(), Role.ACCEPTOR, revision, issue, cluster));
 		rules.incrementTime();
 		
@@ -416,11 +430,11 @@ public class IPConAgentTest {
 		/*
 		 * Create agents
 		 */
-		RoadAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
 		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
-		RoadAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
+		TestAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
 		addRoles(a2.getIPConHandle(), new Role[]{Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
-		RoadAgent a3 = createAgent("a3", new RoadLocation(2,0), 1);
+		TestAgent a3 = createAgent("a3", new RoadLocation(2,0), 1);
 		addRoles(a3.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
 		
 		/*
@@ -475,7 +489,7 @@ public class IPConAgentTest {
 	public void clusterArrogateTest() throws Exception {
 		logger.info("\nBeginning test of arrogating when no clusters for goals are present...");		
 		// Make an agent, execute() 11 times (impatience<=10), check there are 2 RICs (spacing and speed)
-		RoadAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
 		logger.info("A1 is : " + a1);
 		for (int i = 1; i<=10; i++) {
 			logger.trace("Execution number " + i);
@@ -488,6 +502,8 @@ public class IPConAgentTest {
 		logger.info("** Arrogate new clusters for goals test passed **");
 		
 		logger.info("Finished test of arrogating when no clusters for goals are present.\n");
+		
+		
 	}
 	
 	@Test
