@@ -48,6 +48,7 @@ import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
+import uk.ac.imperial.presage2.core.network.ConstrainedNetworkController;
 import uk.ac.imperial.presage2.core.network.NetworkConstraint;
 import uk.ac.imperial.presage2.core.network.NetworkController;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
@@ -66,6 +67,7 @@ import uk.ac.imperial.presage2.util.network.NetworkModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 
 /**
@@ -98,6 +100,7 @@ public class IPConAgentTest {
 	// jmock stuff for scenario/time
 	Mockery context = new Mockery();
 	final Scenario scenario = context.mock(Scenario.class);
+	NetworkController networkController;
 	
 	
 	@Before
@@ -135,8 +138,12 @@ public class IPConAgentTest {
 						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
 						// need to bind a time and a scenario
-						bind(Time.class).toInstance(time);
+						bind(Time.class).to(IntegerTime.class);
 						bind(Scenario.class).toInstance(scenario);
+						
+						// temporary hack while Sam writes a real fix
+						bind(NetworkController.class).in(Singleton.class);
+						bind(ConstrainedNetworkController.class).in(Singleton.class);
 					}
 				});
 		
@@ -147,7 +154,8 @@ public class IPConAgentTest {
 				allowing(scenario).addEnvironment(with(any(TimeDriven.class)));
 			}
 		});
-
+		
+		networkController = injector.getInstance(ConstrainedNetworkController.class);
 		env = injector.getInstance(AbstractEnvironment.class);
 		globalSpeedService = injector.getInstance(SpeedService.class);
 		globalRoadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
@@ -199,7 +207,17 @@ public class IPConAgentTest {
 	
 	public void incrementTime(){
 		time.increment();
+		networkController.incrementTime();
+		
+		// Sam hack to make the network controller threads finish before trying to run the rulesengine
+		try {
+			Thread.sleep(500);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		env.incrementTime();
+		
 	}
 	
 	/**
@@ -462,7 +480,7 @@ public class IPConAgentTest {
 		for (int i = 1; i<=10; i++) {
 			logger.trace("Execution number " + i);
 			a1.execute();
-			//incrementTime();
+			incrementTime();
 		}
 		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		logger.info("A1 is in " + rics);
