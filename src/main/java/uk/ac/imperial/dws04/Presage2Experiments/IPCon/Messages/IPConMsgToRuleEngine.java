@@ -40,7 +40,7 @@ public class IPConMsgToRuleEngine extends MessagesToRuleEngine {
 	public Message constrainMessage(Message m){
 		if (m instanceof IPConActionMsg) {
 			sessionPtr.insert(((IPConActionMsg)m).getData());
-			logger.trace("Inserting " + (IPConActionMsg)m + " to kbase.");
+			logger.trace("Inserting " + ((IPConActionMsg)m).getData() + " to kbase. Message was " + m + ".");
 			return m;
 		}
 		else {
