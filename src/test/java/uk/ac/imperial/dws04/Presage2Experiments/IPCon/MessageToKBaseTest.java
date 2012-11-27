@@ -6,6 +6,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,6 +15,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
+import org.drools.definition.type.FactType;
+import org.drools.runtime.ObjectFilter;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -264,16 +267,33 @@ public class MessageToKBaseTest {
 		incrementTime();
 		
 		// action is in kbase
-		assertThat( (globalIPConService.getFactQueryResults("ArrogateLeadership", revision, issue, cluster)).size(), is( 1 ) );
+		//assertThat( (globalIPConService.getFactQueryResults("ArrogateLeadership", revision, issue, cluster)).size(), is( 1 ) );
+		
+		// ugly ugly hackery
+		Collection<Object> coll = session.getObjects(new ObjectFilter() {
+			
+			@Override
+			public boolean accept(Object object) {
+				//logger.trace("Filtering (" + object.getClass() + ") " + object);
+				return ( object instanceof ArrogateLeadership );
+			}
+		});
+		logger.trace("Got " + Arrays.asList(coll.toArray()));
+		assertThat( coll.size(), is( 1 ) );
+		logger.info("***Arrogate correctly inserted to kbase***");
 		
 		// kbase rules run correctly
 		assertThat( (globalIPConService.getAgentRoles(a1.getIPConHandle(), revision, issue, cluster)).size(), is( 1 ) );
+		logger.info("***Rules fired correctly to make agent leader***");
 		
 		// non-ipcon msgs not added to kbase
 		assertThat( (globalIPConService.getFactQueryResults("BroadcastMessage", revision, issue, cluster)).size(), is( 0 ) );
+		logger.info("***Generic broadcast message correctly NOT inserted to kbase***");
 		
 		// manual check
 		outputObjects();
+		
+		logger.info("Test complete.");
 	}
 	
 }
