@@ -537,6 +537,45 @@ public class IPConAgentTest {
 	}
 	
 	@Test
+	public void clusterJoinTest() throws Exception {
+		logger.info("\nBeginning test of joining nearby clusters...");		
+		// Make an agent, execute() 11 times (impatience<=10), check there are 2 RICs (spacing and speed)
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		for (int i = 1; i<=10; i++) {
+			//logger.trace("Execution number " + i);
+			a1.execute();
+			incrementTime();
+		}
+		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(rics.size(), is( 2 ) );
+		logger.info("Succesful setup.");
+		
+		// create another agent
+		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1);
+		
+		// execute some more and check that a1 and a2 are both in (the same) 2 clusters
+		for (int i = 1; i<=10; i++) {
+			//logger.trace("Execution number " + i);
+			a1.execute();
+			a2.execute();
+			incrementTime();
+		}
+		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(a1RICs.size(), is( 2 ) );
+		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		assertThat(a2RICs.size(), is( 2 ) );
+		
+		logger.info("A1 (" + a1RICs + ") and A2 (" + a2RICs + ") both in 2 RICs.");
+		
+		for (IPConRIC a1RIC : a1RICs) {
+			assertThat( a2RICs.contains(a1RIC), is(true) );
+		}
+		logger.info("** Join test passed: A1 and A2 both in same RICs **");
+
+		logger.info("Finished test of joining nearby clusters\n");
+	}	
+	
+	@Test
 	public void test() throws Exception {
 		/*
 		 * Create agents
