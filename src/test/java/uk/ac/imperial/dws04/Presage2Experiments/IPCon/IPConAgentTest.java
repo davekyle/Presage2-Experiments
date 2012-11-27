@@ -16,6 +16,8 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.jmock.Expectations;
+import org.jmock.Mockery;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +42,11 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.presage2.core.IntegerTime;
+import uk.ac.imperial.presage2.core.Time;
+import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
+import uk.ac.imperial.presage2.core.network.NetworkController;
+import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
@@ -82,8 +88,12 @@ public class IPConAgentTest {
 	private int maxAccel = 1;
 	private int maxDecel = 1;
 	private int junctionCount = 0;
-	IntegerTime time = new IntegerTime(0);
+	Time time = new IntegerTime(0);
 	SimTime sTime = new SimTime(time);
+	
+	// jmock stuff for scenario/time
+	Mockery context = new Mockery();
+	final Scenario scenario = context.mock(Scenario.class);
 	
 	
 	@Before
@@ -107,7 +117,7 @@ public class IPConAgentTest {
 					.setStorage(RuleStorage.class),
 				Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX,
 						WrapEdgeHandler.class), new EventBusModule(),
-				new NetworkModule.fullyConnectedNetworkModule().withNodeDiscovery(),
+				NetworkModule.fullyConnectedNetworkModule().withNodeDiscovery(),
 				new AbstractModule() {
 					// add in params that are required
 					@Override
@@ -118,8 +128,19 @@ public class IPConAgentTest {
 						bind(Integer.TYPE).annotatedWith(Names.named("params.junctionCount")).toInstance(junctionCount);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
+						// need to bind a time and a scenario
+						bind(Time.class).toInstance(time);
+						bind(Scenario.class).toInstance(scenario);
 					}
 				});
+		
+		// allow the fake scenario to use any mock timedriven and environment classes
+		context.checking(new Expectations() {
+			{
+				allowing(scenario).addTimeDriven(with(any(NetworkController.class)));
+				allowing(scenario).addEnvironment(with(any(TimeDriven.class)));
+			}
+		});
 
 		env = injector.getInstance(AbstractEnvironment.class);
 		globalSpeedService = injector.getInstance(SpeedService.class);
