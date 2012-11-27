@@ -195,6 +195,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// clear temp storage
 		this.nearbyRICs.clear();
 		
+		// check for messages
+		logger.trace(getID() + " has msgs:" + this.network.getMessages());
+		
 		// pull in Messages from the network
 		enqueueInput(this.network.getMessages());
 
@@ -1311,6 +1314,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 
 	private void process(ClusterPing arg0) {
+		logger.info(getID() + " processing ClusterPing " + arg0);
 		this.nearbyRICs.put(arg0.getData().getA(), arg0.getData().getB());
 	}
 
