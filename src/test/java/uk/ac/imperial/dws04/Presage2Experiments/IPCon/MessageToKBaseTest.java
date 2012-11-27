@@ -240,6 +240,8 @@ public class MessageToKBaseTest {
 	
 	@Test
 	public void msgToKbaseTest() {
+		logger.info("\nBeginning test of IPConActionMsgs being inserted to the knowledgebase...");	
+		
 		// make vars
 		Integer revision = 1;
 		String issue = "ISSUE STRING";
@@ -267,7 +269,6 @@ public class MessageToKBaseTest {
 		incrementTime();
 		
 		// action is in kbase
-		//assertThat( (globalIPConService.getFactQueryResults("ArrogateLeadership", revision, issue, cluster)).size(), is( 1 ) );
 		
 		// ugly ugly hackery
 		Collection<Object> coll = session.getObjects(new ObjectFilter() {
@@ -282,18 +283,18 @@ public class MessageToKBaseTest {
 		assertThat( coll.size(), is( 1 ) );
 		logger.info("***Arrogate correctly inserted to kbase***");
 		
+		// non-ipcon msgs not added to kbase
+		assertThat( (globalIPConService.getFactQueryResults("BroadcastMessage", revision, issue, cluster)).size(), is( 0 ) );
+		logger.info("***Generic broadcast message correctly not inserted to kbase***");
+		
 		// kbase rules run correctly
 		assertThat( (globalIPConService.getAgentRoles(a1.getIPConHandle(), revision, issue, cluster)).size(), is( 1 ) );
 		logger.info("***Rules fired correctly to make agent leader***");
 		
-		// non-ipcon msgs not added to kbase
-		assertThat( (globalIPConService.getFactQueryResults("BroadcastMessage", revision, issue, cluster)).size(), is( 0 ) );
-		logger.info("***Generic broadcast message correctly NOT inserted to kbase***");
-		
 		// manual check
 		outputObjects();
 		
-		logger.info("Test complete.");
+		logger.info("Finished test of IPConActionMsgs being inserted to the knowledgebase.\n");
 	}
 	
 }
