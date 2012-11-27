@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages;
 
+import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
 
 import com.google.inject.Inject;
@@ -15,6 +16,8 @@ import uk.ac.imperial.presage2.rules.MessagesToRuleEngine;
  *
  */
 public class IPConMsgToRuleEngine extends MessagesToRuleEngine {
+	
+	final private Logger logger = Logger.getLogger(this.getClass());
 
 	private final StatefulKnowledgeSession sessionPtr;
 
@@ -37,9 +40,13 @@ public class IPConMsgToRuleEngine extends MessagesToRuleEngine {
 	public Message constrainMessage(Message m){
 		if (m instanceof IPConActionMsg) {
 			sessionPtr.insert(((IPConActionMsg)m).getData());
+			logger.trace("Inserting " + (IPConActionMsg)m + " to kbase.");
 			return m;
 		}
-		else return super.constrainMessage(m);
+		else {
+			logger.trace("Inserting " + m + " to kbase.");
+			return super.constrainMessage(m);
+		}
 	}
 
 }
