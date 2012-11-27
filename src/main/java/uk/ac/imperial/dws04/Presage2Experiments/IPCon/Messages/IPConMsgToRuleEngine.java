@@ -44,8 +44,8 @@ public class IPConMsgToRuleEngine extends MessagesToRuleEngine {
 			return m;
 		}
 		else {
-			logger.trace("Inserting " + m + " to kbase.");
-			return super.constrainMessage(m);
+			logger.trace("Not inserting " + m + " to kbase.");
+			return m;
 		}
 	}
 
