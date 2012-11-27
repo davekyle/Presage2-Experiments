@@ -117,6 +117,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		this.ipconHandle = new IPConAgent(this.getID(), this.getName());
 		this.startImpatience = (new Long(Math.round(Random.randomDouble()*10))).intValue();
+		this.impatience = new HashMap<String,Integer>();
 		this.nearbyRICs = new HashMap<IPConRIC,Object>();
 	}
 	
@@ -442,6 +443,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 	
 	private Integer getImpatience(String issue) {
+		if (!impatience.containsKey(issue)) {
+			setImpatience(issue, startImpatience);
+		}
 		return impatience.get(issue);
 	}
 	
