@@ -58,7 +58,7 @@ public class IPConRIC extends IPConFact {
 	 */
 	@Override
 	public String toString() {
-		return "IPConRIC [revision=" + revision + ", issue=" + issue + "]";
+		return "IPConRIC [revision=" + revision + ", issue=" + issue + ", cluster=" + cluster + "]";
 	}
 	
 	
