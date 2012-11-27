@@ -50,8 +50,10 @@ import uk.ac.imperial.presage2.core.network.NetworkAdaptor;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.network.NetworkConstraint;
 import uk.ac.imperial.presage2.core.network.NetworkController;
+import uk.ac.imperial.presage2.core.simulator.MultiThreadedSimulator;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
+import uk.ac.imperial.presage2.core.simulator.ThreadPool.WaitCondition;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
 import uk.ac.imperial.presage2.rules.RuleStorage;
@@ -220,6 +222,14 @@ public class MessageToKBaseTest {
 	public void incrementTime(){
 		time.increment();
 		networkController.incrementTime();
+		
+		// Sam hack to make the network controller threads finish before trying to run the rulesengine
+		try {
+			Thread.sleep(500);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		env.incrementTime();
 		
 	}
