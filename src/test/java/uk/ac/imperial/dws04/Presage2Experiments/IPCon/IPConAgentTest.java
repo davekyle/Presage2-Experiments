@@ -33,11 +33,13 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConActionMsg;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ResignLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
@@ -48,6 +50,7 @@ import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
+import uk.ac.imperial.presage2.core.messaging.Performative;
 import uk.ac.imperial.presage2.core.network.ConstrainedNetworkController;
 import uk.ac.imperial.presage2.core.network.NetworkAdaptor;
 import uk.ac.imperial.presage2.core.network.NetworkConstraint;
@@ -492,7 +495,7 @@ public class IPConAgentTest {
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
 		logger.info("A1 is : " + a1);
 		for (int i = 1; i<=10; i++) {
-			logger.trace("Execution number " + i);
+			//logger.trace("Execution number " + i);
 			a1.execute();
 			incrementTime();
 		}
@@ -503,7 +506,34 @@ public class IPConAgentTest {
 		
 		logger.info("Finished test of arrogating when no clusters for goals are present.\n");
 		
+		incrementTime();
+
+		logger.info("\nBeginning test of arrogating when in clusters without leader...");	
+		for (IPConRIC ric : rics) {
+			ResignLeadership resign = new ResignLeadership(a1.getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
+			IPConActionMsg resignation = new IPConActionMsg(Performative.INFORM, time, a1.getNetwork().getAddress(), resign);
+			a1.getNetwork().sendMessage(resignation);
+			logger.trace("A1 resigning from " + ric);
+		}
 		
+		incrementTime();
+		Collection<IPConRIC> noRICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in " + noRICs);
+		assertThat(noRICs.size(), is(0));
+		logger.info("Agent resigned from all RICs.");
+		
+		for (int i = 1; i<=10; i++) {
+			//logger.trace("Execution number " + i);
+			a1.execute();
+			incrementTime();
+		}
+		Collection<IPConRIC> newRICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in " + newRICs);
+		assertThat(newRICs.size(), is( 2 ) );
+		logger.info("** Arrogate new clusters for goals test passed **");
+		
+		
+		logger.info("Finished test of arrogating when in clusters without leader\n");
 	}
 	
 	@Test
