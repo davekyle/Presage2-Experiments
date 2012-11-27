@@ -3,6 +3,9 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
+import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.*;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,13 +29,22 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConActionMsg;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
+import uk.ac.imperial.presage2.core.messaging.Performative;
+import uk.ac.imperial.presage2.core.network.BroadcastMessage;
+import uk.ac.imperial.presage2.core.network.ConstrainedNetworkController;
+import uk.ac.imperial.presage2.core.network.Message;
+import uk.ac.imperial.presage2.core.network.NetworkAdaptor;
+import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.network.NetworkConstraint;
 import uk.ac.imperial.presage2.core.network.NetworkController;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
@@ -51,6 +63,7 @@ import uk.ac.imperial.presage2.util.network.NetworkModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 
 /**
@@ -83,6 +96,7 @@ public class MessageToKBaseTest {
 	// jmock stuff for scenario/time
 	Mockery context = new Mockery();
 	final Scenario scenario = context.mock(Scenario.class);
+	NetworkController networkController;
 	
 	
 	@Before
@@ -120,8 +134,12 @@ public class MessageToKBaseTest {
 						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
 						// need to bind a time and a scenario
-						bind(Time.class).toInstance(time);
+						bind(Time.class).to(IntegerTime.class);
 						bind(Scenario.class).toInstance(scenario);
+						
+						// temporary hack while Sam writes a real fix
+						bind(NetworkController.class).in(Singleton.class);
+						bind(ConstrainedNetworkController.class).in(Singleton.class);
 					}
 				});
 		
@@ -132,7 +150,8 @@ public class MessageToKBaseTest {
 				allowing(scenario).addEnvironment(with(any(TimeDriven.class)));
 			}
 		});
-
+		
+		networkController = injector.getInstance(ConstrainedNetworkController.class);
 		env = injector.getInstance(AbstractEnvironment.class);
 		globalSpeedService = injector.getInstance(SpeedService.class);
 		globalRoadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
@@ -172,8 +191,21 @@ public class MessageToKBaseTest {
 		}
 	}
 	
-	private RoadAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
-		RoadAgent a = new RoadAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
+	class TestAgent extends RoadAgent {
+
+		public TestAgent(UUID id, String name, RoadLocation myLoc, int mySpeed,
+				RoadAgentGoals goals) {
+			super(id, name, myLoc, mySpeed, goals);
+		}
+		
+		public NetworkAdaptor getNetwork() {
+			return this.network;
+		}
+		
+	}
+	
+	private TestAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
+		TestAgent a = new TestAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
 		// FIXME TODO Not sure if this is needed...?
 		injector.injectMembers(a);
 		a.initialise();
@@ -184,7 +216,9 @@ public class MessageToKBaseTest {
 	
 	public void incrementTime(){
 		time.increment();
+		networkController.incrementTime();
 		env.incrementTime();
+		
 	}
 	
 	/**
@@ -203,15 +237,43 @@ public class MessageToKBaseTest {
 	
 	@Test
 	public void msgToKbaseTest() {
+		// make vars
+		Integer revision = 1;
+		String issue = "ISSUE STRING";
+		UUID cluster = Random.randomUUID();
+		
 		// make agents
+		TestAgent a1 = createAgent("a1", new RoadLocation(0, 0), 1);
+		TestAgent a2 = createAgent("a2", new RoadLocation(1, 0), 1);
+		
+		// new cycle
+		incrementTime();
+		
+		// make ipcon msg
+		IPConAction act = new ArrogateLeadership(a1.getIPConHandle(), revision, issue, cluster);
+		IPConActionMsg msg = new IPConActionMsg(Performative.INFORM, time, a1.getNetwork().getAddress(), act);
+		
+		// make nonipcon msg
+		BroadcastMessage<Integer> msg2 = new BroadcastMessage<Integer>(Performative.INFORM, a2.getNetwork().getAddress(), time, new Integer(5));
 		
 		// agents send msg
+		a1.getNetwork().sendMessage(msg);
+		a2.getNetwork().sendMessage(msg2);
+		
+		// new cycle
+		incrementTime();
 		
 		// action is in kbase
+		assertThat( (globalIPConService.getFactQueryResults("ArrogateLeadership", revision, issue, cluster)).size(), is( 1 ) );
 		
 		// kbase rules run correctly
+		assertThat( (globalIPConService.getAgentRoles(a1.getIPConHandle(), revision, issue, cluster)).size(), is( 1 ) );
 		
 		// non-ipcon msgs not added to kbase
+		assertThat( (globalIPConService.getFactQueryResults("BroadcastMessage", revision, issue, cluster)).size(), is( 0 ) );
+		
+		// manual check
+		outputObjects();
 	}
 	
 }
