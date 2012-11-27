@@ -20,4 +20,12 @@ public class IPConActionMsg extends BroadcastMessage<IPConAction> {
 		// TODO Auto-generated constructor stub
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "IPConActionMsg [time=" + timestamp + ", from=" + from + ", IPConAction=" + data + "]";
+	}
+
 }
