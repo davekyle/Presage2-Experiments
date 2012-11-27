@@ -236,11 +236,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		ArrayList<IPConRIC> ricsToResign = new ArrayList<IPConRIC>();
 		ArrayList<IPConAction> ipconActions = new ArrayList<IPConAction>();
 		for (IPConRIC ric : currentRICs) {
-			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
+			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			if (value!=null) {
+				// "null" should never be chosen as a value, so we can do this ?
+				value = ((Chosen)value).getValue();
 				logger.trace(getID() + " thinks " + value + " has been chosen in " + ric);
 			}
 			else {
+				// "null" should never be chosen as a value, so we can do this ?
 				logger.trace(getID() + " thinks there is no chosen value in " + ric);
 			}
 			institutionalFacts.put(ric, value);
