@@ -5,6 +5,8 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages;
 
 import org.drools.runtime.StatefulKnowledgeSession;
 
+import com.google.inject.Inject;
+
 import uk.ac.imperial.presage2.core.network.Message;
 import uk.ac.imperial.presage2.rules.MessagesToRuleEngine;
 
@@ -16,6 +18,7 @@ public class IPConMsgToRuleEngine extends MessagesToRuleEngine {
 
 	private final StatefulKnowledgeSession sessionPtr;
 
+	@Inject
 	public IPConMsgToRuleEngine(StatefulKnowledgeSession session) {
 		super(session);
 		sessionPtr = session;

@@ -19,6 +19,7 @@ import com.google.inject.Singleton;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
@@ -32,6 +33,7 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.StateTransformer;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
+import uk.ac.imperial.presage2.core.network.NetworkConstraint;
 import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.core.plugin.PluginModule;
 import uk.ac.imperial.presage2.rules.RuleModule;
@@ -218,8 +220,12 @@ public class RoadSimulation extends InjectedSimulation {
 			.addParticipantGlobalEnvironmentService(IPConBallotService.class)
 			.setStorage(RuleStorage.class)
 			);
-		// No network
-		modules.add(NetworkModule.fullyConnectedNetworkModule().withNodeDiscovery());
+		// Add network
+		//modules.add(NetworkModule.fullyConnectedNetworkModule().withNodeDiscovery());
+		Set<Class<? extends NetworkConstraint>> constraints = new HashSet<Class<? extends NetworkConstraint>>();
+		constraints.add(IPConMsgToRuleEngine.class);
+		modules.add(NetworkModule.constrainedNetworkModule(constraints).withNodeDiscovery());
+		
 		// Location plugin
 		// TODO need to modify the plugin
 		modules.add(new PluginModule().addPlugin(LocationStoragePlugin.class));
