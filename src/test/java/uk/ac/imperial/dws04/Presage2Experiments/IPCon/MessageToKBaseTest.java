@@ -253,6 +253,7 @@ public class MessageToKBaseTest {
 		
 		// new cycle
 		incrementTime();
+		logger.info("Inserted agents.");
 		
 		// make ipcon msg
 		IPConAction act = new ArrogateLeadership(a1.getIPConHandle(), revision, issue, cluster);
@@ -284,7 +285,17 @@ public class MessageToKBaseTest {
 		logger.info("***Arrogate correctly inserted to kbase***");
 		
 		// non-ipcon msgs not added to kbase
-		assertThat( (globalIPConService.getFactQueryResults("BroadcastMessage", revision, issue, cluster)).size(), is( 0 ) );
+		// ugly ugly hackery
+		Collection<Object> coll2 = session.getObjects(new ObjectFilter() {
+			
+			@Override
+			public boolean accept(Object object) {
+				//logger.trace("Filtering (" + object.getClass() + ") " + object);
+				return ( object instanceof BroadcastMessage );
+			}
+		});
+		logger.trace("Got " + Arrays.asList(coll2.toArray()));
+		assertThat( coll2.isEmpty(), is(true) );
 		logger.info("***Generic broadcast message correctly not inserted to kbase***");
 		
 		// kbase rules run correctly
