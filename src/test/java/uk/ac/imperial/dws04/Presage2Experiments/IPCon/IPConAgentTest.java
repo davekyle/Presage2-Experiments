@@ -233,6 +233,9 @@ public class IPConAgentTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		// need to fire this manually since we don't have a simulation,
+		// otherwise msgs never delivered...
+		networkController.onParticipantsComplete(null);
 		env.incrementTime();
 		
 	}
@@ -568,7 +571,7 @@ public class IPConAgentTest {
 		logger.info("A1 (" + a1RICs + ") and A2 (" + a2RICs + ") both in 2 RICs.");
 		
 		for (IPConRIC a1RIC : a1RICs) {
-			assertThat( a2RICs.contains(a1RIC), is(true) );
+			assertThat( "Fail: " + a2RICs + " does not contain " + a1RIC, a2RICs.contains(a1RIC), is(true) );
 		}
 		logger.info("** Join test passed: A1 and A2 both in same RICs **");
 
