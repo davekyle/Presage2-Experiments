@@ -575,6 +575,7 @@ public class IPConAgentTest {
 		}
 		logger.info("** Join test passed: A1 and A2 both in same RICs **");
 
+		
 		logger.info("Finished test of joining nearby clusters\n");
 	}	
 	
