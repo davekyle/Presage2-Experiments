@@ -4,12 +4,13 @@
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
 import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.*;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -252,6 +253,23 @@ public class IPConAgentTest {
 		//session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
 		// And the reportedvote for the initially
 		//session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
+	}
+	
+	/**
+	 * Unwraps Roles from HasRoles
+	 * @param agent
+	 * @param revision
+	 * @param issue
+	 * @param cluster
+	 * @return
+	 */
+	private Collection<Role> getRoles(IPConAgent agent, Integer revision, String issue, UUID cluster) {
+		Collection<HasRole> hasRoles = globalIPConService.getAgentRoles(agent, revision, issue, cluster);
+		Collection<Role> roles = new ArrayList<Role>();
+		for (HasRole hasRole : hasRoles) {
+			roles.add(hasRole.getRole());
+		}
+		return roles;
 	}
 	
 	/**
@@ -571,13 +589,71 @@ public class IPConAgentTest {
 		logger.info("A1 (" + a1RICs + ") and A2 (" + a2RICs + ") both in 2 RICs.");
 		
 		for (IPConRIC a1RIC : a1RICs) {
-			assertThat( "Fail: " + a2RICs + " does not contain " + a1RIC, a2RICs.contains(a1RIC), is(true) );
+			assertThat( a2RICs, hasItem(a1RIC) );
 		}
 		logger.info("** Join test passed: A1 and A2 both in same RICs **");
 
 		
 		logger.info("Finished test of joining nearby clusters\n");
-	}	
+	}
+	
+	@Test
+	public void clusterResignTest() throws Exception {
+		logger.info("\nBeginning test of resigning when multiple leaders exist...");		
+		// Make agents, make them both leader, execute, check only one leader
+		final Integer revision = 1;
+		final String issue = "spacing";
+		final UUID cluster = Random.randomUUID();
+		
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
+		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1);
+		addRoles(a2.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
+
+		/* 
+		 * increment time without executing to make sure the facts are inserted
+		 * but that no one has left yet
+		 */
+		incrementTime();
+		
+		Collection<Role> a1Roles = getRoles(a1.getIPConHandle(), revision, issue, cluster);
+		assertThat(a1Roles.size(), is(2));
+		Collection<Role> a2Roles = getRoles(a2.getIPConHandle(), revision, issue, cluster);
+		assertThat(a2Roles.size(), is(2));
+		for (Role a1Role : a1Roles) {
+			assertThat( a2Roles, hasItems(a1Role) );
+		}
+		logger.info("Succesful setup.");
+		
+		a1.execute();
+		a2.execute();
+		incrementTime();
+		
+		
+		Collection<Role> a1NewRoles = getRoles(a1.getIPConHandle(), revision, issue, cluster);
+		Collection<Role> a2NewRoles = getRoles(a2.getIPConHandle(), revision, issue, cluster);
+		
+		if (a1NewRoles.size()==2) {
+			assertThat(a1NewRoles, hasItem(Role.LEADER));
+			assertThat(a1NewRoles, hasItem(Role.ACCEPTOR));
+			assertThat(a2NewRoles.size(), is(1));
+			assertThat(a2NewRoles, not( hasItem(Role.LEADER)));
+			assertThat(a2NewRoles, hasItem(Role.ACCEPTOR));
+		}
+		else {
+			assertThat(a1NewRoles.size(), is(1));
+			assertThat(a1NewRoles, not( hasItem(Role.LEADER)));
+			assertThat(a1NewRoles, hasItem(Role.ACCEPTOR));
+			assertThat(a2NewRoles.size(), is(2));
+			assertThat(a2NewRoles, hasItem(Role.LEADER));
+			assertThat(a2NewRoles, hasItem(Role.ACCEPTOR));
+		}
+		
+		logger.info("** Resign test passed: only one leader **");
+
+		
+		logger.info("Finished test of resigning when multiple leaders exist\n");
+	}
 	
 	@Test
 	public void test() throws Exception {
