@@ -195,11 +195,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// clear temp storage
 		this.nearbyRICs.clear();
 		
-		// check for messages
-		logger.trace(getID() + " has msgs:" + this.network.getMessages());
-		
 		// pull in Messages from the network
 		enqueueInput(this.network.getMessages());
+		
+		// check inputs
+		logger.trace(getID() + " has msgs:" + this.inputQueue);
 
 		// process inputs
 		while (this.inputQueue.size() > 0) {
