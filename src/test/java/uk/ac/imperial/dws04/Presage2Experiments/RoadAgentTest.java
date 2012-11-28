@@ -9,6 +9,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 
 
+import org.jmock.Expectations;
+import org.jmock.Mockery;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,9 +24,17 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.presage2.core.IntegerTime;
+import uk.ac.imperial.presage2.core.Time;
+import uk.ac.imperial.presage2.core.TimeDriven;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
+import uk.ac.imperial.presage2.core.network.ConstrainedNetworkController;
+import uk.ac.imperial.presage2.core.network.NetworkController;
+import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
@@ -35,10 +45,12 @@ import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
+import uk.ac.imperial.presage2.util.network.NetworkModule;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 
 /**
@@ -53,6 +65,13 @@ public class RoadAgentTest {
 	//RoadEnvironmentService roadEnvironmentService;
 	SpeedService globalSpeedService;
 	RoadEnvironmentService globalRoadEnvironmentService;
+	IPConService globalIPConService;
+	
+	// jmock stuff for scenario/time
+	Mockery context = new Mockery();
+	final Scenario scenario = context.mock(Scenario.class);
+	NetworkController networkController;
+
 	
 	private int lanes = 3;
 	private int length = 10;
@@ -67,16 +86,24 @@ public class RoadAgentTest {
 	public void setUp() throws Exception {
 		injector = Guice.createInjector(
 				// rule module
-				new RuleModule(),
+				new RuleModule()
+					.addClasspathDrlFile("IPConUtils.drl")
+					.addClasspathDrlFile("IPConPowPer.drl")
+					.addClasspathDrlFile("IPCon.drl")
+					.addClasspathDrlFile("IPConOblSan.drl"),
 				new AbstractEnvironmentModule()
 					.addActionHandler(LaneMoveHandler.class)
 					.addParticipantEnvironmentService(ParticipantLocationService.class)
 					.addParticipantEnvironmentService(ParticipantRoadLocationService.class)
 					.addParticipantEnvironmentService(ParticipantSpeedService.class)
+					.addParticipantEnvironmentService(ParticipantIPConService.class)
 					.addGlobalEnvironmentService(RoadEnvironmentService.class)
+					.addGlobalEnvironmentService(IPConService.class)
+					.addParticipantGlobalEnvironmentService(IPConBallotService.class)
 					.setStorage(RuleStorage.class),
 				Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX,
 						WrapEdgeHandler.class), new EventBusModule(),
+				NetworkModule.noNetworkModule(),
 				new AbstractModule() {
 					// add in params that are required
 					@Override
@@ -87,12 +114,27 @@ public class RoadAgentTest {
 						bind(Integer.TYPE).annotatedWith(Names.named("params.junctionCount")).toInstance(junctionCount);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
+						
+						// need to bind a time & scenario
+						bind(Time.class).to(IntegerTime.class);
+						bind(Scenario.class).toInstance(scenario);
+						
+						// temporary hack while Sam writes a real fix
+						bind(NetworkController.class).in(Singleton.class);
 					}
 				});
-
+		// allow the fake scenario to use any mock timedriven and environment classes
+		context.checking(new Expectations() {
+			{
+				allowing(scenario).addTimeDriven(with(any(NetworkController.class)));
+				allowing(scenario).addEnvironment(with(any(TimeDriven.class)));
+			}
+		});
+		
 		env = injector.getInstance(AbstractEnvironment.class);
 		globalSpeedService = injector.getInstance(SpeedService.class);
 		globalRoadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
+		globalIPConService = injector.getInstance(IPConService.class);
 		
 	}
 	
