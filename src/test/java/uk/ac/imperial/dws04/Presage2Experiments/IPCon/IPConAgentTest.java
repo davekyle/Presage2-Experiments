@@ -6,11 +6,8 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
