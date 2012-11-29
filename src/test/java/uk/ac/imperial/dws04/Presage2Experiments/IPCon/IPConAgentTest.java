@@ -228,7 +228,6 @@ public class IPConAgentTest {
 		try {
 			Thread.sleep(500);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		// need to fire this manually since we don't have a simulation,
