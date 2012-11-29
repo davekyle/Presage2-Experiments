@@ -550,6 +550,10 @@ public class IPConAgentTest {
 		assertThat(newRICs.size(), is( 2 ) );
 		logger.info("** Arrogate new clusters for goals test passed **");
 		
+		IPConRIC[] array = newRICs.toArray(new IPConRIC[2]);
+		assertEquals(array[0].getCluster(), array[1].getCluster());
+		logger.info("** Correctly arrogated 2 issues into the same cluster **");
+		
 		
 		logger.info("Finished test of arrogating when in clusters without leader\n");
 	}

@@ -309,10 +309,22 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					if (!institutionalFacts.isEmpty()) {
 						// pick a very-psuedo-random cluster you're already in
 						cluster = institutionalFacts.keySet().iterator().next().getCluster();
+						logger.trace(getID() + " arrogating in existing cluster " + cluster);
 					}
 					else {
-						// pick a psuedo-random cluster that doesn't exist yet
-						cluster = Random.randomUUID();
+						// check the clusters you're about to join/arrogate
+						HashSet<IPConRIC> set = new HashSet<IPConRIC>();
+						set.addAll(ricsToArrogate);
+						set.addAll(ricsToJoin);
+						if (!set.isEmpty()) {
+							cluster = set.iterator().next().getCluster();
+							logger.trace(getID() + " arrogating in to-be-joined cluster " + cluster);
+						}
+						else {
+							// pick a psuedo-random cluster that doesn't exist yet
+							cluster = Random.randomUUID();
+							logger.trace(getID() + " arrogating new cluster " + cluster);
+						}
 					}
 					IPConRIC newRIC = new IPConRIC(0, issue, cluster);
 					ricsToArrogate.add(newRIC);
