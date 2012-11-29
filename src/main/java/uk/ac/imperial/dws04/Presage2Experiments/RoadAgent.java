@@ -220,6 +220,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 */
 		
 		/*
+		 * Throw a warning in more than one cluster, because that doesn't seem to be too useful
+		 */
+		Boolean inMultipleClusters = checkClusterMembership();
+		if (inMultipleClusters) {
+			logger.warn(getID() + " is in multiple clusters ! : " + getNearbyRICs());
+		}
+		
+		/*
 		 * Get IPCon info
 		 *  - get the RIC the agent is in
 		 *  - get the current state for each (ie, cheat :P - maybe this should rely on memory ?)
@@ -467,6 +475,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		submitMove(move);
 	}
 	
+	private Boolean checkClusterMembership() {
+		ArrayList<UUID> clusters = new ArrayList<UUID>();
+		for (IPConRIC ric : getNearbyRICs()) {
+			clusters.add(ric.getCluster());
+		}
+		return ( (!clusters.isEmpty()) && (clusters.size()==1) );
+	}
+
 	private Collection<IPConRIC> getNearbyRICs() {
 		return this.nearbyRICs.keySet();
 	}
