@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.rule.QueryResults;
 import org.drools.runtime.rule.QueryResultsRow;
+import org.drools.runtime.rule.Variable;
 
 import com.google.inject.Inject;
 
@@ -94,7 +95,7 @@ public class ParticipantIPConService extends IPConService {
 		if ( cluster!=null && (!super.getAgentRoles(this.handle, null, null, cluster).isEmpty()) ) {
 			// Have to hack this rather than calling the super because the super calls getFacts which is unavailable to agents
 			HashSet<IPConRIC> set = new HashSet<IPConRIC>();
-			QueryResults facts = session.getQueryResults("getFactsNamed", new Object[]{null, null, cluster, "IPConRIC"});
+			QueryResults facts = session.getQueryResults("getFactsNamed", new Object[]{Variable.v, Variable.v, cluster, "IPConRIC"});
 			for (QueryResultsRow row : facts) {
 				set.add((IPConRIC)row.get("$fact"));
 			}

@@ -244,6 +244,7 @@ public class IPConAgentTest {
 	private void addRoles(IPConAgent agent, Role[] roles, Integer revision, String issue, UUID cluster) {
 		//Set roles
 		for (Role role : roles) {
+			session.insert(new IPConRIC(revision, issue, cluster));
 			session.insert(new HasRole(role, agent, revision, issue, cluster));
 		}
 		// Initially didn't vote
@@ -671,6 +672,7 @@ public class IPConAgentTest {
 			a1.execute();
 			a2.execute();
 			incrementTime();
+			outputObjects();
 		}
 		
 		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());

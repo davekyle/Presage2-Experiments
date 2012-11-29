@@ -282,6 +282,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// - - Arrogate if no and mayArrogate()
 		for (String issue : getGoalMap().keySet()) {
 			Boolean found = false;
+			Boolean foundInCluster = false;
+			Boolean foundNearby = false;
 			for (IPConRIC ric : currentRICs) {
 				if (!found && ric.getIssue().equalsIgnoreCase(issue)) {
 					found = true;
@@ -292,7 +294,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				logger.trace(getID() + " could not find a RIC for " + issue + " so will check RICs in current cluster(s).");
 				for (IPConRIC ric : currentRICs) {
 					Collection<IPConRIC> inClusterRICs = ipconService.getRICsInCluster(ric.getCluster());
-					Boolean foundInCluster = false;
 					for (IPConRIC ric1 : inClusterRICs) {
 						if (!foundInCluster && ric1.getIssue().equalsIgnoreCase(issue)) {
 							foundInCluster = true;
@@ -302,18 +303,18 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						}
 					}
 				}
-				
-				logger.trace(getID() + " could not find a RIC for " + issue + " so will check nearby clusters.");
-				Collection<IPConRIC> nearbyRICs = getNearbyRICs();
-				Boolean foundNearby = false;
-				for (IPConRIC nearbyRIC : nearbyRICs) {
-					if (!foundNearby && nearbyRIC.getIssue().equalsIgnoreCase(issue)) {
-						foundNearby = true;
-						logger.trace(getID() + " found a nearby RIC (" + nearbyRIC + ") for " + issue + " so will join it.");
-						ricsToJoin.add(nearbyRIC);
+				if (!foundInCluster) {
+					logger.trace(getID() + " could not find a RIC for " + issue + " so will check nearby clusters.");
+					Collection<IPConRIC> nearbyRICs = getNearbyRICs();
+					for (IPConRIC nearbyRIC : nearbyRICs) {
+						if (!foundNearby && nearbyRIC.getIssue().equalsIgnoreCase(issue)) {
+							foundNearby = true;
+							logger.trace(getID() + " found a nearby RIC (" + nearbyRIC + ") for " + issue + " so will join it.");
+							ricsToJoin.add(nearbyRIC);
+						}
 					}
 				}
-				if (isImpatient(issue) && !foundNearby) {
+				if (isImpatient(issue) && !foundNearby && !foundInCluster) {
 					logger.trace(getID() + " could not find a RIC to join for " + issue + " and is impatient so will arrogate.");
 					// Make a RIC to arrogate
 					// I = issue
