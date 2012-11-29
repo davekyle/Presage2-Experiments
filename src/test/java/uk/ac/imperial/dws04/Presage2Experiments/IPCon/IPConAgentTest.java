@@ -521,12 +521,15 @@ public class IPConAgentTest {
 		logger.info("A1 is in " + rics);
 		assertThat(rics.size(), is( 2 ) );
 		logger.info("** Arrogate new clusters for goals test passed **");
+		assertThat(rics.toArray(new IPConRIC[2])[0].getCluster(), is(rics.toArray(new IPConRIC[2])[1].getCluster()) );
+		logger.info("** Arrogate new RICs in one cluster test passed **");
 		
 		logger.info("Finished test of arrogating when no clusters for goals are present.\n");
 		
 		incrementTime();
 
-		logger.info("\nBeginning test of arrogating when in clusters without leader...");	
+		logger.info("\nBeginning test of arrogating into same cluster...");	
+		// TODO FIXME this doesn't really test what it says it does...
 		for (IPConRIC ric : rics) {
 			ResignLeadership resign = new ResignLeadership(a1.getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
 			IPConActionMsg resignation = new IPConActionMsg(Performative.INFORM, time, a1.getNetwork().getAddress(), resign);
@@ -555,7 +558,7 @@ public class IPConAgentTest {
 		logger.info("** Correctly arrogated 2 issues into the same cluster **");
 		
 		
-		logger.info("Finished test of arrogating when in clusters without leader\n");
+		logger.info("Finished test of arrogating into sam cluster\n");
 	}
 	
 	@Test
@@ -584,6 +587,8 @@ public class IPConAgentTest {
 		}
 		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		assertThat(a1RICs.size(), is( 2 ) );
+		assertThat(a1RICs.toArray(new IPConRIC[2])[0].getCluster(), is(a1RICs.toArray(new IPConRIC[2])[1].getCluster()) );
+		logger.info("** A1 is in 2 RICs in 1 cluster **");
 		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
 		assertThat(a2RICs.size(), is( 2 ) );
 		
@@ -596,6 +601,94 @@ public class IPConAgentTest {
 
 		
 		logger.info("Finished test of joining nearby clusters\n");
+	}
+	
+	@Test
+	public void clusterArrogateLeaderlessRICTest() throws Exception {
+		logger.info("\nBeginning test of arrogating in a leaderless RIC...");		
+
+		final Integer revision1 = 1;
+		final String issue1 = "speed";
+		final Integer revision2 = 2;
+		final String issue2 = "spacing";
+		final UUID cluster = Random.randomUUID();
+		
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		
+		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER}, revision1, issue1, cluster);
+		addRoles(a1.getIPConHandle(), new Role[]{Role.ACCEPTOR}, revision2, issue2, cluster);
+		
+		assertThat(globalIPConService.getCurrentRICs(a1.getIPConHandle()).size(), is( 2 ) );
+		logger.info("Succesful setup.");
+		
+		// execute and check that a1 and a2 are both in (the same) 2 clusters
+		for (int i = 1; i<=10; i++) {
+			//logger.trace("Execution number " + i);
+			a1.execute();
+			incrementTime();
+		}
+		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(a1RICs.size(), is( 2 ) );
+		logger.info("A1 is still in 2 RICs.");
+		
+		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).size(), is(1));
+		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).iterator().next(), is(a1.getIPConHandle()));
+		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).size(), is(1));
+		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).iterator().next(), is(a1.getIPConHandle()));
+		logger.info("** A1 successfully arrogated the leaderless cluster **");
+		
+		logger.info("Finished test of arrogating in a leaderless RIC\n");
+	}
+	
+	@Test
+	public void clusterJoinRICInCurrentClusterTest() throws Exception {
+		logger.info("\nBeginning test of joining RIC in current cluster...");		
+
+		final Integer revision1 = 1;
+		final String issue1 = "spacing";
+		final Integer revision2 = 2;
+		final String issue2 = "speed";
+		final UUID cluster = Random.randomUUID();
+
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		TestAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
+		
+		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER}, revision1, issue1, cluster);
+		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER}, revision2, issue2, cluster);
+		addRoles(a2.getIPConHandle(), new Role[]{Role.ACCEPTOR}, revision2, issue2, cluster);
+
+		assertThat(globalIPConService.getCurrentRICs(a1.getIPConHandle()).size(), is( 2 ) );
+		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).size(), is(1));
+		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).iterator().next(), is(a1.getIPConHandle()));
+		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).size(), is(1));
+		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).iterator().next(), is(a1.getIPConHandle()));
+		assertThat(globalIPConService.getCurrentRICs(a2.getIPConHandle()).size(), is( 1 ) );
+		logger.info("Succesful setup.");
+		
+		// execute and check that a1 and a2 are both in (the same) 2 RICs
+		for (int i = 1; i<=10; i++) {
+			//logger.trace("Execution number " + i);
+			a1.execute();
+			a2.execute();
+			incrementTime();
+		}
+		
+		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in RICS : " + a1RICs);
+		assertThat(a1RICs.size(), is( 2 ) );
+		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		logger.info("A2 is in RICS : " + a2RICs);
+		assertThat(a2RICs.size(), is( 2 ) );
+		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).size(), is(1));
+		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).iterator().next(), is(a1.getIPConHandle()));
+		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).size(), is(1));
+		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).iterator().next(), is(a1.getIPConHandle()));
+		
+		for (IPConRIC a1RIC : a1RICs) {
+			assertThat( a2RICs, hasItem(a1RIC) );
+		}
+		logger.info("** Join test passed: A1 and A2 both in same RICs **");
+		logger.info("Finished test of joining RIC in current cluster\n");
 	}
 	
 	@Test

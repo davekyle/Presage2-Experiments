@@ -5,10 +5,13 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.rule.QueryResults;
+import org.drools.runtime.rule.QueryResultsRow;
 
 import com.google.inject.Inject;
 
@@ -80,6 +83,25 @@ public class ParticipantIPConService extends IPConService {
 		}
 		else {
 			throw new SharedStateAccessException("A participant may not view another agent's RICs!");
+		}
+	}
+
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getRICsInCluster(java.util.UUID)
+	 */
+	@Override
+	public Collection<IPConRIC> getRICsInCluster(UUID cluster) {
+		if ( cluster!=null && (!super.getAgentRoles(this.handle, null, null, cluster).isEmpty()) ) {
+			// Have to hack this rather than calling the super because the super calls getFacts which is unavailable to agents
+			HashSet<IPConRIC> set = new HashSet<IPConRIC>();
+			QueryResults facts = session.getQueryResults("getFactsNamed", new Object[]{null, null, cluster, "IPConRIC"});
+			for (QueryResultsRow row : facts) {
+				set.add((IPConRIC)row.get("$fact"));
+			}
+			return set;
+		}
+		else {
+			throw new SharedStateAccessException("A participant may not view info about a RIC they are not in!");
 		}
 	}
 

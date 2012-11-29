@@ -454,6 +454,18 @@ public class IPConService extends EnvironmentService {
 	}
 	
 	/**
+	 * @return all the RICs in the specified cluster
+	 */
+	public Collection<IPConRIC> getRICsInCluster(UUID cluster) {
+		Collection<IPConRIC> result = new HashSet<IPConRIC>();
+		Collection<IPConFact> coll = getFactQueryResults("IPConRIC", null, null, cluster);
+		for (IPConFact fact : coll) {
+			result.add((IPConRIC)fact);
+		}
+		return result;
+	}
+	
+	/**
 	 * 
 	 * @param issue may not be null
 	 * @param cluster may not be null
