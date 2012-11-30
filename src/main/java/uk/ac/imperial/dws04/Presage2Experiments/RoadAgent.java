@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.io.InvalidClassException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -567,15 +568,21 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * 
 	 * @param issue name of issue to be checked
 	 * @param value value to be checked
-	 * @return true if the given value is within the tolerance for the goal relating to the given issue, null if no goal for that issue or if value is the wrong type, false otherwise
+	 * @return true if the given value is within the tolerance for the goal relating to the given issue, null if no goal for that issue, false otherwise
+	 * @throws InvalidClassException if value is the wrong type
 	 */
-	protected Boolean isWithinTolerance(String issue, Object value) {
-		if ( (!this.getGoalMap().containsKey(issue)) || (!(value instanceof Integer)) ){
-			return null;
+	protected Boolean isWithinTolerance(String issue, Object value) throws InvalidClassException {
+		if (!(value instanceof Integer)) {
+			throw new InvalidClassException("Only integer goals are supported. Value was a " + value.getClass());
 		}
 		else {
-			Pair<Integer, Integer> pair = this.getGoalMap().get(issue);
-			return Math.abs(((Integer)value)-pair.getA())<=pair.getB();
+			if (!this.getGoalMap().containsKey(issue)){
+				return null;
+			}
+			else {
+				Pair<Integer, Integer> pair = this.getGoalMap().get(issue);
+				return Math.abs(((Integer)value)-pair.getA())<=pair.getB();
+			}
 		}
 	}
 

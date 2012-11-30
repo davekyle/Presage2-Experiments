@@ -6,6 +6,7 @@ package uk.ac.imperial.dws04.Presage2Experiments;
 import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 
+import java.io.InvalidClassException;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -189,8 +190,16 @@ public class RoadAgentTest {
 			}
 
 			@Override
-			public Boolean isWithinTolerance(String issue, Object value) {
+			public Boolean isWithinTolerance(String issue, Object value) throws InvalidClassException {
 				return super.isWithinTolerance(issue, value);
+			}
+			
+			public void assertWithinTolerance(String issue, Object value, Boolean expected) {
+				try {
+					assertThat(isWithinTolerance(issue, value), is(expected));
+				} catch (InvalidClassException e) {
+					fail();
+				}
 			}
 		}
 		
@@ -204,26 +213,31 @@ public class RoadAgentTest {
 		injector.injectMembers(a);
 		a.initialise();
 		
-		assertThat(a.isWithinTolerance("speed", -4), is(false));
-		assertThat(a.isWithinTolerance("speed", 2), is(false));
-		assertThat(a.isWithinTolerance("speed", 3), is(true));
-		assertThat(a.isWithinTolerance("speed", 4), is(true));
-		assertThat(a.isWithinTolerance("speed", 5), is(true));
-		assertThat(a.isWithinTolerance("speed", 6), is(true));
-		assertThat(a.isWithinTolerance("speed", 7), is(true));
-		assertThat(a.isWithinTolerance("speed", 8), is(false));
-		assertThat(a.isWithinTolerance("speed", 9), is(false));
-		assertThat(a.isWithinTolerance("speed", 10), is(false));
+		a.assertWithinTolerance("speed", -4, false);
+		a.assertWithinTolerance("speed", 2, false);
+		a.assertWithinTolerance("speed", 3, true);
+		a.assertWithinTolerance("speed", 4, true);
+		a.assertWithinTolerance("speed", 5, true);
+		a.assertWithinTolerance("speed", 6, true);
+		a.assertWithinTolerance("speed", 7, true);
+		a.assertWithinTolerance("speed", 8, false);
+		a.assertWithinTolerance("speed", 9, false);
+		a.assertWithinTolerance("speed", 10, false);
 
-		assertThat(a.isWithinTolerance("spacing", -2), is(false));
-		assertThat(a.isWithinTolerance("spacing", 0), is(false));
-		assertThat(a.isWithinTolerance("spacing", 1), is(true));
-		assertThat(a.isWithinTolerance("spacing", 2), is(true));
-		assertThat(a.isWithinTolerance("spacing", 3), is(true));
-		assertThat(a.isWithinTolerance("spacing", 4), is(false));
+		a.assertWithinTolerance("spacing", -2, false);
+		a.assertWithinTolerance("spacing", 0, false);
+		a.assertWithinTolerance("spacing", 1, true);
+		a.assertWithinTolerance("spacing", 2, true);
+		a.assertWithinTolerance("spacing", 3, true);
+		a.assertWithinTolerance("spacing", 4, false);
 
-		assertThat(a.isWithinTolerance("sdfghj", -2), nullValue());
-		assertThat(a.isWithinTolerance("spacing", new Integer[]{1, 2,}), nullValue());
+		a.assertWithinTolerance("sdfghj", -2, null);
+		
+		try {
+			a.isWithinTolerance("spacing", new Integer[]{1, 2,});
+			fail("Didn't throw as expected");
+		} catch (InvalidClassException e) {
+		}
 		
 	}
 	
