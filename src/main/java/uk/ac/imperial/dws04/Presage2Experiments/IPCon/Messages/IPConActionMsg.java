@@ -25,7 +25,7 @@ public class IPConActionMsg extends BroadcastMessage<IPConAction> {
 	 */
 	@Override
 	public String toString() {
-		return "IPConActionMsg [time=" + timestamp + ", from=" + from + ", IPConAction=" + data + "]";
+		return type + "[time=" + timestamp + ", from=" + from + ", IPConAction=" + data + "]";
 	}
 
 }
