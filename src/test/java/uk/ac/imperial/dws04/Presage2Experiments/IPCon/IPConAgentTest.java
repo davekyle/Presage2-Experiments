@@ -827,7 +827,8 @@ public class IPConAgentTest {
 			a2.execute();
 			incrementTime();
 		}
-		
+
+		// FIXME TODO need to write the RESPONSE CODE !
 		
 		assertThat((Integer)globalIPConService.getChosen(hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).getValue(), is(2));
 		assertThat(globalIPConService.getFactQueryResults("Vote", hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).size(), is(2));
