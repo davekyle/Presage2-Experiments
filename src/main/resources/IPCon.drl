@@ -220,6 +220,7 @@ rule "Vote initiates Voted and ReportedVote"
 		insert( new ReportedVote( $agent, $revision, $ballot, $value, $revision, $ballot, $issue, $cluster ) );
 end
 
+// TODO Quirk - if there are no acceptors, any submitted value is instantly chosen.
 rule "holdsAt for Chosen"
 	no-loop
 	when
