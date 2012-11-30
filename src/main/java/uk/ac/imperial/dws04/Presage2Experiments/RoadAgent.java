@@ -426,7 +426,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * Add all relevant actions to queue of actions
 		 * FIXME TODO
 		 */
-		ArrayList<IPConAction> obligatedActions = getInstatiatedObligatedActionQueue();
+		LinkedList<IPConAction> obligatedActions = getInstatiatedObligatedActionQueue();
+		//TODO FIXME probably don't want to do this, but for the time being...
+		while(!obligatedActions.isEmpty()) {
+			messageQueue.add(generateIPConActionMsg(obligatedActions.removeFirst()));
+		}
 		
 		/*
 		 * Derive microgoals to fulfil macrogoals
@@ -610,15 +614,15 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 	}
 
-	public ArrayList<IPConAction> TESTgetInstantiatedObligatedActionQueue() {
+	public LinkedList<IPConAction> TESTgetInstantiatedObligatedActionQueue() {
 		return getInstatiatedObligatedActionQueue();
 	}
 	
-	private ArrayList<IPConAction> getInstatiatedObligatedActionQueue() {
+	private LinkedList<IPConAction> getInstatiatedObligatedActionQueue() {
 		HashSet<IPConAction> obligations = (HashSet<IPConAction>) ipconService.getObligations(ipconHandle, null, null, null);
 		HashSet<IPConAction> permissions = (HashSet<IPConAction>) ipconService.getPermissions(ipconHandle, null, null, null);
 		HashMap<String, ArrayList<IPConAction>> perMap = new HashMap<String, ArrayList<IPConAction>>();
-		ArrayList<IPConAction> queue = new ArrayList<IPConAction>();
+		LinkedList<IPConAction> queue = new LinkedList<IPConAction>();
 		
 		// Split permissions by class
 		for (IPConAction per : permissions) {

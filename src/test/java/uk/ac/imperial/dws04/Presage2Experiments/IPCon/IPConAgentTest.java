@@ -7,15 +7,20 @@ import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.rule.QueryResults;
+import org.drools.runtime.rule.QueryResultsRow;
+import org.drools.runtime.rule.Variable;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.After;
@@ -211,7 +216,12 @@ public class IPConAgentTest {
 	}
 	
 	private TestAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
-		TestAgent a = new TestAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
+		 RoadAgentGoals goals = new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0);
+		 return createAgent(name, startLoc, startSpeed, goals);
+	}
+	
+	private TestAgent createAgent(String name, RoadLocation startLoc, int startSpeed, RoadAgentGoals goals) {
+		TestAgent a = new TestAgent(Random.randomUUID(), name, startLoc, startSpeed, goals);
 		// FIXME TODO Not sure if this is needed...?
 		injector.injectMembers(a);
 		a.initialise();
@@ -312,7 +322,7 @@ public class IPConAgentTest {
 		logger.info("A1 permitted to :" + per1);
 		assertEquals(1,per1.size());
 		
-		ArrayList<IPConAction> a1Obl1 = a1.TESTgetInstantiatedObligatedActionQueue();
+		LinkedList<IPConAction> a1Obl1 = a1.TESTgetInstantiatedObligatedActionQueue();
 		assertEquals(1, a1Obl1.size());
 		logger.info("A1 obligated to: " + obl1.toArray()[0]);
 		logger.info("A1 instantiated: " + a1Obl1.get(0));
@@ -354,7 +364,7 @@ public class IPConAgentTest {
 		Collection<IPConAction> obl3a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
 		assertEquals(1,obl3a.size());
 		
-		ArrayList<IPConAction> a1Obl3 = a1.TESTgetInstantiatedObligatedActionQueue();
+		LinkedList<IPConAction> a1Obl3 = a1.TESTgetInstantiatedObligatedActionQueue();
 		assertEquals(1, a1Obl3.size());
 		logger.info("A1 obligated to: " + obl3.toArray()[0]);
 		logger.info("A1 instantiated: " + a1Obl3.get(0));
@@ -402,7 +412,7 @@ public class IPConAgentTest {
 		Collection<IPConAction> obl5a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
 		assertEquals(1,obl5a.size());
 		
-		ArrayList<IPConAction> a1Obl5 = a1.TESTgetInstantiatedObligatedActionQueue();
+		LinkedList<IPConAction> a1Obl5 = a1.TESTgetInstantiatedObligatedActionQueue();
 		assertEquals(1, a1Obl5.size());
 		logger.info("A1 obligated to: " + obl5.toArray()[0]);
 		logger.info("A1 instantiated: " + a1Obl5.get(0));
@@ -422,7 +432,7 @@ public class IPConAgentTest {
 		Collection<IPConAction> obl6a = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
 		assertEquals(1,obl6a.size());
 		
-		ArrayList<IPConAction> a4Obl6 = a4.TESTgetInstantiatedObligatedActionQueue();
+		LinkedList<IPConAction> a4Obl6 = a4.TESTgetInstantiatedObligatedActionQueue();
 		assertEquals(1, a4Obl6.size());
 		logger.info("A4 obligated to: " + obl6.toArray()[0]);
 		logger.info("A4 instantiated: " + a4Obl6.get(0));
@@ -479,13 +489,13 @@ public class IPConAgentTest {
 		logger.info("A3 permitted to :" + per3);
 		assertEquals(1,per3.size());
 		
-		ArrayList<IPConAction> a1Obl1 = a1.TESTgetInstantiatedObligatedActionQueue();
+		LinkedList<IPConAction> a1Obl1 = a1.TESTgetInstantiatedObligatedActionQueue();
 		assertEquals(1, a1Obl1.size());
 		logger.info("A1 obligated to: " + obl1.toArray()[0]);
 		logger.info("A1 instantiated: " + a1Obl1.get(0));
 		assertTrue(a1Obl1.get(0).fulfils((IPConAction)obl1.toArray()[0]));
 		
-		ArrayList<IPConAction> a3Obl1 = a3.TESTgetInstantiatedObligatedActionQueue();
+		LinkedList<IPConAction> a3Obl1 = a3.TESTgetInstantiatedObligatedActionQueue();
 		assertEquals(1, a3Obl1.size());
 		logger.info("A3 obligated to: " + obl3.toArray()[0]);
 		logger.info("A3 instantiated: " + a3Obl1.get(0));
@@ -751,8 +761,72 @@ public class IPConAgentTest {
 	}
 	
 	@Test
-	public void testVoting() {
+	public void testVotingYes() {
+		logger.info("\nBeginning test of voting yes...");
 		
+		// Make agents, let them execute a while to make RICS
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(2,1,50,5,2));
+		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(2,5,50,5,2));
+		
+		for (int i = 1; i<=10; i++) {
+			a1.execute();
+			a2.execute();
+			incrementTime();
+		}
+		
+		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in RICS : " + a1RICs);
+		assertThat(a1RICs.size(), is( 2 ) );
+		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		logger.info("A2 is in RICS : " + a2RICs);
+		assertThat(a2RICs.size(), is( 2 ) );
+		
+		for (IPConRIC a1RIC : a1RICs) {
+			assertThat( a2RICs, hasItem(a1RIC) );
+		}
+		logger.info("** Setup successful: A1 and A2 both in same RICs **");
+		
+		// get leader for speed
+		ArrayList<HasRole> hasRoles = new ArrayList<HasRole>();
+		ArrayList<Object> lookup = new ArrayList<Object>();
+		lookup.addAll(Arrays.asList(new Object[]{Variable.v, "speed", Variable.v}));
+		QueryResults facts = session.getQueryResults("getRICLeader", lookup.toArray());
+		for (QueryResultsRow row : facts) {
+			//leaders.add((IPConAgent)row.get("$leader"));
+			hasRoles.add((HasRole)row.get("$role"));
+		}
+		TestAgent leader = null; 
+		IPConAgent ipconLeader = hasRoles.get(0).getAgent();
+		if (ipconLeader.equals(a1.getIPConHandle())) {
+			leader = a1;
+		}
+		else {
+			leader = a2;
+		}
+		
+		Integer value = 2;
+		
+		// Need to make the leader a proposer...
+		AddRole addRole = new AddRole(ipconLeader, ipconLeader, Role.PROPOSER, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()); 
+		Request0A req = new Request0A(ipconLeader, hasRoles.get(0).getRevision(), value, hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
+		IPConActionMsg roleMsg = new IPConActionMsg(Performative.INFORM, time, leader.getNetwork().getAddress(), addRole);
+		IPConActionMsg reqMsg = new IPConActionMsg(Performative.INFORM, time, leader.getNetwork().getAddress(), req);
+		leader.getNetwork().sendMessage(roleMsg);
+		leader.getNetwork().sendMessage(reqMsg);
+		logger.info(leader + " sent msgs " + roleMsg + " and " + reqMsg);
+		
+		// wait some more
+		for (int i = 1; i<=10; i++) {
+			a1.execute();
+			a2.execute();
+			incrementTime();
+		}
+		
+		
+		assertThat((Integer)globalIPConService.getChosen(hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).getValue(), is(2));
+		logger.info("** Successfully voted for the right value **");
+		
+		logger.info("Finished test of voting yes\n");
 	}
 	
 	@Test
