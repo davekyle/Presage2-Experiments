@@ -517,7 +517,7 @@ query "getAgentRoles" ( IPConAgent $agent, Integer $revision, String $issue, UUI
 end
 
 query "getRICLeader" ( Integer $revision, String $issue, UUID $cluster )
-	HasRole( $leader : agent, role==Role.LEADER, revision==$revision, issue==$issue, cluster==$cluster ) 
+	$role : HasRole( $leader : agent, role==Role.LEADER, revision==$revision, issue==$issue, cluster==$cluster ) 
 end
 
 query "getChosen" ( Integer $revision, String $issue, UUID $cluster )
