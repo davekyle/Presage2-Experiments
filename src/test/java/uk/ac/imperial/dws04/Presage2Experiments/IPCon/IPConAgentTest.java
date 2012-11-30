@@ -804,16 +804,22 @@ public class IPConAgentTest {
 			leader = a2;
 		}
 		
+		// The agents agree
 		Integer value = 2;
 		
 		// Need to make the leader a proposer...
-		AddRole addRole = new AddRole(ipconLeader, ipconLeader, Role.PROPOSER, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()); 
+		AddRole addProp = new AddRole(ipconLeader, ipconLeader, Role.PROPOSER, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
+		// and both agents acceptors...
+		AddRole addAcc1 = new AddRole(ipconLeader, a1.getIPConHandle(), Role.ACCEPTOR, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
+		AddRole addAcc2 = new AddRole(ipconLeader, a2.getIPConHandle(), Role.ACCEPTOR, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
 		Request0A req = new Request0A(ipconLeader, hasRoles.get(0).getRevision(), value, hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
-		IPConActionMsg roleMsg = new IPConActionMsg(Performative.INFORM, time, leader.getNetwork().getAddress(), addRole);
-		IPConActionMsg reqMsg = new IPConActionMsg(Performative.INFORM, time, leader.getNetwork().getAddress(), req);
-		leader.getNetwork().sendMessage(roleMsg);
-		leader.getNetwork().sendMessage(reqMsg);
-		logger.info(leader + " sent msgs " + roleMsg + " and " + reqMsg);
+		ArrayList<IPConAction> acts = new ArrayList<IPConAction>();
+		acts.add(addProp); acts.add(addAcc1); acts.add(addAcc2); acts.add(req);
+		
+		for (IPConAction act : acts) {
+			leader.getNetwork().sendMessage(new IPConActionMsg(Performative.INFORM, time, leader.getNetwork().getAddress(), act));
+		}
+		logger.info(leader + " sent msgs " + acts);
 		
 		// wait some more
 		for (int i = 1; i<=10; i++) {
@@ -824,9 +830,86 @@ public class IPConAgentTest {
 		
 		
 		assertThat((Integer)globalIPConService.getChosen(hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).getValue(), is(2));
-		logger.info("** Successfully voted for the right value **");
+		assertThat(globalIPConService.getFactQueryResults("Vote", hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).size(), is(2));
+		logger.info("** Successfully both voted for the right value **");
 		
 		logger.info("Finished test of voting yes\n");
+	}
+	
+	@Test
+	public void testVotingNo() {
+		logger.info("\nBeginning test of voting no...");
+		
+		// Make agents, let them execute a while to make RICS
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(2,1,50,5,2));
+		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(2,5,50,5,2));
+		
+		for (int i = 1; i<=10; i++) {
+			a1.execute();
+			a2.execute();
+			incrementTime();
+		}
+		
+		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in RICS : " + a1RICs);
+		assertThat(a1RICs.size(), is( 2 ) );
+		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		logger.info("A2 is in RICS : " + a2RICs);
+		assertThat(a2RICs.size(), is( 2 ) );
+		
+		for (IPConRIC a1RIC : a1RICs) {
+			assertThat( a2RICs, hasItem(a1RIC) );
+		}
+		logger.info("** Setup successful: A1 and A2 both in same RICs **");
+		
+		// get leader for speed
+		ArrayList<HasRole> hasRoles = new ArrayList<HasRole>();
+		ArrayList<Object> lookup = new ArrayList<Object>();
+		lookup.addAll(Arrays.asList(new Object[]{Variable.v, "speed", Variable.v}));
+		QueryResults facts = session.getQueryResults("getRICLeader", lookup.toArray());
+		for (QueryResultsRow row : facts) {
+			//leaders.add((IPConAgent)row.get("$leader"));
+			hasRoles.add((HasRole)row.get("$role"));
+		}
+		TestAgent leader = null; 
+		IPConAgent ipconLeader = hasRoles.get(0).getAgent();
+		if (ipconLeader.equals(a1.getIPConHandle())) {
+			leader = a1;
+		}
+		else {
+			leader = a2;
+		}
+		
+		// The agents do not agree
+		Integer value = 4;
+		
+		// Need to make the leader a proposer...
+		AddRole addProp = new AddRole(ipconLeader, ipconLeader, Role.PROPOSER, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
+		// and both agents acceptors...
+		AddRole addAcc1 = new AddRole(ipconLeader, a1.getIPConHandle(), Role.ACCEPTOR, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
+		AddRole addAcc2 = new AddRole(ipconLeader, a2.getIPConHandle(), Role.ACCEPTOR, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
+		Request0A req = new Request0A(ipconLeader, hasRoles.get(0).getRevision(), value, hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
+		ArrayList<IPConAction> acts = new ArrayList<IPConAction>();
+		acts.add(addProp); acts.add(addAcc1); acts.add(addAcc2); acts.add(req);
+		
+		for (IPConAction act : acts) {
+			leader.getNetwork().sendMessage(new IPConActionMsg(Performative.INFORM, time, leader.getNetwork().getAddress(), act));
+		}
+		logger.info(leader + " sent msgs " + acts);
+		
+		// wait some more
+		for (int i = 1; i<=10; i++) {
+			a1.execute();
+			a2.execute();
+			incrementTime();
+		}
+		
+		
+		assertThat(globalIPConService.getChosen(hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()), nullValue());
+		assertThat(globalIPConService.getFactQueryResults("Voted", hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).size(), is(1));
+		logger.info("** Successfully did not achieve consensus **");
+		
+		logger.info("Finished test of voting no\n");
 	}
 	
 	@Test
