@@ -103,6 +103,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * Collection for RICs - should be populated every cycle with agents that ping
 	 */
 	private HashMap<IPConRIC,Object> nearbyRICs;
+	private LinkedList<IPConRIC> ricsToJoin;
+	private LinkedList<IPConRIC> ricsToArrogate;
+	private LinkedList<IPConRIC> ricsToResign;
+	private LinkedList<IPConAction> ipconActions;
+	private LinkedList<Message> messageQueue;
 	 
 	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
@@ -120,6 +125,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		this.startImpatience = (new Long(Math.round(Random.randomDouble()*10))).intValue();
 		this.impatience = new HashMap<String,Integer>();
 		this.nearbyRICs = new HashMap<IPConRIC,Object>();
+		ricsToJoin = new LinkedList<IPConRIC>();
+		ricsToArrogate = new LinkedList<IPConRIC>();
+		ricsToResign = new LinkedList<IPConRIC>();
+		ipconActions = new LinkedList<IPConAction>();
+		messageQueue = new LinkedList<Message>();
 	}
 	
 	/**
@@ -243,10 +253,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 */
 		HashMap<IPConRIC,Object> institutionalFacts = new HashMap<IPConRIC,Object>();
 		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
-		ArrayList<IPConRIC> ricsToJoin = new ArrayList<IPConRIC>();
-		ArrayList<IPConRIC> ricsToArrogate = new ArrayList<IPConRIC>();
-		ArrayList<IPConRIC> ricsToResign = new ArrayList<IPConRIC>();
-		ArrayList<IPConAction> ipconActions = new ArrayList<IPConAction>();
 		for (IPConRIC ric : currentRICs) {
 			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			if (value!=null) {
@@ -374,25 +380,41 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		/*
 		 * Arrogate in all RICS you need to
 		 */
-		for (IPConRIC ric : ricsToArrogate) {
+		while (!ricsToArrogate.isEmpty()) {
+			IPConRIC ric = ricsToArrogate.removeFirst();
 			ArrogateLeadership act = new ArrogateLeadership(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
 			ipconActions.add(act);
 		}
+		/*for (IPConRIC ric : ricsToArrogate) {
+			ArrogateLeadership act = new ArrogateLeadership(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
+			ipconActions.add(act);
+		}*/
+		
 		/*
 		 * Join all RICS you need to
 		 */
-		for (IPConRIC ric : ricsToJoin) {
+		while (!ricsToJoin.isEmpty()) {
+			IPConRIC ric = ricsToJoin.removeFirst();
 			JoinAsLearner act = new JoinAsLearner(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
 			ipconActions.add(act);
 		}
+		/*for (IPConRIC ric : ricsToJoin) {
+			JoinAsLearner act = new JoinAsLearner(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
+			ipconActions.add(act);
+		}*/
 		
 		/*
 		 * Resign leadership in all RICs you should
 		 */
-		for (IPConRIC ric : ricsToResign) {
+		while (!ricsToResign.isEmpty()) {
+			IPConRIC ric = ricsToResign.removeFirst();
 			ResignLeadership act = new ResignLeadership(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
 			ipconActions.add(act);
 		}
+		/*for (IPConRIC ric : ricsToResign) {
+			ResignLeadership act = new ResignLeadership(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
+			ipconActions.add(act);
+		}*/
 		
 		/*
 		 * Get obligations
@@ -420,14 +442,15 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		
 
-		@SuppressWarnings("rawtypes")
-		ArrayList<Message> messageQueue = new ArrayList<Message>();
 		/*
 		 * Do all IPConActions
 		 */
-		for (IPConAction act : ipconActions) {
-			messageQueue.add(generateIPConActionMsg(act));
+		while(!ipconActions.isEmpty()) {
+			messageQueue.add(generateIPConActionMsg(ipconActions.removeFirst()));
 		}
+		/*for (IPConAction act : ipconActions) {
+			messageQueue.add(generateIPConActionMsg(act));
+		}*/
 		
 		/*
 		 * Generate broadcast msgs indicating which RICs you're in
@@ -443,8 +466,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		/*
 		 * Send all messages queued
 		 */
-		for (Message msg : messageQueue) {
-			sendMessage(msg);
+		//for (Message msg : messageQueue) {
+		while (!messageQueue.isEmpty()) {
+			sendMessage(messageQueue.removeFirst());
 		}
 		
 		
@@ -1377,6 +1401,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		if (arg0 instanceof ClusterPing) {
 			process((ClusterPing)arg0);
 		}
+		else if (arg0 instanceof IPConActionMsg) {
+			if ( ((IPConActionMsg)arg0).getType().equalsIgnoreCase("IPConActionMsg[Submit2A]") ) {
+				process((Submit2A)(((IPConActionMsg) arg0).getData()));
+			}
+		}
 		else {
 			logger.info("[" + getID() + "] Agent " + getName() + " not processing input: " + arg0.toString());
 		}
@@ -1387,4 +1416,41 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		this.nearbyRICs.put(arg0.getData().getA(), arg0.getData().getB());
 	}
 
+	/**
+	 * After receiving a Submit2A message, the agent should decide whether or not to vote or abstain.
+	 * This is done by checking whether or not the submitted value is within tolerance or not.
+	 * If so, or if the agent does not have a goal for the issue, the agent will vote for it
+	 * If not, or if the proposed value is the wrong type compared to what the agent expected, it will abstain.
+	 * @param arg0
+	 */
+	private void process(Submit2A arg0) {
+		logger.info(getID() + " processing " + arg0);
+		IPConRIC ric = new IPConRIC(arg0.getRevision(), arg0.getIssue(), arg0.getCluster());
+		if (!ipconService.getCurrentRICs().contains(ric)) {
+			logger.info(getID() + " is not in " + ric);
+		}
+		else {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			Object value = arg0.getValue();
+			Integer ballot = arg0.getBallot();
+			Boolean isWithinTolerance = null;
+			try {
+				isWithinTolerance = isWithinTolerance(issue, value);
+			} catch (InvalidClassException e) {
+				// should warn about it
+				logger.warn(e);
+				isWithinTolerance = false;
+			}
+			if (isWithinTolerance==null || isWithinTolerance) {
+				// vote yes
+				ipconActions.add(new Vote2B(getIPConHandle(), revision, ballot, value, issue, cluster));
+			}
+			else {
+				// don't vote
+				// FIXME TODO feed into propose/leaveCluster likelihood ?
+			}
+		}
+	}
 }
