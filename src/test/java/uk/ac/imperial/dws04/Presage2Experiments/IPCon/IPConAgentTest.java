@@ -439,7 +439,7 @@ public class IPConAgentTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void multiLeaderObligationSelfInstantiationTest() throws Exception {
+	public void testMultiLeaderObligationSelfInstantiation() throws Exception {
 		logger.info("\nBeginning test of obligation self-instantiation in the face of multiple leaders...");
 		/**
 		 * This requires access to a fn which should be private, so calling public wrapper fn
@@ -507,7 +507,7 @@ public class IPConAgentTest {
 	}
 	
 	@Test
-	public void clusterArrogateTest() throws Exception {
+	public void testClusterArrogate() throws Exception {
 		logger.info("\nBeginning test of arrogating when no clusters for goals are present...");		
 		// Make an agent, execute() 11 times (impatience<=10), check there are 2 RICs (spacing and speed)
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
@@ -562,7 +562,7 @@ public class IPConAgentTest {
 	}
 	
 	@Test
-	public void clusterJoinTest() throws Exception {
+	public void testClusterJoin() throws Exception {
 		logger.info("\nBeginning test of joining nearby clusters...");		
 		// Make an agent, execute() 11 times (impatience<=10), check there are 2 RICs (spacing and speed)
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
@@ -604,7 +604,7 @@ public class IPConAgentTest {
 	}
 	
 	@Test
-	public void clusterArrogateLeaderlessRICTest() throws Exception {
+	public void testArrogateLeaderlessRIC() throws Exception {
 		logger.info("\nBeginning test of arrogating in a leaderless RIC...");		
 
 		final Integer revision1 = 1;
@@ -641,7 +641,7 @@ public class IPConAgentTest {
 	}
 	
 	@Test
-	public void clusterJoinRICInCurrentClusterTest() throws Exception {
+	public void testJoinRICInCurrentCluster() throws Exception {
 		logger.info("\nBeginning test of joining RIC in current cluster...");		
 
 		final Integer revision1 = 1;
@@ -693,7 +693,7 @@ public class IPConAgentTest {
 	}
 	
 	@Test
-	public void clusterResignTest() throws Exception {
+	public void testClusterResign() throws Exception {
 		logger.info("\nBeginning test of resigning when multiple leaders exist...");		
 		// Make agents, make them both leader, execute, check only one leader
 		final Integer revision = 1;
@@ -748,6 +748,11 @@ public class IPConAgentTest {
 
 		
 		logger.info("Finished test of resigning when multiple leaders exist\n");
+	}
+	
+	@Test
+	public void testVoting() {
+		
 	}
 	
 	@Test
