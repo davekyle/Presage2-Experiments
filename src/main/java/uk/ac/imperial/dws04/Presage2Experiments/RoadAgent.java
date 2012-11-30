@@ -220,7 +220,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 */
 		
 		/*
-		 * Throw a warning in more than one cluster, because that doesn't seem to be too useful
+		 * Throw a warning if in more than one cluster, because that doesn't seem to be too useful
 		 */
 		Boolean inMultipleClusters = checkClusterMembership();
 		if (inMultipleClusters) {
@@ -487,6 +487,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		return this.nearbyRICs.keySet();
 	}
 
+	/**
+	 * @return map of goals <value,tolerance>
+	 */
 	private HashMap<String, Pair<Integer, Integer>> getGoalMap() {
 		return getGoals().getMap();
 	}
@@ -558,6 +561,22 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private Chosen getChosenFact(Integer revision, String issue, UUID cluster) {
 		return ipconService.getChosen(revision, issue, cluster);
+	}
+	
+	/**
+	 * 
+	 * @param issue name of issue to be checked
+	 * @param value value to be checked
+	 * @return true if the given value is within the tolerance for the goal relating to the given issue, null if no goal for that issue or if value is the wrong type, false otherwise
+	 */
+	protected Boolean isWithinTolerance(String issue, Object value) {
+		if ( (!this.getGoalMap().containsKey(issue)) || (!(value instanceof Integer)) ){
+			return null;
+		}
+		else {
+			Pair<Integer, Integer> pair = this.getGoalMap().get(issue);
+			return Math.abs(((Integer)value)-pair.getA())<=pair.getB();
+		}
 	}
 
 	public ArrayList<IPConAction> TESTgetInstantiatedObligatedActionQueue() {

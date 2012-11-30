@@ -3,10 +3,11 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.*;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 
 import org.jmock.Expectations;
@@ -176,6 +177,54 @@ public class RoadAgentTest {
 	public void incrementTime(){
 		time.increment();
 		env.incrementTime();
+	}
+	
+	@Test
+	public void testIsWithinTolerance() throws Exception {
+		class TestAgent extends RoadAgent {
+			public TestAgent(UUID id, String name, RoadLocation myLoc,
+					int mySpeed, RoadAgentGoals goals) {
+				super(id, name, myLoc, mySpeed, goals);
+				// TODO Auto-generated constructor stub
+			}
+
+			@Override
+			public Boolean isWithinTolerance(String issue, Object value) {
+				return super.isWithinTolerance(issue, value);
+			}
+		}
+		
+		setUp();
+		int speed = 5;
+		int speedTol = 2;
+		int spacing = 2;
+		int spacingTol = 1;
+		RoadAgentGoals goals = new RoadAgentGoals(speed, speedTol, 0, spacing, spacingTol);
+		TestAgent a = new TestAgent(Random.randomUUID(), "a", new RoadLocation(0,0), 1, goals);
+		injector.injectMembers(a);
+		a.initialise();
+		
+		assertThat(a.isWithinTolerance("speed", -4), is(false));
+		assertThat(a.isWithinTolerance("speed", 2), is(false));
+		assertThat(a.isWithinTolerance("speed", 3), is(true));
+		assertThat(a.isWithinTolerance("speed", 4), is(true));
+		assertThat(a.isWithinTolerance("speed", 5), is(true));
+		assertThat(a.isWithinTolerance("speed", 6), is(true));
+		assertThat(a.isWithinTolerance("speed", 7), is(true));
+		assertThat(a.isWithinTolerance("speed", 8), is(false));
+		assertThat(a.isWithinTolerance("speed", 9), is(false));
+		assertThat(a.isWithinTolerance("speed", 10), is(false));
+
+		assertThat(a.isWithinTolerance("spacing", -2), is(false));
+		assertThat(a.isWithinTolerance("spacing", 0), is(false));
+		assertThat(a.isWithinTolerance("spacing", 1), is(true));
+		assertThat(a.isWithinTolerance("spacing", 2), is(true));
+		assertThat(a.isWithinTolerance("spacing", 3), is(true));
+		assertThat(a.isWithinTolerance("spacing", 4), is(false));
+
+		assertThat(a.isWithinTolerance("sdfghj", -2), nullValue());
+		assertThat(a.isWithinTolerance("spacing", new Integer[]{1, 2,}), nullValue());
+		
 	}
 	
 	@Test

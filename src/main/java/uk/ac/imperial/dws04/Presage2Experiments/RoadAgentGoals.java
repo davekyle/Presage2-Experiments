@@ -84,6 +84,9 @@ public class RoadAgentGoals {
 		return spacingTolerance;
 	}
 	
+	/**
+	 * @return map of goals <value,tolerance>
+	 */
 	public final HashMap<String,Pair<Integer, Integer>> getMap() {
 		return map;
 	}
