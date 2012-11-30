@@ -33,8 +33,18 @@ public class RoadAgentGoals {
 		this.speed = speed;
 		this.dest = dest;
 		this.spacing = spacing;
-		this.speedTolerance = 2;
-		this.spacingTolerance = 2;
+		if (speed-2<0) {
+			speedTolerance = speed;
+		}
+		else {
+			this.speedTolerance = 2;
+		}
+		if (spacing-2<0) {
+			spacingTolerance = spacing;
+		}
+		else {
+			this.spacingTolerance = 2;
+		}
 		map.put("speed", new Pair<Integer, Integer>(getSpeed(),getSpeedTolerance()));
 		map.put("spacing", new Pair<Integer, Integer>(getSpacing(),getSpacingTolerance()));
 	}
@@ -45,6 +55,13 @@ public class RoadAgentGoals {
 		this.spacing = spacing;
 		this.speedTolerance = speedTolerance;
 		this.spacingTolerance = spacingTolerance;
+		if (speed-speedTolerance<0) {
+			speedTolerance = speed;
+		}
+		if (spacing-spacingTolerance<0) {
+			spacingTolerance = spacing;
+		}
+		
 		map.put("speed", new Pair<Integer, Integer>(getSpeed(),getSpeedTolerance()));
 		map.put("spacing", new Pair<Integer, Integer>(getSpacing(),getSpacingTolerance()));
 	}
