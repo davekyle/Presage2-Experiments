@@ -106,6 +106,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private LinkedList<IPConRIC> ricsToJoin;
 	private LinkedList<IPConRIC> ricsToArrogate;
 	private LinkedList<IPConRIC> ricsToResign;
+	private LinkedList<IPConAction> prospectiveActions;
 	private LinkedList<IPConAction> ipconActions;
 	private LinkedList<Message> messageQueue;
 	 
@@ -128,6 +129,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		ricsToJoin = new LinkedList<IPConRIC>();
 		ricsToArrogate = new LinkedList<IPConRIC>();
 		ricsToResign = new LinkedList<IPConRIC>();
+		prospectiveActions = new LinkedList<IPConAction>();
 		ipconActions = new LinkedList<IPConAction>();
 		messageQueue = new LinkedList<Message>();
 	}
@@ -419,6 +421,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		/*
 		 * Get obligations
 		 * Get permissions
+		 * Take the actions you're expected to do from your inputs (prospectiveActions queue)
 		 * Use permissions to instantiate obligations
 		 * Do something sensible from your permissions (eg responses if you didn't vote yet, and voting itself !)
 		 * Check for conflicting obligations/permissions
@@ -426,7 +429,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * Add all relevant actions to queue of actions
 		 * FIXME TODO
 		 */
-		LinkedList<IPConAction> obligatedActions = getInstatiatedObligatedActionQueue();
+		LinkedList<IPConAction> obligatedActions = getInstatiatedObligatedActionQueue(prospectiveActions);
 		//TODO FIXME probably don't want to do this, but for the time being...
 		while(!obligatedActions.isEmpty()) {
 			messageQueue.add(generateIPConActionMsg(obligatedActions.removeFirst()));
@@ -615,14 +618,18 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 
 	public LinkedList<IPConAction> TESTgetInstantiatedObligatedActionQueue() {
-		return getInstatiatedObligatedActionQueue();
+		return getInstatiatedObligatedActionQueue(new LinkedList<IPConAction>());
 	}
 	
-	private LinkedList<IPConAction> getInstatiatedObligatedActionQueue() {
+	private LinkedList<IPConAction> getInstatiatedObligatedActionQueue(LinkedList<IPConAction> prospectiveActions) {
 		HashSet<IPConAction> obligations = (HashSet<IPConAction>) ipconService.getObligations(ipconHandle, null, null, null);
 		HashSet<IPConAction> permissions = (HashSet<IPConAction>) ipconService.getPermissions(ipconHandle, null, null, null);
 		HashMap<String, ArrayList<IPConAction>> perMap = new HashMap<String, ArrayList<IPConAction>>();
 		LinkedList<IPConAction> queue = new LinkedList<IPConAction>();
+		
+		// add in actions from input (and clear it, since it's a queue)
+		obligations.addAll(prospectiveActions);
+		prospectiveActions.clear();
 		
 		// Split permissions by class
 		for (IPConAction per : permissions) {
@@ -1409,6 +1416,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			if ( ((IPConActionMsg)arg0).getType().equalsIgnoreCase("IPConActionMsg[Submit2A]") ) {
 				process((Submit2A)(((IPConActionMsg) arg0).getData()));
 			}
+			else if ( ((IPConActionMsg)arg0).getType().equalsIgnoreCase("IPConActionMsg[Prepare1A]") ) {
+				process((Prepare1A)(((IPConActionMsg) arg0).getData()));
+			}
 		}
 		else {
 			logger.info("[" + getID() + "] Agent " + getName() + " not processing input: " + arg0.toString());
@@ -1443,18 +1453,34 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			try {
 				isWithinTolerance = isWithinTolerance(issue, value);
 			} catch (InvalidClassException e) {
-				// should warn about it
+				// should warn about it if type is wrong
 				logger.warn(e);
 				isWithinTolerance = false;
 			}
 			if (isWithinTolerance==null || isWithinTolerance) {
 				// vote yes
-				ipconActions.add(new Vote2B(getIPConHandle(), revision, ballot, value, issue, cluster));
+				prospectiveActions.add(new Vote2B(getIPConHandle(), revision, ballot, value, issue, cluster));
 			}
 			else {
 				// don't vote
 				// FIXME TODO feed into propose/leaveCluster likelihood ?
 			}
+		}
+	}
+	
+	private void process(Prepare1A arg0) {
+		logger.info(getID() + " processing " + arg0);
+		IPConRIC ric = new IPConRIC(arg0.getRevision(), arg0.getIssue(), arg0.getCluster());
+		if (!ipconService.getCurrentRICs().contains(ric)) {
+			logger.info(getID() + " is not in " + ric);
+		}
+		else {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			Integer ballot = arg0.getBallot();
+			// submit prospective action with nulls to be filled in from permission
+			prospectiveActions.add(new Response1B(getIPConHandle(), null, null, null, revision, ballot, issue, cluster));
 		}
 	}
 }
