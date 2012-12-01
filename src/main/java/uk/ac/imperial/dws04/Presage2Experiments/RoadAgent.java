@@ -421,7 +421,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		/*
 		 * Get obligations
 		 * Get permissions
-		 * Take the actions you're expected to do from your inputs (prospectiveActions queue)
 		 * Use permissions to instantiate obligations
 		 * Do something sensible from your permissions (eg responses if you didn't vote yet, and voting itself !)
 		 * Check for conflicting obligations/permissions
@@ -429,10 +428,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 * Add all relevant actions to queue of actions
 		 * FIXME TODO
 		 */
-		LinkedList<IPConAction> obligatedActions = getInstatiatedObligatedActionQueue(prospectiveActions);
+		LinkedList<IPConAction> obligatedActions = getInstatiatedObligatedActionQueue();
 		//TODO FIXME probably don't want to do this, but for the time being...
 		while(!obligatedActions.isEmpty()) {
-			messageQueue.add(generateIPConActionMsg(obligatedActions.removeFirst()));
+			ipconActions.add(obligatedActions.removeFirst());
+		}
+		
+		// deal with prospective actions
+		while (!prospectiveActions.isEmpty()) {
+			IPConAction act = instantiateProspectiveAction(prospectiveActions.removeFirst());
+			if (act!=null) {
+				ipconActions.add(act);
+			}
+			// else do nothing
 		}
 		
 		/*
@@ -506,7 +514,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		submitMove(move);
 	}
-	
+
 	private Boolean checkClusterMembership() {
 		ArrayList<UUID> clusters = new ArrayList<UUID>();
 		for (IPConRIC ric : getNearbyRICs()) {
@@ -616,20 +624,145 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 		}
 	}
+	
+
+	/**
+	 * Instantiates any nulls in prospective actions and checks given values are permitted.
+	 * Only works for Response1B and Vote2B
+	 * @param prospectiveAction Should be a Response1B or Vote2B
+	 * @return fully instantiated action, or null if no permitted instantiation could be found
+	 */
+	private IPConAction instantiateProspectiveAction(final IPConAction prospectiveAction) {
+		ArrayList<IPConAction> permissions = new ArrayList<IPConAction>();
+		IPConAction result = null;
+		// Get permissions for class
+		for (IPConAction per : ipconService.getPermissions(getIPConHandle(), null, null, null)) {
+			String type = per.getClass().getSimpleName();
+			if (type.equalsIgnoreCase(prospectiveAction.getClass().getSimpleName())) {
+				permissions.add(per);
+			}
+		}
+		// if no permissions
+		if (permissions.isEmpty()) {
+			logger.warn(getID() + " is not permitted to " + prospectiveAction + " !");
+			result = null;
+		}
+		else {
+			logger.trace(getID() + " found permissions " + permissions);
+			// if only one option
+			if (permissions.size()==1) {
+				result = instantiateFieldsForProspectivePermission(prospectiveAction, permissions.get(0));
+			}
+			else {
+				// more than one permission
+				// get all the valid instantiations (discard nulls)
+				ArrayList<IPConAction> instantiations = new ArrayList<IPConAction>();
+				for (IPConAction per : permissions) {
+					IPConAction inst = instantiateFieldsForProspectivePermission(prospectiveAction, per);
+					if (inst!=null) {
+						instantiations.add(inst);
+					}
+				}
+				// if you passed it a fully instantiated permitted set of values, just do that.
+				// (this will probably be the most used option...)
+				if (instantiations.contains(prospectiveAction)) {
+					logger.trace("Passed in action " + prospectiveAction + " was valid.");
+					result = prospectiveAction;
+				}
+				else {
+					// do something different depending on what action it is.
+					String actionType = prospectiveAction.getClass().getSimpleName();
+					if (actionType.equalsIgnoreCase("Response1B")) {
+						
+					}
+					else if (actionType.equalsIgnoreCase("Vote2B")) {
+						// get from process()
+					}
+					else {
+						logger.warn(getID() + " cannot instantiate prospective actions of type " + actionType + " so choosing " + instantiations.get(0) + " psuedorandomly.");
+						result = instantiations.get(0);
+					}
+				}
+			}
+		}
+		logger.trace(getID() + " instantiated " + result + " from " + prospectiveAction);
+		return result;
+	}
+
+	/**
+	 * @param prospectiveAction
+	 * @param permission
+	 * @return instantiated action, or null if no permitted instantiation could not be found
+	 */
+	private IPConAction instantiateFieldsForProspectivePermission( final IPConAction prospectiveAction, final IPConAction permission) {
+		ArrayList<Pair<Field,Object>> fieldVals = new ArrayList<Pair<Field,Object>>();
+		IPConAction result = prospectiveAction.copy();
+		for (Field f : permission.getClass().getFields()) {
+			try {
+				// if the field is null, get the permitted value
+				if (f.get(result)==null) {
+					fieldVals.add(new Pair<Field,Object>(f,f.get(permission)));
+				}
+				else {
+					// if the field is not null, check it is actually permitted
+					if (! ( f.get(result).equals(f.get(permission) ) ) ) {
+						logger.warn(getID() + " wanted to use " + f.get(result) + " for " + f.getName() + " which is not permitted! (should never happen)");
+						return null;
+					}
+				}
+			} catch (IllegalArgumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		if (!fieldVals.isEmpty()) {
+			logger.trace(getID() + " has to instantiate : " + fieldVals);
+			// if there were any nulls in result...
+			// check there are no nulls in fieldVals
+			Boolean nulls = false;
+			
+			for (Pair<Field,Object> pair : fieldVals) {
+				nulls = (nulls || ( pair.getB() == null ) );
+			}
+			// if none then go for it
+			if (!nulls) {
+				// fill in nulls in result
+				for (Pair<Field,Object> pair : fieldVals) {
+					try {
+						pair.getA().set(result, pair.getB());
+					} catch (IllegalArgumentException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IllegalAccessException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+			// if there are nulls, then... ? (should never happen)
+			else {
+				logger.warn(getID() + " found nulls in their permission (" + permission + ") when trying to instantiate " + prospectiveAction);
+				result = null;
+			}
+		}
+		else {
+			logger.trace(getID() + " has nothing to do to instantiate " + result);
+		}
+		return result;
+	}
 
 	public LinkedList<IPConAction> TESTgetInstantiatedObligatedActionQueue() {
-		return getInstatiatedObligatedActionQueue(new LinkedList<IPConAction>());
+		return getInstatiatedObligatedActionQueue();
 	}
 	
-	private LinkedList<IPConAction> getInstatiatedObligatedActionQueue(LinkedList<IPConAction> prospectiveActions) {
+	private LinkedList<IPConAction> getInstatiatedObligatedActionQueue() {
 		HashSet<IPConAction> obligations = (HashSet<IPConAction>) ipconService.getObligations(ipconHandle, null, null, null);
 		HashSet<IPConAction> permissions = (HashSet<IPConAction>) ipconService.getPermissions(ipconHandle, null, null, null);
 		HashMap<String, ArrayList<IPConAction>> perMap = new HashMap<String, ArrayList<IPConAction>>();
 		LinkedList<IPConAction> queue = new LinkedList<IPConAction>();
-		
-		// add in actions from input (and clear it, since it's a queue)
-		obligations.addAll(prospectiveActions);
-		prospectiveActions.clear();
 		
 		// Split permissions by class
 		for (IPConAction per : permissions) {
@@ -944,6 +1077,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					e.printStackTrace();
 				}
 			}
+			else if ((fName.equals("voteBallot")) ||
+			
+				(fName.equals("voteRevision")) ||
+			
+				(fName.equals("voteValue")) ) {
+				// fill this in for prospective Response1B action
+			}
+			
 			// biiiiiig if statement...
 			else if ( (fName.equals("ballot")) ||
 			
@@ -956,12 +1097,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				(fName.equals("issue")) ||
 			
 				(fName.equals("cluster")) ||
-			
-				(fName.equals("voteBallot")) ||
-			
-				(fName.equals("voteRevision")) ||
-			
-				(fName.equals("voteValue")) ||
 				
 				(fName.equals("role")) ) {
 					logger.warn(getID() + " encountered a multivalue \"" + fName + "\" field (" + vals + "), which should never happen! Obligation was " + obl);
