@@ -109,6 +109,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private LinkedList<IPConAction> prospectiveActions;
 	private LinkedList<IPConAction> ipconActions;
 	private LinkedList<Message> messageQueue;
+	private LinkedList<IPConActionMsg> ownMsgs;
 	 
 	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
@@ -132,6 +133,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		prospectiveActions = new LinkedList<IPConAction>();
 		ipconActions = new LinkedList<IPConAction>();
 		messageQueue = new LinkedList<Message>();
+		ownMsgs = new LinkedList<IPConActionMsg> ();
 	}
 	
 	/**
@@ -210,6 +212,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		// pull in Messages from the network
 		enqueueInput(this.network.getMessages());
+		
+		// insert msgs from self (since broadcasts don't self-deliver)
+		this.inputQueue.addAll(ownMsgs);
+		ownMsgs.clear();
 		
 		// check inputs
 		logger.trace(getID() + " has msgs:" + this.inputQueue);
@@ -663,24 +669,35 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						instantiations.add(inst);
 					}
 				}
-				// if you passed it a fully instantiated permitted set of values, just do that.
-				// (this will probably be the most used option...)
-				if (instantiations.contains(prospectiveAction)) {
-					logger.trace("Passed in action " + prospectiveAction + " was valid.");
-					result = prospectiveAction;
+				if (instantiations.isEmpty()) {
+					logger.warn(getID() + " could not get any valid actions from " + prospectiveAction);
+					result = null;
 				}
 				else {
-					// do something different depending on what action it is.
-					String actionType = prospectiveAction.getClass().getSimpleName();
-					if (actionType.equalsIgnoreCase("Response1B")) {
-						
-					}
-					else if (actionType.equalsIgnoreCase("Vote2B")) {
-						// get from process()
+				// if you passed it a fully instantiated permitted set of values, just do that.
+				// (this will probably be the most used option...)
+					if (instantiations.contains(prospectiveAction)) {
+						logger.trace("Passed in action " + prospectiveAction + " was valid, so using that.");
+						result = prospectiveAction;
 					}
 					else {
-						logger.warn(getID() + " cannot instantiate prospective actions of type " + actionType + " so choosing " + instantiations.get(0) + " psuedorandomly.");
-						result = instantiations.get(0);
+						// do something different depending on what action it is.
+						String actionType = prospectiveAction.getClass().getSimpleName();
+						if (actionType.equalsIgnoreCase("Response1B")) {
+							// should never be multiple options
+							if (instantiations.size()!=1) {
+								logger.warn(getID() + " had multiple options for Response1B (" + instantiations + ") so pseudorandomly choosing " + instantiations.get(0));
+							}
+							result = instantiations.get(0);
+						}
+						else if (actionType.equalsIgnoreCase("Vote2B")) {
+							logger.warn(getID() + " didn't pass in a fully instantiated Vote2B (" + prospectiveAction + ") so pseudorandomly choosing " + instantiations.get(0));
+							result = instantiations.get(0);
+						}
+						else {
+							logger.warn(getID() + " cannot instantiate prospective actions of type " + actionType + " so psuedorandomly choosing " + instantiations.get(0));
+							result = instantiations.get(0);
+						}
 					}
 				}
 			}
@@ -1523,6 +1540,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	private void sendMessage(Message msg) {
 		this.network.sendMessage(msg);
+		if (msg instanceof IPConActionMsg) {
+			this.ownMsgs.add((IPConActionMsg)msg);
+		}
 	}
 
 	/**
