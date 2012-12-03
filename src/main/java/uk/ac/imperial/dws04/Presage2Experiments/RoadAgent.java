@@ -31,7 +31,6 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
-import uk.ac.imperial.presage2.core.environment.ActionHandler;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
@@ -46,8 +45,6 @@ import uk.ac.imperial.presage2.util.fsm.FSM;
 import uk.ac.imperial.presage2.util.fsm.FSMDescription;
 import uk.ac.imperial.presage2.util.fsm.FSMException;
 import uk.ac.imperial.presage2.util.fsm.StateType;
-import uk.ac.imperial.presage2.util.fsm.Transition;
-import uk.ac.imperial.presage2.util.fsm.TransitionCondition;
 import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
@@ -108,6 +105,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private LinkedList<IPConRIC> ricsToResign;
 	private LinkedList<IPConAction> prospectiveActions;
 	private LinkedList<IPConAction> ipconActions;
+	@SuppressWarnings("rawtypes")
 	private LinkedList<Message> messageQueue;
 	private LinkedList<IPConActionMsg> ownMsgs;
 	 
@@ -1509,15 +1507,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			logger.warn("Error trying to move", e);
 		}
 	}
-	
-	/**
-	 * Convert IPConAction to a message and send it
-	 * @param act IPConAction to send
-	 */
-	private void submitIPConAction(IPConAction act) {
-		logger.debug("[" + getID() + "] Agent " + getName() + " sending IPConAction msg: " + act);
-		generateIPConActionMsg(act);
-	}
 
 	/**
 	 * @param <T>
@@ -1538,6 +1527,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		return new IPConActionMsg(perf, getTime(), network.getAddress(), act);
 	}
 	
+	@SuppressWarnings("rawtypes") 
 	private void sendMessage(Message msg) {
 		this.network.sendMessage(msg);
 		if (msg instanceof IPConActionMsg) {
