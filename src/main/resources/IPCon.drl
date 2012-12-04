@@ -117,7 +117,7 @@ end
 rule "Prune actions"
 	when
 		Time( $n : number )
-		$a : TimestampedAction( t < $n - 1)
+		$a : TimeStampedAction( t < $n - 1)
 	then
 		retract( $a )
 end

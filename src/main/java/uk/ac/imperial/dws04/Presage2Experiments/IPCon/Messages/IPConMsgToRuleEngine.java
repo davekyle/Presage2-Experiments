@@ -8,7 +8,10 @@ import org.drools.runtime.StatefulKnowledgeSession;
 
 import com.google.inject.Inject;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.TimeStampedAction;
 import uk.ac.imperial.presage2.core.network.Message;
+import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.rules.MessagesToRuleEngine;
 
 /**
@@ -39,7 +42,11 @@ public class IPConMsgToRuleEngine extends MessagesToRuleEngine {
 	@Override
 	public Message constrainMessage(Message m){
 		if (m instanceof IPConActionMsg) {
-			sessionPtr.insert(((IPConActionMsg)m).getData());
+			IPConAction action = ((IPConActionMsg)m).getData();
+			if (action instanceof TimeStampedAction) {
+				((TimeStampedAction) action).setT(SimTime.get().intValue());
+			}
+			sessionPtr.insert(action);
 			logger.trace("Inserting " + ((IPConActionMsg)m).getData() + " to kbase. Message was " + m + ".");
 			return m;
 		}
