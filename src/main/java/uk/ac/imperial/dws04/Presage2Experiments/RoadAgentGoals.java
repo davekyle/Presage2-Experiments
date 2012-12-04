@@ -1,5 +1,6 @@
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
 import uk.ac.imperial.dws04.utils.record.Pair;
@@ -9,7 +10,12 @@ import uk.ac.imperial.dws04.utils.record.Pair;
  * @author dws04
  *
  */
-public class RoadAgentGoals {
+public class RoadAgentGoals implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 2158321319125928198L;
+
 	private final HashMap<String,Pair<Integer, Integer>> map = new HashMap<String,Pair<Integer, Integer>>();
 	
 	/**

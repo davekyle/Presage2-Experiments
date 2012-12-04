@@ -9,9 +9,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
+import org.drools.lang.dsl.DSLMapParser.entry_return;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.rule.QueryResults;
 import org.drools.runtime.rule.QueryResultsRow;
@@ -21,8 +23,11 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -35,6 +40,7 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.util.random.Random;
 
 /**
  * @author dws04
@@ -84,11 +90,30 @@ public class IPConService extends EnvironmentService {
 		}
 	}
 	
+	/** 
+	 * Inserts the agent fact for the registered agent, and sets them to be LEAD/ACC/PROP/LEARN for a cluster containing RICS on all their goals
+	 * Inserts a Request on behalf of the agent, but they must them continue the process to determine a value.
+	 * @see uk.ac.imperial.presage2.core.environment.EnvironmentService#registerParticipant(uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest)
+	 */
 	@Override
 	public void registerParticipant(EnvironmentRegistrationRequest req) {
 		// do insertion of IPConAgent fact and such
 		logger.trace("Inserting agent via global IPConService " + ((RoadAgent)req.getParticipant()).getIPConHandle());
-		session.insert( ((RoadAgent)req.getParticipant()).getIPConHandle() );
+		IPConAgent handle = ((RoadAgent)req.getParticipant()).getIPConHandle();
+		session.insert( handle );
+		UUID cluster = Random.randomUUID();
+		HashMap<String, Pair<Integer, Integer>> goals = ((RoadAgentGoals)sharedState.get("ipcon.goals", req.getParticipantID())).getMap();
+		for (Entry<String, Pair<Integer, Integer>> goal : goals.entrySet()) {
+			Integer revision = 0;
+			String issue = goal.getKey();
+			Integer value = goal.getValue().getA();
+			session.insert(new IPConRIC(revision, issue, cluster));
+			session.insert(new HasRole(Role.LEADER, handle, revision, issue, cluster));
+			session.insert(new HasRole(Role.ACCEPTOR, handle, revision, issue, cluster));
+			session.insert(new HasRole(Role.LEARNER, handle, revision, issue, cluster));
+			session.insert(new HasRole(Role.PROPOSER, handle, revision, issue, cluster));
+			session.insert(new Request0A(handle, revision, value, issue, cluster));
+		}
 	}
 	
 	/**

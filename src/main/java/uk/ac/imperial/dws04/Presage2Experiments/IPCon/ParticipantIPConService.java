@@ -17,6 +17,7 @@ import org.drools.runtime.rule.Variable;
 import com.google.inject.Inject;
 
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
@@ -26,6 +27,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.SharedStateAccessException;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.participant.Participant;
@@ -51,6 +53,22 @@ public class ParticipantIPConService extends IPConService {
 			logger.error(p.getID() + " does not have an IPCon handle...");
 		}
     }
+	
+	/**
+	 * Create the {@link ParticipantSharedState} required for this service.
+	 * This is for registration purposes only, so don't make a getter!
+	 * 
+	 * @param pid
+	 *            {@link UUID} of the participant to create sharedstate object
+	 *            for.
+	 * @param s
+	 *            Goals of the agent, for registration purposes
+	 * @return {@link ParticipantSharedState} on the type that this service
+	 *         uses.
+	 */
+	public static ParticipantSharedState createSharedState(UUID pid, RoadAgentGoals s) {
+		return new ParticipantSharedState("ipcon.goals", s, pid);
+	}
 	
 /*	@Override
 	public void registerParticipant(EnvironmentRegistrationRequest req) {
