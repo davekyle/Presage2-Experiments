@@ -9,7 +9,7 @@ import java.lang.reflect.Field;
  * @author dws04
  *
  */
-public abstract class IPConAction {
+public abstract class IPConAction extends TimeStampedAction {
 	
 	/**
 	 * Indicates whether this action *could* fulfil an obligation to perform the given action (also requires other checks on the obl)

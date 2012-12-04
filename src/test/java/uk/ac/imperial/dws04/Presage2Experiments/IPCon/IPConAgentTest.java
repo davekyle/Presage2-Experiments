@@ -40,6 +40,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConActionMsg;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.LeaveCluster;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ResignLeadership;
@@ -541,8 +542,8 @@ public class IPConAgentTest {
 		logger.info("\nBeginning test of arrogating into same cluster...");	
 		// TODO FIXME this doesn't really test what it says it does...
 		for (IPConRIC ric : rics) {
-			ResignLeadership resign = new ResignLeadership(a1.getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
-			IPConActionMsg resignation = new IPConActionMsg(Performative.INFORM, time, a1.getNetwork().getAddress(), resign);
+			LeaveCluster leave = new LeaveCluster(a1.getIPConHandle(), ric.getCluster());
+			IPConActionMsg resignation = new IPConActionMsg(Performative.INFORM, time, a1.getNetwork().getAddress(), leave);
 			a1.getNetwork().sendMessage(resignation);
 			logger.trace("A1 resigning from " + ric);
 		}

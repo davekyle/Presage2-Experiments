@@ -148,6 +148,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		Set<ParticipantSharedState> ss = super.getSharedState();
 		ss.add(ParticipantRoadLocationService.createSharedState(getID(), myLoc));
 		ss.add(ParticipantSpeedService.createSharedState(getID(), mySpeed));
+		// add this here for registration purposes, but don't put a getter anywhere
+		ss.add(ParticipantIPConService.createSharedState(getID(), goals));
 		return ss;
 	}
 	
@@ -288,7 +290,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// if not,
 		// - Check if a nearby cluster has issue
 		// - - Join if yes
-		// - - Arrogate if no and mayArrogate()
+		// - - Arrogate if no (always want to be in a RIC)
 		for (String issue : getGoalMap().keySet()) {
 			Boolean found = false;
 			Boolean foundInCluster = false;
@@ -323,8 +325,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						}
 					}
 				}
-				if (isImpatient(issue) && !foundNearby && !foundInCluster) {
-					logger.trace(getID() + " could not find a RIC to join for " + issue + " and is impatient so will arrogate.");
+				if (/*isImpatient(issue) && */!foundNearby && !foundInCluster) {
+					logger.trace(getID() + " could not find a RIC to join for " + issue + /*" and is impatient " +*/ " so will arrogate.");
 					// Make a RIC to arrogate
 					// I = issue
 					// C = cluster you are in, if in one
@@ -357,7 +359,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				else {
 					// update impatience if you can't find a cluster to join
 					if (!foundNearby) {
-						logger.trace(getID() + " could not find a RIC to join for " + issue + " so will wait and check next cycle.");
+						logger.warn("**THIS SHOULD NEVER HAPPEN** " + getID() + " could not find a RIC to join for " + issue + " so will wait and check next cycle. ");
 						updateImpatience(issue);
 					}
 					else {

@@ -113,6 +113,14 @@ declare AgentLeft
 	issue : String
 	cluster : UUID
 end
+
+rule "Prune actions"
+	when
+		Time( $n : number )
+		$a : TimestampedAction( t < $n - 1)
+	then
+		retract( $a )
+end
 	
 
 rule "Request0A initiates Proposed"
@@ -275,7 +283,7 @@ rule "Resign terminates IsLeader"
 		logger.trace("Resign retracted role : " + $role );
 		retract( $role );
 		// FORCE it to get removed (since apparently @expire doesn't work...
-		retract( $resign );
+		//retract( $resign );
 end
 
 rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
@@ -284,7 +292,7 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 	//lock-on-active true
 	no-loop
 	when
-		LeaveCluster( $agent : agent, $cluster : cluster )
+		$leave : LeaveCluster( $agent : agent, $cluster : cluster )
 		//LeavePow( agent==$agent, cluster==$cluster )
 		
 		Power( agent==$agent, $action : action )
@@ -333,6 +341,7 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 				retract( n2Sync );
 			}
 		}
+		//retract( $leave );
 		// FIXME what about Voted facts - they affect Chosen, but not possRemRev ? 
 end
 
@@ -363,7 +372,7 @@ rule "RemRole terminates role"
 	agenda-group "exit"
 	auto-focus true
 	when
-		RemRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
+		$remRole : RemRole( $leader : leader, $agent : agent, $role : role, $revision : revision, $issue : issue, $cluster : cluster )
 		//RemRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
 		Power( agent==$leader, $action : action )
 		RemRole( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster ) from $action
@@ -375,13 +384,14 @@ end
 
 rule "RemRole initiates AgentLeft flag fact"
 	when
-		RemRole( $leader : leader, $agent : agent, $role : role, $role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster )
+		$remRole : RemRole( $leader : leader, $agent : agent, $role : role, $role==Role.ACCEPTOR, $revision : revision, $issue : issue, $cluster : cluster )
 		//RemRolePow( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster )
 		Power( agent==$leader, $action : action )
 		RemRole( leader==$leader, agent==$agent, role==$role, revision==$revision, issue==$issue, cluster==$cluster ) from $action
 	then
 		logger.trace("RemRole inserted AgentLeft: " + $agent + " , " + $revision + " , " + $issue + " , " + $cluster );
 		insert( new AgentLeft( $agent, $revision, $issue, $cluster ) );
+		//retract( $remRole );
 end
 
 rule "Revise initiates new RIC"

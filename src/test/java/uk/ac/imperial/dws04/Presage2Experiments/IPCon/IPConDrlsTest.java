@@ -344,6 +344,46 @@ public class IPConDrlsTest {
 		logger.info("Finished fromScratchTest()\n");
 	}
 	
+	/**
+	 * Checks to see if RemRole fact sticks around...
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void remRoleTest() throws Exception {
+		logger.info("\nStarting remRoleTest()");
+		
+		Integer revision = 1;
+		String issue = "IssueString";
+		UUID cluster = Random.randomUUID();
+	
+		
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1); initAgent(a1, new Role[]{Role.LEADER, Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
+		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2); initAgent(a2, new Role[]{Role.ACCEPTOR}, revision, issue, cluster);
+	
+		rules.incrementTime();
+
+		assertFactCount("HasRole", revision, issue, cluster, 4);
+		
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 4);
+		
+		session.insert(new RemRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 3);
+		
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 3);
+		
+		session.insert(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 4);
+	}
+	
 	@Test
 	public void resignTest() throws Exception {
 		logger.info("\nStarting resignTest()");
