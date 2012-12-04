@@ -414,6 +414,58 @@ public class IPConDrlsTest {
 		
 		assertActionCount("getPowers", "ResignLeadership", a1, revision, issue, cluster, 0);
 		assertActionCount("getPowers", "Request0A", a1, revision, issue, cluster, 1);
+		
+		/*
+		 * Check it lasts
+		 */
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 2);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 1);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 0);
+		assertFactCount("Open_Vote", revision, issue, cluster, 0);
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		assertFactCount("Voted", revision, issue, cluster, 2);
+		assertFactCount("ReportedVote", revision, issue, cluster, 1);
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 0); // obligated to report the vote, and to prepare
+		assertActionCount("getObligations", "Response1B", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "Prepare1A", a1, revision, issue, cluster, 0);
+		
+		assertActionCount("getPowers", "ResignLeadership", a1, revision, issue, cluster, 0);
+		assertActionCount("getPowers", "Request0A", a1, revision, issue, cluster, 1);
+		
+		/*
+		 * Insert arrogate 
+		 */
+		session.insert(new ArrogateLeadership(a1, revision, issue, cluster));
+		rules.incrementTime();
+		
+		assertFactCount("HasRole", revision, issue, cluster, 3);
+		assertFactCount("Sync", revision, issue, cluster, 0);
+		assertFactCount("NeedToSync", revision, issue, cluster, 0);
+		assertQuorumSize(revision, issue, cluster, 1);
+		assertFactCount("Pre_Vote", revision, issue, cluster, 0);
+		assertFactCount("Open_Vote", revision, issue, cluster, 0);
+		assertFactCount("Chosen", revision, issue, cluster, 0);
+		assertFactCount("Voted", revision, issue, cluster, 2);
+		assertFactCount("ReportedVote", revision, issue, cluster, 1);
+		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
+		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0);
+		
+		assertActionCount("getObligations", null, null, revision, issue, cluster, 1); // obligated to prepare
+		assertActionCount("getObligations", "Response1B", a1, revision, issue, cluster, 0);
+		assertActionCount("getObligations", "Prepare1A", a1, revision, issue, cluster, 1);
+		
+		assertActionCount("getPowers", "ResignLeadership", a1, revision, issue, cluster, 1);
+		assertActionCount("getPowers", "Request0A", a1, revision, issue, cluster, 1);
+		
 	}
 	
 	@Test

@@ -73,7 +73,7 @@ end
 
 declare ResignLeadership
 	@role( event )
-	@expires( 1s )
+	@expires( 0s )
 end
 
 declare Revise
@@ -266,7 +266,7 @@ end
 
 rule "Resign terminates IsLeader"
 	when
-		ResignLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
+		$resign : ResignLeadership( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		//ResignPow( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster )
 		Power( agent==$agent, $action : action )
 		ResignLeadership( agent==$agent, revision==$revision, issue==$issue, cluster==$cluster ) from $action
@@ -274,6 +274,8 @@ rule "Resign terminates IsLeader"
 	then
 		logger.trace("Resign retracted role : " + $role );
 		retract( $role );
+		// FORCE it to get removed (since apparently @expire doesn't work...
+		retract( $resign );
 end
 
 rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
