@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 import org.drools.lang.dsl.DSLMapParser.entry_return;
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.rule.FactHandle;
 import org.drools.runtime.rule.QueryResults;
 import org.drools.runtime.rule.QueryResultsRow;
 import org.drools.runtime.rule.Variable;
@@ -26,6 +27,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConTime;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
@@ -36,10 +38,15 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairAThenBAscComparator;
+import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.event.EventBus;
+import uk.ac.imperial.presage2.core.event.EventListener;
+import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
+import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 
 /**
@@ -52,6 +59,7 @@ public class IPConService extends EnvironmentService {
 	private final Logger logger = Logger.getLogger(this.getClass());
 	StatefulKnowledgeSession session;
 	private final EnvironmentServiceProvider serviceProvider;
+	private FactHandle timeHandle;
 
 	@Inject
 	public IPConService(EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider,
@@ -62,7 +70,7 @@ public class IPConService extends EnvironmentService {
 		session.setGlobal("logger", this.logger);
 		session.setGlobal("IPCNV_val", IPCNV.val());
 		session.setGlobal("IPCNV_bal", IPCNV.bal());
-		
+		timeHandle = session.insert(new IPConTime(SimTime.get().intValue()));
 		for (Role role : Role.values()) {
 			session.insert(role);
 		}
@@ -88,6 +96,16 @@ public class IPConService extends EnvironmentService {
 				session.insert(role);
 			}
 		}
+	}
+	
+	@Inject
+	void setEventBus(EventBus eb) {
+	    eb.subscribe(this);
+	}
+	
+	@EventListener
+	public void onEndOfCycle(EndOfTimeCycle event) {
+		session.update(timeHandle, event.getTime().intValue()+1);
 	}
 	
 	/** 

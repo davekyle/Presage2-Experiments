@@ -45,6 +45,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ResignLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.TimeStampedAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -245,7 +246,13 @@ public class IPConAgentTest {
 		// otherwise msgs never delivered...
 		networkController.onParticipantsComplete(null);
 		env.incrementTime();
-		
+	}
+	
+	private void insert(Object obj) {
+		if (obj instanceof TimeStampedAction) {
+			((TimeStampedAction)obj).setT(time.intValue());
+		}
+		session.insert(obj);
 	}
 	
 	/**
@@ -254,13 +261,13 @@ public class IPConAgentTest {
 	private void addRoles(IPConAgent agent, Role[] roles, Integer revision, String issue, UUID cluster) {
 		//Set roles
 		for (Role role : roles) {
-			session.insert(new IPConRIC(revision, issue, cluster));
-			session.insert(new HasRole(role, agent, revision, issue, cluster));
+			insert(new IPConRIC(revision, issue, cluster));
+			insert(new HasRole(role, agent, revision, issue, cluster));
 		}
 		// Initially didn't vote
-		//session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
+		//insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
 		// And the reportedvote for the initially
-		//session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
+		//insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
 	}
 	
 	/**
@@ -312,8 +319,8 @@ public class IPConAgentTest {
 		 * A2 requests.
 		 * A1 now should be obligated to prepare.
 		 */
-		session.insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
-		rules.incrementTime();
+		insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
+		incrementTime();
 		Collection<IPConAction> obl1 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
 		logger.info("A1 obligated to :" + obl1);
 		assertEquals(1,obl1.size());
@@ -335,7 +342,7 @@ public class IPConAgentTest {
 		 * A2 and A3 not obligated to respond, but should respond with IPCNV.
 		 */
 		session.insert(a1Obl1.get(0));
-		rules.incrementTime();
+		incrementTime();
 		Collection<IPConAction> obl2 = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
 		logger.info("Agents not obligated :" + obl2);
 		assertEquals(0,obl2.size());
@@ -358,7 +365,7 @@ public class IPConAgentTest {
 		for (IPConAction act : per2) {
 			session.insert(act);
 		}
-		rules.incrementTime();
+		incrementTime();
 		Collection<IPConAction> obl3 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Submit2A", a1.getIPConHandle(), revision, issue, cluster);
 		logger.info("A1 obligated to :" + obl3);
 		assertEquals(1,obl3.size());
@@ -377,7 +384,7 @@ public class IPConAgentTest {
 		 * A1-3 not obligated to vote, but permitted to.
 		 */
 		session.insert(a1Obl3.get(0));
-		rules.incrementTime();
+		incrementTime();
 		Collection<IPConAction> per3 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Vote2B", null, revision, issue, cluster);
 		logger.info("Agents permitted to :" + per3);
 		assertEquals(3,per3.size());
@@ -390,7 +397,7 @@ public class IPConAgentTest {
 		for (IPConAction act : per3) {
 			session.insert(act);
 		}
-		rules.incrementTime();
+		incrementTime();
 		Collection<IPConAction> obl4 = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
 		logger.info("Agents not obligated :" + obl4);
 		assertEquals(0,obl4.size());
@@ -404,8 +411,8 @@ public class IPConAgentTest {
 		 * A1 should be obligated to SyncReq the new agent.
 		 */
 		TestAgent a4 = createAgent("a4", new RoadLocation(0,2), 1);
-		session.insert(new AddRole(a1.getIPConHandle(), a4.getIPConHandle(), Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insert(new AddRole(a1.getIPConHandle(), a4.getIPConHandle(), Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
 		Collection<IPConAction> obl5 = globalIPConService.getActionQueryResultsForRIC("getObligations", "SyncReq", a1.getIPConHandle(), revision, issue, cluster);
 		logger.info("A1 obligated to :" + obl5);
@@ -426,7 +433,7 @@ public class IPConAgentTest {
 		 * A1-3 should not be obligated.
 		 */
 		session.insert(a1Obl5.get(0));
-		rules.incrementTime();
+		incrementTime();
 		Collection<IPConAction> obl6 = globalIPConService.getActionQueryResultsForRIC("getObligations", "SyncAck", a4.getIPConHandle(), revision, issue, cluster);
 		logger.info("A4 obligated to :" + obl6);
 		assertEquals(1,obl6.size());
@@ -473,8 +480,8 @@ public class IPConAgentTest {
 		 * A2 requests.
 		 * A1 and A3 now should be obligated to prepare.
 		 */
-		session.insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
-		rules.incrementTime();
+		insert(new Request0A(a2.getIPConHandle(), revision, value, issue, cluster));
+		incrementTime();
 		Collection<IPConAction> obl1 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Prepare1A", a1.getIPConHandle(), revision, issue, cluster);
 		logger.info("A1 obligated to :" + obl1);
 		assertEquals(1,obl1.size());
@@ -491,9 +498,9 @@ public class IPConAgentTest {
 		assertEquals(1,per3.size());
 		
 		LinkedList<IPConAction> a1Obl1 = a1.TESTgetInstantiatedObligatedActionQueue();
+		logger.info("A1 obligated to: " + obl1);
+		logger.info("A1 instantiated: " + a1Obl1);
 		assertEquals(1, a1Obl1.size());
-		logger.info("A1 obligated to: " + obl1.toArray()[0]);
-		logger.info("A1 instantiated: " + a1Obl1.get(0));
 		assertTrue(a1Obl1.get(0).fulfils((IPConAction)obl1.toArray()[0]));
 		
 		LinkedList<IPConAction> a3Obl1 = a3.TESTgetInstantiatedObligatedActionQueue();
