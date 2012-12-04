@@ -108,6 +108,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	@SuppressWarnings("rawtypes")
 	private LinkedList<Message> messageQueue;
 	private LinkedList<IPConActionMsg> ownMsgs;
+	private HashMap<IPConRIC,Object> institutionalFacts;
 	 
 	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
@@ -132,6 +133,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		ipconActions = new LinkedList<IPConAction>();
 		messageQueue = new LinkedList<Message>();
 		ownMsgs = new LinkedList<IPConActionMsg> ();
+		institutionalFacts = new HashMap<IPConRIC,Object>();
 	}
 	
 	/**
@@ -244,20 +246,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			logger.warn(getID() + " is in multiple clusters ! : " + getNearbyRICs());
 		}
 		
-		/*
-		 * Get IPCon info
-		 *  - get the RIC the agent is in
-		 *  - get the current state for each (ie, cheat :P - maybe this should rely on memory ?)
-		 *  - - this is only to get indication of required speed and spacing
-		 *  - If not in an issue/cluster...
-		 *  - - join nearby cluster's issue
-		 *  - - arrogate if no suitable nearby
-		 *  - If RIC has a leader, and you're also leader...
-		 *  - - see if you should resign
-		 *  - If RIC doesn't have a leader, arrogate
-		 * FIXME TODO
-		 */
-		HashMap<IPConRIC,Object> institutionalFacts = new HashMap<IPConRIC,Object>();
 		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
 		for (IPConRIC ric : currentRICs) {
 			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster());
@@ -265,12 +253,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// "null" should never be chosen as a value, so we can do this ?
 				value = ((Chosen)value).getValue();
 				logger.trace(getID() + " thinks " + value + " has been chosen in " + ric);
+				institutionalFacts.put(ric, value);
 			}
 			else {
 				// "null" should never be chosen as a value, so we can do this ?
-				logger.trace(getID() + " thinks there is no chosen value in " + ric);
+				logger.trace(getID() + " thinks there is no chosen value in " + ric + ", but has " + institutionalFacts.get(ric) + " in memory.");
 			}
-			institutionalFacts.put(ric, value);
 			// Check for leaders
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			// no leaders, maybe arrogate?
