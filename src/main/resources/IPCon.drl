@@ -17,6 +17,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConPowPer.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConUtils.*
 
 // my presage2
+import uk.ac.imperial.presage2.core.IntegerTime
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*
@@ -91,6 +92,10 @@ declare SyncReq
 	@expires( 1s )
 end
 
+declare TimeStampedAction
+	@role( event )
+end
+
 // internal flag event for an empowered no syncAck
 declare SyncNo
 	@role( event )
@@ -114,10 +119,13 @@ declare AgentLeft
 	cluster : UUID
 end
 
+declare IPConTime
+end
+
 rule "Prune actions"
 	when
-		Time( $n : number )
-		$a : TimeStampedAction( t < $n - 1)
+		IPConTime( $time : time )
+		$a : TimeStampedAction( t < $time - 1)
 	then
 		retract( $a )
 end

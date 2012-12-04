@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import org.drools.definition.type.FactType;
 import org.drools.runtime.ObjectFilter;
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.rule.FactHandle;
 import org.drools.runtime.rule.QueryResults;
 import org.drools.runtime.rule.QueryResultsRow;
 import org.drools.runtime.rule.Variable;
@@ -30,6 +31,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConTime;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.LeaveCluster;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.RemRole;
@@ -40,6 +42,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Revise;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Submit2A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncReq;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.TimeStampedAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Vote2B;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*;
 import uk.ac.imperial.presage2.core.util.random.Random;
@@ -55,12 +58,14 @@ import com.google.inject.Injector;
  *
  */
 public class IPConDrlsTest {
-	
+
 	final private Logger logger = Logger.getLogger(IPConDrlsTest.class);
 
 	Injector injector;
 	RuleStorage rules;
 	StatefulKnowledgeSession session;
+	FactHandle timeHandle;
+	IPConTime time;
 
 	@Before
 	public void setUp() throws Exception {
@@ -74,6 +79,7 @@ public class IPConDrlsTest {
 				);
 		rules = injector.getInstance(RuleStorage.class);
 		session = injector.getInstance(StatefulKnowledgeSession.class);
+		time = new IPConTime(0);
 		initSession();
 	}
 
@@ -92,6 +98,7 @@ public class IPConDrlsTest {
 		for (Role role : Role.values()) {
 			session.insert(role);
 		}
+		timeHandle = session.insert(time);
 	}
 	
 	public void outputObjects() {
@@ -103,6 +110,16 @@ public class IPConDrlsTest {
 		logger.info("/objects");
 		analyseDroolsUsage();
 		logger.info("/usage");
+	}
+	
+	private void insertAction(IPConAction action) {
+		((TimeStampedAction)action).setT(time.getTime());
+		session.insert(action);
+	}
+	
+	private void incrementTime() {
+		session.update(timeHandle, time);
+		rules.incrementTime();
 	}
 	
 	private void analyseDroolsUsage() {
@@ -174,9 +191,9 @@ public class IPConDrlsTest {
 		String issue = "IssueString";
 		UUID cluster = Random.randomUUID();
 		session.insert(agent);
-		//rules.incrementTime();
-		session.insert(new ArrogateLeadership(agent, revision, issue, cluster));
-		rules.incrementTime();
+		//incrementTime();
+		insertAction(new ArrogateLeadership(agent, revision, issue, cluster));
+		incrementTime();
 		
 		outputObjects();
 		
@@ -221,61 +238,61 @@ public class IPConDrlsTest {
 		UUID cluster = Random.randomUUID();
 		session.insert(a1);
 		session.insert(a2);
-		session.insert(new ArrogateLeadership(a1, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new ArrogateLeadership(a1, revision, issue, cluster));
+		incrementTime();
 
 		assertFactCount("Chosen", revision, issue, cluster, 0);
 		
-		session.insert(new AddRole(a1, a1, Role.PROPOSER, revision, issue, cluster));
-		session.insert(new AddRole(a1, a1, Role.ACCEPTOR, revision, issue, cluster));
-		session.insert(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new AddRole(a1, a1, Role.PROPOSER, revision, issue, cluster));
+		insertAction(new AddRole(a1, a1, Role.ACCEPTOR, revision, issue, cluster));
+		insertAction(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
-		session.insert(new Request0A(a1, revision, 5, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Request0A(a1, revision, 5, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("Chosen", revision, issue, cluster, 0);
 		
-		session.insert(new Prepare1A(a1, revision, 1, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Prepare1A(a1, revision, 1, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getPermissions", "Response1B", a1, revision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Response1B", a2, revision, issue, cluster, 1);
 
-		session.insert(new Response1B(a1, 0, IPCNV.bal(), IPCNV.val(), revision, 0, issue, cluster));
-		session.insert(new Response1B(a2, 0, IPCNV.bal(), IPCNV.val(), revision, 0, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Response1B(a1, 0, IPCNV.bal(), IPCNV.val(), revision, 0, issue, cluster));
+		insertAction(new Response1B(a2, 0, IPCNV.bal(), IPCNV.val(), revision, 0, issue, cluster));
+		incrementTime();
 		
-		session.insert(new Submit2A(a1, revision, 1, 5, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Submit2A(a1, revision, 1, 5, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getPermissions", "Vote2B", a1, revision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Vote2B", a2, revision, issue, cluster, 1);
 
-		session.insert(new Vote2B(a1, revision, 1, 5, issue, cluster));
-		session.insert(new Vote2B(a2, revision, 1, 5, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Vote2B(a1, revision, 1, 5, issue, cluster));
+		insertAction(new Vote2B(a2, revision, 1, 5, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 
 		IPConAgent a3 = new IPConAgent("a3");
 		session.insert(a3);
-		session.insert(new AddRole(a1, a3, Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new AddRole(a1, a3, Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 1);
 		
-		session.insert(new SyncReq(a1, a3, 5, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncReq(a1, a3, 5, revision, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncAck", a3, revision, issue, cluster, 1);
 		assertActionCount("getPowers", "SyncAck", a3, revision, issue, cluster, 2); // yes or no
 		
-		session.insert(new SyncAck(a3, IPCNV.val(), revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncAck(a3, IPCNV.val(), revision, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
@@ -285,8 +302,8 @@ public class IPConDrlsTest {
 		
 		IPConAgent a4 = new IPConAgent("a4");
 		session.insert(a4);
-		session.insert(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 1);
@@ -294,8 +311,8 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // only an indication (agent isnt in Sync yet, so not taken into account)
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0); // actually used in code (not a problem until a4 finishes)
 		
-		session.insert(new SyncReq(a1, a4, 5, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncReq(a1, a4, 5, revision, issue, cluster));
+		incrementTime();
 
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
@@ -303,8 +320,8 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // only an indication (agent is now in Sync, but would only give 2 vs 2 with qs of 3 and status quo holds)
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 0); // actually used in code (not a problem until a4 finishes)
 		
-		session.insert(new SyncAck(a4, IPCNV.val(), revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncAck(a4, IPCNV.val(), revision, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
@@ -314,8 +331,8 @@ public class IPConDrlsTest {
 		
 		IPConAgent a5 = new IPConAgent("a5");
 		session.insert(a5);
-		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 1);
@@ -323,8 +340,8 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // only an indication (agent isnt in Sync yet, so not taken into account)
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // actually used in code (not done until a5 finishes)
 		
-		session.insert(new SyncReq(a1, a5, 5, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncReq(a1, a5, 5, revision, issue, cluster));
+		incrementTime();
 
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
@@ -332,8 +349,8 @@ public class IPConDrlsTest {
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 1); // only an indication (agent is now in Sync, would give 2 vs 3 with qs of 3)
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // actually used in code (not done until a5 finishes)
 		
-		session.insert(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1);
 		assertActionCount("getObligations", "SyncReq", a1, revision, issue, cluster, 0);
@@ -361,25 +378,25 @@ public class IPConDrlsTest {
 		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1); initAgent(a1, new Role[]{Role.LEADER, Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
 		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2); initAgent(a2, new Role[]{Role.ACCEPTOR}, revision, issue, cluster);
 	
-		rules.incrementTime();
+		incrementTime();
 
 		assertFactCount("HasRole", revision, issue, cluster, 4);
 		
-		rules.incrementTime();
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 4);
 		
-		session.insert(new RemRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new RemRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 3);
 		
-		rules.incrementTime();
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 3);
 		
-		session.insert(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 4);
 	}
@@ -403,7 +420,7 @@ public class IPConDrlsTest {
 		session.insert(new Proposed(revision, v2, issue, cluster));
 		
 		
-		rules.incrementTime();
+		incrementTime();
 	
 		
 		//initially assert
@@ -432,8 +449,8 @@ public class IPConDrlsTest {
 		 * A1 resigns
 		 * Obligation & leader powers removed 
 		 */
-		session.insert(new ResignLeadership(a1, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new ResignLeadership(a1, revision, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 2);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -458,7 +475,7 @@ public class IPConDrlsTest {
 		/*
 		 * Check it lasts
 		 */
-		rules.incrementTime();
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 2);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -483,8 +500,8 @@ public class IPConDrlsTest {
 		/*
 		 * Insert arrogate 
 		 */
-		session.insert(new ArrogateLeadership(a1, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new ArrogateLeadership(a1, revision, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 3);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -523,14 +540,14 @@ public class IPConDrlsTest {
 		initAgent(a1, a1Roles, revision, issue, cluster);
 		initAgent(a2, a2Roles, revision, issue, cluster);
 		
-		rules.incrementTime();
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 4);
 		assertFactCount("Proposed", revision, issue, cluster, 0);
 		
-		session.insert(new Request0A( a2, revision, "VALUE", issue, cluster ));
+		insertAction(new Request0A( a2, revision, "VALUE", issue, cluster ));
 		
-		rules.incrementTime();
+		incrementTime();
 		
 		assertFactCount("Proposed", revision, issue, cluster, 1);
 		
@@ -568,7 +585,7 @@ public class IPConDrlsTest {
 		session.insert(new Voted(a1, revision, ballot-3, v2, issue, cluster));
 		session.insert(new Voted(a1, revision, ballot-2, v3, issue, cluster));
 		
-		rules.incrementTime();
+		incrementTime();
 		
 		/*
 		 * Make sure initially facts hold
@@ -636,13 +653,13 @@ public class IPConDrlsTest {
 		String issue = "IssueString";
 		UUID cluster = Random.randomUUID();
 		//set initially roles
-		session.insert(new ArrogateLeadership(a1, revision, issue, cluster));
-		session.insert(new AddRole(a1, a1, Role.PROPOSER, revision, issue, cluster));
-		session.insert(new AddRole(a1, a1, Role.ACCEPTOR, revision, issue, cluster));
-		session.insert(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
-		session.insert(new AddRole(a1, a3, Role.ACCEPTOR, revision, issue, cluster));
-		session.insert(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
-		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
+		insertAction(new ArrogateLeadership(a1, revision, issue, cluster));
+		insertAction(new AddRole(a1, a1, Role.PROPOSER, revision, issue, cluster));
+		insertAction(new AddRole(a1, a1, Role.ACCEPTOR, revision, issue, cluster));
+		insertAction(new AddRole(a1, a2, Role.ACCEPTOR, revision, issue, cluster));
+		insertAction(new AddRole(a1, a3, Role.ACCEPTOR, revision, issue, cluster));
+		insertAction(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
+		insertAction(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
 		//set initially voted
 		/*final FactType votedType = typeFromString("Voted");
 		Object a2Vote = votedType.newInstance();
@@ -671,7 +688,7 @@ public class IPConDrlsTest {
 			votedType.set(a4Vote, "cluster", cluster);*/
 			session.insert(new Voted(a4, revision, 2, 5, issue, cluster));
 		}
-		rules.incrementTime();
+		incrementTime();
 		
 		// check there are the right number of roles
 		// 5 acceptors, one leader, one proposer
@@ -738,8 +755,8 @@ public class IPConDrlsTest {
 		 * Time step 1 :
 		 * leader/proposer requests 3, check no one can respond yet
 		 */
-		session.insert(new Request0A(a1, revision, 3, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Request0A(a1, revision, 3, issue, cluster));
+		incrementTime();
 		
 		// check no one can response
 		assertActionCount("getPermissions", "Response1B", null, revision, issue, cluster, 0);
@@ -749,8 +766,8 @@ public class IPConDrlsTest {
 		 * Time step 2 :
 		 * leader issues prepare, check 5 acceptors can respond
 		 */
-		session.insert(new Prepare1A(a1, revision, 10, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Prepare1A(a1, revision, 10, issue, cluster));
+		incrementTime();
 		
 		// check all acceptors can response
 		// 5 acceptors have permission
@@ -768,16 +785,16 @@ public class IPConDrlsTest {
 		 * Time step 3 :
 		 * All agents send a response, check the responsecount and per/obl to submit
 		 */
-		session.insert(new Response1B( a1, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
-		session.insert(new Response1B( a2, 1, 1, 4, 1, 10, issue, cluster));
-		session.insert(new Response1B( a3, 1, 1, 4, 1, 10, issue, cluster));
+		insertAction(new Response1B( a1, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
+		insertAction(new Response1B( a2, 1, 1, 4, 1, 10, issue, cluster));
+		insertAction(new Response1B( a3, 1, 1, 4, 1, 10, issue, cluster));
 		if (pass) {
-			session.insert(new Response1B( a4, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
+			insertAction(new Response1B( a4, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
 		} else {
-			session.insert(new Response1B( a4, 1, 2, 5, 1, 10, issue, cluster));
+			insertAction(new Response1B( a4, 1, 2, 5, 1, 10, issue, cluster));
 		}
-		session.insert(new Response1B( a5, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Response1B( a5, 1, IPCNV.bal(), IPCNV.val(), 1, 10, issue, cluster));
+		incrementTime();
 		if (pass) {
 			assertActionCount("getPowers", "Submit2A", null, revision, issue, cluster, 1);
 			assertActionCount("getPermissions", "Submit2A", null, revision, issue, cluster, 1);
@@ -793,7 +810,7 @@ public class IPConDrlsTest {
 		 * Leader submits. Check permission to vote for all agents.
 		 */
 		session.insert( new Submit2A(a1, revision, 10, 3, issue, cluster));
-		rules.incrementTime();
+		incrementTime();
 
 		assertFactCount("Open_Vote", revision, issue, cluster, 1);
 		// all acceptors can vote either way because leader had power
@@ -805,10 +822,10 @@ public class IPConDrlsTest {
 		 * First 2 agents vote correctly, 3rd agent does not.
 		 * Check value is not chosen, and voted is not set for 3rd agent
 		 */
-		session.insert(new Vote2B(a1, 1, 10, 3, issue, cluster));
-		session.insert(new Vote2B(a2, 1, 10, 3, issue, cluster));
-		session.insert(new Vote2B(a3, 1, 10, 4, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Vote2B(a1, 1, 10, 3, issue, cluster));
+		insertAction(new Vote2B(a2, 1, 10, 3, issue, cluster));
+		insertAction(new Vote2B(a3, 1, 10, 4, issue, cluster));
+		incrementTime();
 		
 		if (pass) {
 			//voted count is 4 (2 from before, 2 now)
@@ -829,7 +846,7 @@ public class IPConDrlsTest {
 		 * Check correct value has been chosen
 		 */
 		session.insert( new Vote2B(a3, 1, 10, 3, issue, cluster));
-		rules.incrementTime();
+		incrementTime();
 		// value was chosen
 		Collection<Object> chosens = assertFactCount("Chosen", revision, issue, cluster, 1);
 		Chosen chosen = (Chosen)Arrays.asList(chosens.toArray()).get(0);
@@ -846,7 +863,7 @@ public class IPConDrlsTest {
 		 */
 		session.insert( new Vote2B(a4, 1, 10, 3, issue, cluster));
 		session.insert( new Vote2B(a5, 1, 10, 3, issue, cluster));
-		rules.incrementTime();
+		incrementTime();
 		
 		if (pass) {
 			//voted count is 7 (4 from before, 3 now)
@@ -905,7 +922,7 @@ public class IPConDrlsTest {
 		session.insert(new AddRole(a1, a3, Role.ACCEPTOR, revision, issue, cluster));*/
 		
 		// Increment now to stop all agents requiring Sync (because theyre being added at the same time)
-		rules.incrementTime();
+		incrementTime();
 		
 		/*
 		 * Set Time step 1 (initially)
@@ -962,7 +979,7 @@ public class IPConDrlsTest {
 		openVoteType.set(openVote, "cluster", cluster);*/
 		session.insert(new Open_Vote(revision, 1, "A", issue, cluster));
 		
-		rules.incrementTime();
+		incrementTime();
 		
 		assertFactCount("IPConAgent", null, null, null, 3);
 		// Remember the initial "didnt vote" facts
@@ -989,8 +1006,8 @@ public class IPConDrlsTest {
 		 * Check that there is an obligation to syncreq
 		 */
 		IPConAgent a4 = new IPConAgent("a4"); session.insert(a4); map.put("a4", a4);
-		session.insert(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new AddRole(a1, a4, Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
 		// check obligation to sync the new agent
 		Collection<IPConAction> oblColl = getActionQueryResultsForRIC("getObligations", "SyncReq", null, revision, issue, cluster);
@@ -1026,8 +1043,8 @@ public class IPConDrlsTest {
 		 * Time step 3
 		 * Sync the new agent, check new risks
 		 */
-		session.insert(new SyncReq( a1, a4, "A", revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncReq( a1, a4, "A", revision, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 6);
 		assertFactCount("Sync", revision, issue, cluster, 1);
@@ -1047,8 +1064,8 @@ public class IPConDrlsTest {
 		 * Time step 4
 		 * Agent syncs no
 		 */
-		session.insert(new SyncAck( a4, IPCNV.val(), revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncAck( a4, IPCNV.val(), revision, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getObligations", "SyncAck", null, revision, issue, cluster, 0);
 		
@@ -1077,8 +1094,8 @@ public class IPConDrlsTest {
 		 */
 		
 		IPConAgent a5 = new IPConAgent("a5"); session.insert(a5); map.put("a5", a5);
-		session.insert(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new AddRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 7);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -1095,8 +1112,8 @@ public class IPConDrlsTest {
 		 * Ag5 starts to sync
 		 */
 		
-		session.insert(new SyncReq( a1, a5, "A", revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncReq( a1, a5, "A", revision, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 7);
 		assertFactCount("Sync", revision, issue, cluster, 1);
@@ -1149,8 +1166,8 @@ public class IPConDrlsTest {
 		 * Ag5 says no
 		 * Safety should be violated
 		 */
-		session.insert(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncAck(a5, IPCNV.val(), revision, issue, cluster));
+		incrementTime();
 		assertFactCount("HasRole", null, null, null, 7);
 		assertFactCount("Sync", null, null, null, 0);
 		assertFactCount("NeedToSync", null, null, null, 0);
@@ -1172,8 +1189,8 @@ public class IPConDrlsTest {
 		 * Leader revises
 		 * Check for clean slate
 		 */
-		session.insert(new Revise(a1, revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Revise(a1, revision, issue, cluster));
+		incrementTime();
 		//logger.debug(getActionQueryResultsForRIC("getPowers", null, null, revision+1, issue, cluster));
 		
 		outputObjects();
@@ -1212,10 +1229,10 @@ public class IPConDrlsTest {
 		 * Start the whole thing again to make sure it works (cut out a4 and 5)
 		 * A4 leaves cluster, A5 removed.
 		 */
-		session.insert(new LeaveCluster(a4, cluster));
-		session.insert(new RemRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
-		session.insert(new RemRole(a1, a5, Role.ACCEPTOR, newRevision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new LeaveCluster(a4, cluster));
+		insertAction(new RemRole(a1, a5, Role.ACCEPTOR, revision, issue, cluster));
+		insertAction(new RemRole(a1, a5, Role.ACCEPTOR, newRevision, issue, cluster));
+		incrementTime();
 		
 		outputObjects();
 		
@@ -1263,8 +1280,8 @@ public class IPConDrlsTest {
 		 * A1 proposes a value
 		 */
 		Object value = "ValueString";
-		session.insert(new Request0A(a1, newRevision, value, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Request0A(a1, newRevision, value, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getPowers", "Prepare1A", null, newRevision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Prepare1A", null, newRevision, issue, cluster, 1);
@@ -1295,8 +1312,8 @@ public class IPConDrlsTest {
 		 * Agents can respond
 		 */
 		Integer ballot = 1;
-		session.insert(new Prepare1A(a1, newRevision, ballot, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Prepare1A(a1, newRevision, ballot, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getPowers", "Prepare1A", null, newRevision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Prepare1A", null, newRevision, issue, cluster, 1);
@@ -1329,10 +1346,10 @@ public class IPConDrlsTest {
 		 * Agents respond
 		 * Leader is obligated to submit
 		 */
-		session.insert(new Response1B(a1, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
-		session.insert(new Response1B(a2, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
-		session.insert(new Response1B(a3, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Response1B(a1, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
+		insertAction(new Response1B(a2, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
+		insertAction(new Response1B(a3, newRevision, IPCNV.bal(), IPCNV.val(), newRevision, ballot, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getPowers", "Prepare1A", null, newRevision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Prepare1A", null, newRevision, issue, cluster, 1);
@@ -1365,8 +1382,8 @@ public class IPConDrlsTest {
 		 * Leader submits
 		 * Agents can vote
 		 */
-		session.insert(new Submit2A(a1, newRevision, ballot, value, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Submit2A(a1, newRevision, ballot, value, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getPowers", "Prepare1A", null, newRevision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Prepare1A", null, newRevision, issue, cluster, 1);
@@ -1398,9 +1415,9 @@ public class IPConDrlsTest {
 		 * Agents vote
 		 * Value should be chosen
 		 */
-		session.insert(new Vote2B(a1, newRevision, ballot, value, issue, cluster));
-		session.insert(new Vote2B(a3, newRevision, ballot, value, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Vote2B(a1, newRevision, ballot, value, issue, cluster));
+		insertAction(new Vote2B(a3, newRevision, ballot, value, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getPowers", "Prepare1A", null, newRevision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Prepare1A", null, newRevision, issue, cluster, 1);
@@ -1431,9 +1448,9 @@ public class IPConDrlsTest {
 		 * A2 votes, A3 votes again !
 		 * Value should still be chosen, Voted and Reportedvote counts shouldn't change...
 		 */
-		session.insert(new Vote2B(a2, newRevision, ballot, value, issue, cluster));
-		session.insert(new Vote2B(a3, newRevision, ballot, value, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Vote2B(a2, newRevision, ballot, value, issue, cluster));
+		insertAction(new Vote2B(a3, newRevision, ballot, value, issue, cluster));
+		incrementTime();
 		
 		assertActionCount("getPowers", "Prepare1A", null, newRevision, issue, cluster, 1);
 		assertActionCount("getPermissions", "Prepare1A", null, newRevision, issue, cluster, 1);
@@ -1495,8 +1512,8 @@ public class IPConDrlsTest {
 		 * Ag5 says yes
 		 * Safety should not be violated
 		 */
-		session.insert(new SyncAck(a5, "A", revision, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncAck(a5, "A", revision, issue, cluster));
+		incrementTime();
 		assertFactCount("HasRole", revision, issue, cluster, 7);
 		assertFactCount("Sync", revision, issue, cluster, 0);
 		assertFactCount("NeedToSync", revision, issue, cluster, 0);
@@ -1563,7 +1580,7 @@ public class IPConDrlsTest {
 
 		outputObjects();
 		
-		rules.incrementTime();
+		incrementTime();
 		
 		//initially assert
 		assertFactCount("HasRole", revision, issue, cluster, 7);
@@ -1590,8 +1607,8 @@ public class IPConDrlsTest {
 		 * A5 leaves; no immediate effect as status quo holds.
 		 * PRR init.
 		 */
-		session.insert(new LeaveCluster(a5, cluster));
-		rules.incrementTime();
+		insertAction(new LeaveCluster(a5, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 6);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -1629,8 +1646,8 @@ public class IPConDrlsTest {
 				break;
 			default : logger.warn("Unrecognised agent: " + agentToLeave); fail(); break;
 		}
-		session.insert(new LeaveCluster(agent, cluster));
-		rules.incrementTime();
+		insertAction(new LeaveCluster(agent, cluster));
+		incrementTime();
 		
 		// Check common ones...
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -1677,8 +1694,8 @@ public class IPConDrlsTest {
 		 * Should get the obligation to revise ?
 		 */
 		if (agentToLeave==1) {
-			session.insert(new ArrogateLeadership(a2, revision, issue, cluster));
-			rules.incrementTime();
+			insertAction(new ArrogateLeadership(a2, revision, issue, cluster));
+			incrementTime();
 			
 			assertFactCount("HasRole", revision, issue, cluster, 4);
 			assertFactCount("Sync", revision, issue, cluster, 0);
@@ -1698,7 +1715,7 @@ public class IPConDrlsTest {
 		}
 		else if (agentToLeave==1) {
 			// do nothing
-			rules.incrementTime();
+			incrementTime();
 			// 1 is still obligated
 			assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1);
 			assertActionCount("getObligations", null, null, revision, issue, cluster, 1);
@@ -1722,7 +1739,7 @@ public class IPConDrlsTest {
 		IPConAgent a2 = new IPConAgent("a2"); session.insert(a2); initAgent(a2, new Role[]{Role.LEADER,  Role.ACCEPTOR}, revision, issue, cluster);
 		
 		// Initially
-		rules.incrementTime();
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 5);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -1743,8 +1760,8 @@ public class IPConDrlsTest {
 		 * A1 proposes
 		 * A1 and A2 both obligated to prepare
 		 */
-		session.insert(new Request0A(a1, revision, v1, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Request0A(a1, revision, v1, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 5);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -1770,8 +1787,8 @@ public class IPConDrlsTest {
 		 * Obligations discharged
 		 */
 		Integer ballot = 1;
-		session.insert(new Prepare1A(a2, revision, ballot, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Prepare1A(a2, revision, ballot, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 5);
 		assertFactCount("Sync", revision, issue, cluster, 0);
@@ -1816,7 +1833,7 @@ public class IPConDrlsTest {
 		session.insert(new ReportedVote(a1, revision1, ballot10, v1, revision1, ballot10, issue, cluster));
 		session.insert(new Voted(a2, revision1, ballot10, v1, issue, cluster));
 		session.insert(new ReportedVote(a2, revision1, ballot10, v1, revision1, ballot10, issue, cluster));
-		session.insert(new Revise(a1, revision1, issue, cluster));
+		insertAction(new Revise(a1, revision1, issue, cluster));
 		
 		session.insert(new Pre_Vote(revision2, ballot5, issue, cluster));
 		session.insert(new Open_Vote(revision2, ballot5, v1, issue, cluster));
@@ -1833,9 +1850,9 @@ public class IPConDrlsTest {
 		session.insert(new Voted(a2, revision2, ballot10, v2, issue, cluster));
 		session.insert(new ReportedVote(a2, revision2, ballot10, v2, revision2, ballot10, issue, cluster));
 		
-		session.insert(new Request0A(a1, revision2, null, issue, cluster));
+		insertAction(new Request0A(a1, revision2, null, issue, cluster));
 		
-		rules.incrementTime();
+		incrementTime();
 		
 		assertFactCount("HasRole", revision2, issue, cluster, 4);
 		assertFactCount("Sync", revision2, issue, cluster, 0);
@@ -1860,8 +1877,8 @@ public class IPConDrlsTest {
 		 * Check obl/per for response
 		 * Should be no change since no new Pre_Vote created
 		 */
-		session.insert(new Prepare1A(a1, revision2, ballot7, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Prepare1A(a1, revision2, ballot7, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision2, issue, cluster, 4);
 		assertFactCount("Sync", revision2, issue, cluster, 0);
@@ -1887,8 +1904,8 @@ public class IPConDrlsTest {
 		 * A1 submits at 7 anyway
 		 * Check no permission to vote (as voted in 10)
 		 */
-		session.insert(new Submit2A(a1, revision2, ballot7, v2, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Submit2A(a1, revision2, ballot7, v2, issue, cluster));
+		incrementTime();
 		
 		assertFactCount("HasRole", revision2, issue, cluster, 4);
 		assertFactCount("Sync", revision2, issue, cluster, 0);
@@ -1950,7 +1967,7 @@ public class IPConDrlsTest {
 		}
 		session.insert(new Chosen(revision1, 1, "a", issue, cluster));
 		none = new IPConAgent[]{a7, a8};
-		rules.incrementTime();
+		incrementTime();
 
 		
 		/*
@@ -1980,10 +1997,10 @@ public class IPConDrlsTest {
 		 * A1 takes leadership powers and permissions
 		 */
 		for (IPConAgent ag : new IPConAgent[]{a4, a5, a6}) {
-			session.insert(new LeaveCluster(ag, cluster));
+			insertAction(new LeaveCluster(ag, cluster));
 		}
-		session.insert(new ArrogateLeadership(a1, revision1, issue, cluster));
-		rules.incrementTime();
+		insertAction(new ArrogateLeadership(a1, revision1, issue, cluster));
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
 		checkLeaderPowPer(a1, revision1, issue, cluster, 8, 5, 3, 0, 0, 0);
@@ -2004,9 +2021,9 @@ public class IPConDrlsTest {
 		 * Demonstrates aggregation (1)
 		 * A1 obligated to SyncAck A7 and A8, gains permission to do so
 		 */
-		session.insert(new AddRole(a1, a7, Role.ACCEPTOR, revision1, issue, cluster));
-		session.insert(new AddRole(a1, a8, Role.ACCEPTOR, revision1, issue, cluster));
-		rules.incrementTime();
+		insertAction(new AddRole(a1, a7, Role.ACCEPTOR, revision1, issue, cluster));
+		insertAction(new AddRole(a1, a8, Role.ACCEPTOR, revision1, issue, cluster));
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
 		checkLeaderPowPer(a1, revision1, issue, cluster, 8, 7, 5, 2, 0, 0);
@@ -2027,9 +2044,9 @@ public class IPConDrlsTest {
 		 * Demonstrates aggregation (2)
 		 * A7 and A8 have power, permission, and obligation to SyncAck (pow & per for both yes and no)
 		 */
-		session.insert(new SyncReq(a1, a7, "a", revision1, issue, cluster));
-		session.insert(new SyncReq(a1, a8, "a", revision1, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncReq(a1, a7, "a", revision1, issue, cluster));
+		insertAction(new SyncReq(a1, a8, "a", revision1, issue, cluster));
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
 		checkLeaderPowPer(a1, revision1, issue, cluster, 8, 7, 5, 0, 0, 0);
@@ -2053,9 +2070,9 @@ public class IPConDrlsTest {
 		 * Demonstrates aggregation (3)
 		 * A1 obligated to revise
 		 */
-		session.insert(new SyncAck(a7, IPCNV.val(), revision1, issue, cluster));
-		session.insert(new SyncAck(a8, IPCNV.val(), revision1, issue, cluster));
-		rules.incrementTime();
+		insertAction(new SyncAck(a7, IPCNV.val(), revision1, issue, cluster));
+		insertAction(new SyncAck(a8, IPCNV.val(), revision1, issue, cluster));
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision1, issue, cluster, 0, 0);
 		checkLeaderPowPer(a1, revision1, issue, cluster, 8, 7, 5, 0, 0, 0);
@@ -2080,8 +2097,8 @@ public class IPConDrlsTest {
 		 * A1 no longer obligated to revise
 		 * All agents at standard pow & per
 		 */
-		session.insert(new Revise(a1, revision1, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Revise(a1, revision1, issue, cluster));
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision2, issue, cluster, 0, 0);
 		checkLeaderPowPer(a1, revision2, issue, cluster, 8, 7, 5, 0, 0, 0);
@@ -2102,8 +2119,8 @@ public class IPConDrlsTest {
 		 * Demonstrates algorithm flow (1)
 		 * A1 is obligated to prepare
 		 */
-		session.insert(new Request0A(a2, revision2, "b", issue, cluster));
-		rules.incrementTime();
+		insertAction(new Request0A(a2, revision2, "b", issue, cluster));
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision2, issue, cluster, 0, 0);
 		checkLeaderPowPer(a1, revision2, issue, cluster, 8, 7, 5, 0, 0, 0);
@@ -2125,8 +2142,8 @@ public class IPConDrlsTest {
 		 * Demonstrates algorithm flow (2)
 		 * All gain power and permission to respond
 		 */
-		session.insert(new Prepare1A(a1, revision2, ballot1, issue, cluster));
-		rules.incrementTime();
+		insertAction(new Prepare1A(a1, revision2, ballot1, issue, cluster));
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision2, issue, cluster, 1, 1); // additional powper to response
 		assertActionCount("getPowers", "Response1B", a2, revision2, issue, cluster, 1);
@@ -2155,9 +2172,9 @@ public class IPConDrlsTest {
 		 * A1 gains permission to, and is obligated to, submit
 		 */
 		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
-			session.insert(new Response1B(ag, revision2, IPCNV.bal(), IPCNV.val(), revision2, ballot1, issue, cluster));
+			insertAction(new Response1B(ag, revision2, IPCNV.bal(), IPCNV.val(), revision2, ballot1, issue, cluster));
 		}
-		rules.incrementTime();
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision2, issue, cluster, 1, 1); // additional powper to response
 		for (IPConAgent ag : new IPConAgent[]{a1, a2}) {
@@ -2188,8 +2205,8 @@ public class IPConDrlsTest {
 		 * All now gain pow & per to vote
 		 * A1 no longer obligated to submit
 		 */
-		session.insert(new Submit2A(a1, revision2, ballot1, "b", issue, cluster));
-		rules.incrementTime();
+		insertAction(new Submit2A(a1, revision2, ballot1, "b", issue, cluster));
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision2, issue, cluster, 2, 2); // additional powper to response&vote
 		for (IPConAgent ag : new IPConAgent[]{a1, a2}) {
@@ -2224,9 +2241,9 @@ public class IPConDrlsTest {
 		 * Value now chosen
 		 */
 		for (IPConAgent ag : new IPConAgent[]{a1, a2, a3, a7, a8}) {
-			session.insert(new Vote2B(ag, revision2, ballot1, "b", issue, cluster));
+			insertAction(new Vote2B(ag, revision2, ballot1, "b", issue, cluster));
 		}
-		rules.incrementTime();
+		incrementTime();
 		
 		checkProposerPowPer(a2, revision2, issue, cluster, 2, 2); // additional powper to response&vote
 		for (IPConAgent ag : new IPConAgent[]{a1, a2}) {

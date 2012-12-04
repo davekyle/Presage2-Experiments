@@ -456,7 +456,7 @@ end
 rule "holdsAt for power to addRole"
 	agenda-group "exit"
 	auto-focus true
-	lock-on-active true
+	//lock-on-active true
 	when
 		HasRole( role==Role.LEADER, $leader : agent, $revision : revision, $issue : issue, $cluster : cluster )
 		//Can't define new ones in 'not' constraints
