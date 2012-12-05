@@ -110,7 +110,6 @@ public class IPConService extends EnvironmentService {
 	
 	/** 
 	 * Inserts the agent fact for the registered agent, and sets them to be LEAD/ACC/PROP/LEARN for a cluster containing RICS on all their goals
-	 * Inserts a Request on behalf of the agent, but they must them continue the process to determine a value.
 	 * @see uk.ac.imperial.presage2.core.environment.EnvironmentService#registerParticipant(uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest)
 	 */
 	@Override
@@ -130,7 +129,6 @@ public class IPConService extends EnvironmentService {
 			session.insert(new HasRole(Role.ACCEPTOR, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.LEARNER, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.PROPOSER, handle, revision, issue, cluster));
-			session.insert(new Request0A(handle, revision, value, issue, cluster));
 		}
 	}
 	
