@@ -297,7 +297,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		for (String issue : getGoalMap().keySet()) {
 			Boolean found = false;
 			Boolean foundInCluster = false;
-			Boolean foundNearby = false;
 			for (IPConRIC ric : currentRICs) {
 				if (!found && ric.getIssue().equalsIgnoreCase(issue)) {
 					found = true;
@@ -354,7 +353,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				logger.trace(getID() + " found a RIC to join for " + issue);				
 			}
 			// else do stuff for RICs youre in
-			// check for chosen values - if there is nothing chosen then do stuf with impatience and think about proposing/leaving/etc
+			// check for chosen values - if there is nothing chosen then do stuff with impatience and think about proposing/leaving/etc
+			// if the nearby clusters have the same (or an as-acceptable) value for your issues, then join(merge) ?
 			/*if (!foundInCluster) {
 				logger.trace(getID() + " could not find a RIC for " + issue + " so will check nearby clusters.");
 				Collection<IPConRIC> nearbyRICs = getNearbyRICs();
