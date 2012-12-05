@@ -6,6 +6,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -51,6 +52,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
+import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.TimeDriven;
@@ -215,6 +217,11 @@ public class IPConAgentTest {
 			return this.network;
 		}
 		
+		@Override
+		public HashMap<String, Pair<Integer, Integer>> getGoalMap() {
+			return super.getGoalMap();
+		}
+		
 	}
 	
 	private TestAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
@@ -296,18 +303,24 @@ public class IPConAgentTest {
 		/**
 		 * This requires access to a fn which should be private, so calling public wrapper fn
 		 */
-		final Integer revision = 1;
-		final String issue = "IssueString";
-		final UUID cluster = Random.randomUUID();
-		Object value = "VALUE";
+		
 		/*
 		 * Create agents
 		 */
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
-		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
 		TestAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
-		addRoles(a2.getIPConHandle(), new Role[]{Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
 		TestAgent a3 = createAgent("a3", new RoadLocation(2,0), 1);
+		incrementTime();
+		
+		// get a valid RIC
+		IPConRIC a1RIC = globalIPConService.getCurrentRICs(a1.getIPConHandle()).iterator().next();
+		final Integer revision = a1RIC.getRevision();
+		final String issue = a1RIC.getIssue();
+		final UUID cluster = a1RIC.getCluster();
+		Object value = "VALUE";
+
+		// Add some roles
+		addRoles(a2.getIPConHandle(), new Role[]{Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
 		addRoles(a3.getIPConHandle(), new Role[]{Role.ACCEPTOR}, revision, issue, cluster);
 		
 		/*
@@ -462,18 +475,23 @@ public class IPConAgentTest {
 		/**
 		 * This requires access to a fn which should be private, so calling public wrapper fn
 		 */
-		final Integer revision = 1;
-		final String issue = "IssueString";
-		final UUID cluster = Random.randomUUID();
-		Object value = "VALUE";
 		/*
 		 * Create agents
 		 */
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
-		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
 		TestAgent a2 = createAgent("a2", new RoadLocation(1,0), 1);
-		addRoles(a2.getIPConHandle(), new Role[]{Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
 		TestAgent a3 = createAgent("a3", new RoadLocation(2,0), 1);
+		incrementTime();
+		
+		// get a valid RIC
+		IPConRIC a1RIC = globalIPConService.getCurrentRICs(a1.getIPConHandle()).iterator().next();
+		final Integer revision = a1RIC.getRevision();
+		final String issue = a1RIC.getIssue();
+		final UUID cluster = a1RIC.getCluster();
+		Object value = "VALUE";
+
+		// Add some roles
+		addRoles(a2.getIPConHandle(), new Role[]{Role.PROPOSER, Role.ACCEPTOR}, revision, issue, cluster);
 		addRoles(a3.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
 		
 		/*
@@ -526,23 +544,20 @@ public class IPConAgentTest {
 	
 	@Test
 	public void testClusterArrogate() throws Exception {
-		logger.info("\nBeginning test of arrogating when no clusters for goals are present...");		
-		// Make an agent, execute() 11 times (impatience<=10), check there are 2 RICs (spacing and speed)
+		logger.info("\nBeginning test of registration...");		
+		// Make an agent, execute(), check there are 2 RICs (spacing and speed)
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
 		logger.info("A1 is : " + a1);
-		for (int i = 1; i<=10; i++) {
-			//logger.trace("Execution number " + i);
-			a1.execute();
-			incrementTime();
-		}
+		a1.execute();
+		incrementTime();
 		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		logger.info("A1 is in " + rics);
 		assertThat(rics.size(), is( 2 ) );
-		logger.info("** Arrogate new clusters for goals test passed **");
+		logger.info("** Auto-Arrogate new RICs for goals during registration test passed **");
 		assertThat(rics.toArray(new IPConRIC[2])[0].getCluster(), is(rics.toArray(new IPConRIC[2])[1].getCluster()) );
-		logger.info("** Arrogate new RICs in one cluster test passed **");
+		logger.info("** Aut-Arrogate new RICs in one cluster during registration test passed **");
 		
-		logger.info("Finished test of arrogating when no clusters for goals are present.\n");
+		logger.info("Finished test of registration.\n");
 		
 		incrementTime();
 
@@ -550,22 +565,20 @@ public class IPConAgentTest {
 		// TODO FIXME this doesn't really test what it says it does...
 		for (IPConRIC ric : rics) {
 			LeaveCluster leave = new LeaveCluster(a1.getIPConHandle(), ric.getCluster());
-			IPConActionMsg resignation = new IPConActionMsg(Performative.INFORM, time, a1.getNetwork().getAddress(), leave);
-			a1.getNetwork().sendMessage(resignation);
-			logger.trace("A1 resigning from " + ric);
+			IPConActionMsg leavingMsg = new IPConActionMsg(Performative.INFORM, time, a1.getNetwork().getAddress(), leave);
+			a1.getNetwork().sendMessage(leavingMsg);
+			logger.trace("A1 leaving " + ric);
 		}
 		
 		incrementTime();
 		Collection<IPConRIC> noRICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		logger.info("A1 is in " + noRICs);
 		assertThat(noRICs.size(), is(0));
-		logger.info("Agent resigned from all RICs.");
+		logger.info("Agent left all RICs.");
 		
-		for (int i = 1; i<=10; i++) {
-			//logger.trace("Execution number " + i);
-			a1.execute();
-			incrementTime();
-		}
+		a1.execute();
+		incrementTime();
+		
 		Collection<IPConRIC> newRICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		logger.info("A1 is in " + newRICs);
 		assertThat(newRICs.size(), is( 2 ) );
@@ -576,19 +589,22 @@ public class IPConAgentTest {
 		logger.info("** Correctly arrogated 2 issues into the same cluster **");
 		
 		
-		logger.info("Finished test of arrogating into sam cluster\n");
+		logger.info("Finished test of arrogating into same cluster\n");
 	}
 	
+	/**
+	 * FIXME TODO won't work as intended due to auto-arrogate on register
+	 * @throws Exception
+	 */
 	@Test
 	public void testClusterJoin() throws Exception {
 		logger.info("\nBeginning test of joining nearby clusters...");		
-		// Make an agent, execute() 11 times (impatience<=10), check there are 2 RICs (spacing and speed)
+		// Make an agent, execute(), check there are 2 RICs (spacing and speed)
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
-		for (int i = 1; i<=10; i++) {
-			//logger.trace("Execution number " + i);
-			a1.execute();
-			incrementTime();
-		}
+
+		a1.execute();
+		incrementTime();
+
 		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		assertThat(rics.size(), is( 2 ) );
 		logger.info("Succesful setup.");
@@ -624,22 +640,18 @@ public class IPConAgentTest {
 	@Test
 	public void testArrogateLeaderlessRIC() throws Exception {
 		logger.info("\nBeginning test of arrogating in a leaderless RIC...");		
-
-		final Integer revision1 = 1;
-		final String issue1 = "speed";
-		final Integer revision2 = 2;
-		final String issue2 = "spacing";
-		final UUID cluster = Random.randomUUID();
 		
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
-		
-		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER}, revision1, issue1, cluster);
-		addRoles(a1.getIPConHandle(), new Role[]{Role.ACCEPTOR}, revision2, issue2, cluster);
+		// get a valid RIC
+		IPConRIC a1RIC = globalIPConService.getCurrentRICs(a1.getIPConHandle()).iterator().next();
+		final Integer revision = a1RIC.getRevision();
+		final String issue = a1RIC.getIssue();
+		final UUID cluster = a1RIC.getCluster();
+		insert(new ResignLeadership(a1.getIPConHandle(), revision, issue, cluster));
 		
 		assertThat(globalIPConService.getCurrentRICs(a1.getIPConHandle()).size(), is( 2 ) );
 		logger.info("Succesful setup.");
 		
-		// execute and check that a1 and a2 are both in (the same) 2 clusters
 		for (int i = 1; i<=10; i++) {
 			//logger.trace("Execution number " + i);
 			a1.execute();
@@ -649,10 +661,10 @@ public class IPConAgentTest {
 		assertThat(a1RICs.size(), is( 2 ) );
 		logger.info("A1 is still in 2 RICs.");
 		
-		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).size(), is(1));
-		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).iterator().next(), is(a1.getIPConHandle()));
-		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).size(), is(1));
-		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).iterator().next(), is(a1.getIPConHandle()));
+		for (IPConRIC ric : a1RICs) {
+			assertThat(globalIPConService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster()).size(), is(1));
+			assertThat(globalIPConService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster()).iterator().next(), is(a1.getIPConHandle()));
+		}
 		logger.info("** A1 successfully arrogated the leaderless cluster **");
 		
 		logger.info("Finished test of arrogating in a leaderless RIC\n");
@@ -714,13 +726,20 @@ public class IPConAgentTest {
 	public void testClusterResign() throws Exception {
 		logger.info("\nBeginning test of resigning when multiple leaders exist...");		
 		// Make agents, make them both leader, execute, check only one leader
-		final Integer revision = 1;
-		final String issue = "spacing";
-		final UUID cluster = Random.randomUUID();
 		
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
-		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
 		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1);
+
+		final Integer revision = 1;
+		final String issue = "ISSUE";
+		final UUID cluster = globalIPConService.getCurrentRICs(a1.getIPConHandle()).iterator().next().getCluster();
+		
+		// make the agents have the goals for the new issue
+		a1.getGoalMap().put(issue, new Pair<Integer,Integer>(1,1));
+		a2.getGoalMap().put(issue, new Pair<Integer,Integer>(1,1));
+		
+		// give them the roals
+		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
 		addRoles(a2.getIPConHandle(), new Role[]{Role.LEADER, Role.ACCEPTOR}, revision, issue, cluster);
 
 		/* 
@@ -776,18 +795,30 @@ public class IPConAgentTest {
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(2,1,50,5,2));
 		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(2,5,50,5,2));
 		
+		
+		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in RICS : " + a1RICs);
+		assertThat(a1RICs.size(), is( 2 ) );
+		
+		insert(new LeaveCluster(a1.getIPConHandle(), globalIPConService.getCurrentRICs(a2.getIPConHandle()).iterator().next().getCluster()));
+		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		logger.info("A2 is in RICS : " + a2RICs);
+		assertThat(a2RICs.size(), is( 0 ) );
+		
+		for (IPConRIC a1RIC : a1RICs) {
+			insert(new HasRole(Role.ACCEPTOR, a2.getIPConHandle(), a1RIC.getRevision(), a1RIC.getIssue(), a1RIC.getCluster()));
+		}
+		a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		logger.info("A2 is in RICS : " + a2RICs);
+		assertThat(a2RICs.size(), is( 2 ) );
+		
+		
 		for (int i = 1; i<=10; i++) {
 			a1.execute();
 			a2.execute();
 			incrementTime();
 		}
 		
-		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
-		logger.info("A1 is in RICS : " + a1RICs);
-		assertThat(a1RICs.size(), is( 2 ) );
-		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
-		logger.info("A2 is in RICS : " + a2RICs);
-		assertThat(a2RICs.size(), is( 2 ) );
 		
 		for (IPConRIC a1RIC : a1RICs) {
 			assertThat( a2RICs, hasItem(a1RIC) );

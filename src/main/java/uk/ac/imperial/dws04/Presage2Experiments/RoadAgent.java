@@ -288,6 +288,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// For all goals
 		// check if represented by an issue in any RIC youre in
 		// if not,
+		// Check other RICs in cluster
+		// - Join if they do
+		// - arrogate otherwise
 		// - Check if a nearby cluster has issue
 		// - - Join if yes
 		// - - Arrogate if no (always want to be in a RIC)
@@ -315,17 +318,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 				}
 				if (!foundInCluster) {
-					logger.trace(getID() + " could not find a RIC for " + issue + " so will check nearby clusters.");
-					Collection<IPConRIC> nearbyRICs = getNearbyRICs();
-					for (IPConRIC nearbyRIC : nearbyRICs) {
-						if (!foundNearby && nearbyRIC.getIssue().equalsIgnoreCase(issue)) {
-							foundNearby = true;
-							logger.trace(getID() + " found a nearby RIC (" + nearbyRIC + ") for " + issue + " so will join it.");
-							ricsToJoin.add(nearbyRIC);
-						}
-					}
-				}
-				if (/*isImpatient(issue) && */!foundNearby && !foundInCluster) {
 					logger.trace(getID() + " could not find a RIC to join for " + issue + /*" and is impatient " +*/ " so will arrogate.");
 					// Make a RIC to arrogate
 					// I = issue
@@ -357,18 +349,23 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					resetImpatience(issue);
 				}
 				else {
-					// update impatience if you can't find a cluster to join
-					if (!foundNearby) {
-						logger.warn("**THIS SHOULD NEVER HAPPEN** " + getID() + " could not find a RIC to join for " + issue + " so will wait and check next cycle. ");
-						updateImpatience(issue);
-					}
-					else {
-						logger.trace(getID() + " found a RIC to join for " + issue);
-					}
+					// found a RIC in a cluster youre in, and joined it already
 				}
-				
+				logger.trace(getID() + " found a RIC to join for " + issue);				
 			}
 			// else do stuff for RICs youre in
+			// check for chosen values - if there is nothing chosen then do stuf with impatience and think about proposing/leaving/etc
+			/*if (!foundInCluster) {
+				logger.trace(getID() + " could not find a RIC for " + issue + " so will check nearby clusters.");
+				Collection<IPConRIC> nearbyRICs = getNearbyRICs();
+				for (IPConRIC nearbyRIC : nearbyRICs) {
+					if (!foundNearby && nearbyRIC.getIssue().equalsIgnoreCase(issue)) {
+						foundNearby = true;
+						logger.trace(getID() + " found a nearby RIC (" + nearbyRIC + ") for " + issue + " so will join it.");
+						ricsToJoin.add(nearbyRIC);
+					}
+				}
+			}*/
 		}
 		
 		
@@ -524,7 +521,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	/**
 	 * @return map of goals <value,tolerance>
 	 */
-	private HashMap<String, Pair<Integer, Integer>> getGoalMap() {
+	protected HashMap<String, Pair<Integer, Integer>> getGoalMap() {
 		return getGoals().getMap();
 	}
 	
