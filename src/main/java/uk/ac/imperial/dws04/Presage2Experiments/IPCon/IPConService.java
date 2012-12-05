@@ -123,7 +123,6 @@ public class IPConService extends EnvironmentService {
 		for (Entry<String, Pair<Integer, Integer>> goal : goals.entrySet()) {
 			Integer revision = 0;
 			String issue = goal.getKey();
-			Integer value = goal.getValue().getA();
 			session.insert(new IPConRIC(revision, issue, cluster));
 			session.insert(new HasRole(Role.LEADER, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.ACCEPTOR, handle, revision, issue, cluster));
