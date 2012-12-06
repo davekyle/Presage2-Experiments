@@ -258,6 +258,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// if youre not in the cluster and it has a chosen value
 			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getValue()!=null ) {
 				// and it's chosen value is acceptable
+				// TODO FIXME should check all the other RICs in the cluster, along with the RICs in your current cluster,
+				// then work out which cluster to be in...
 				try {
 					if (isWithinTolerance(entry.getKey().getIssue(), entry.getValue().getValue())) {
 						// try to get their location - if you can, then they're close enough
