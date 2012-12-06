@@ -45,6 +45,7 @@ import uk.ac.imperial.presage2.util.fsm.FSM;
 import uk.ac.imperial.presage2.util.fsm.FSMDescription;
 import uk.ac.imperial.presage2.util.fsm.FSMException;
 import uk.ac.imperial.presage2.util.fsm.StateType;
+import uk.ac.imperial.presage2.util.location.CannotSeeAgent;
 import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
@@ -99,10 +100,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	/*
 	 * Collection for RICs - should be populated every cycle with agents that ping
 	 */
-	private HashMap<IPConRIC,Object> nearbyRICs;
+	private HashMap<IPConRIC,ClusterPing> nearbyRICs;
 	private LinkedList<IPConRIC> ricsToJoin;
 	private LinkedList<IPConRIC> ricsToArrogate;
 	private LinkedList<IPConRIC> ricsToResign;
+	private LinkedList<IPConRIC> ricsToLeave;
 	private LinkedList<IPConAction> prospectiveActions;
 	private LinkedList<IPConAction> ipconActions;
 	@SuppressWarnings("rawtypes")
@@ -125,10 +127,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		this.ipconHandle = new IPConAgent(this.getID(), this.getName());
 		this.startImpatience = (new Long(Math.round(Random.randomDouble()*10))).intValue();
 		this.impatience = new HashMap<String,Integer>();
-		this.nearbyRICs = new HashMap<IPConRIC,Object>();
+		this.nearbyRICs = new HashMap<IPConRIC,ClusterPing>();
 		ricsToJoin = new LinkedList<IPConRIC>();
 		ricsToArrogate = new LinkedList<IPConRIC>();
 		ricsToResign = new LinkedList<IPConRIC>();
+		ricsToLeave = new LinkedList<IPConRIC>();
 		prospectiveActions = new LinkedList<IPConAction>();
 		ipconActions = new LinkedList<IPConAction>();
 		messageQueue = new LinkedList<Message>();
@@ -234,6 +237,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		myLoc = (RoadLocation) locationService.getAgentLocation(getID());
 		mySpeed = speedService.getAgentSpeed(getID());
 		Integer junctionDist = this.locationService.getDistanceToNextJunction();
+		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
 		
 		/*
 		 * Retrieve (in case we want to change them...) macrogoals
@@ -250,10 +254,44 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		// check for vehicles infront/behind you with matching issues and compatible values
 		// look in nearbyRICs - possible to get location of those vehicles ? clusterpings are range-less...
+		for (Entry<IPConRIC,ClusterPing> entry : this.nearbyRICs.entrySet()) {
+			// if youre not in the cluster and it has a chosen value
+			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getValue()!=null ) {
+				// and it's chosen value is acceptable
+				try {
+					if (isWithinTolerance(entry.getKey().getIssue(), entry.getValue().getValue())) {
+						// try to get their location - if you can, then they're close enough
+						RoadLocation theirLoc = locationService.getAgentLocation(entry.getValue().getFrom().getId());
+						// the cluster has a chosen value and the agent is "close" - check the leader's seniority
+						ArrayList<IPConAgent> leads = ipconService.getRICLeader(entry.getKey().getRevision(), entry.getKey().getIssue(), entry.getKey().getCluster());
+						for (IPConAgent lead : leads) {
+							// if the leader is more senior (so you might join) 
+							if (leaderIsMoreSenior(lead)) {
+								ricsToJoin.add(entry.getKey());
+								ArrayList<IPConRIC> issueRICs = getRICsForIssue(entry.getKey().getIssue());
+								for (IPConRIC ric : issueRICs) {
+									ricsToLeave.add(ric);
+								}
+							}
+						}
+					}
+					else {
+						// do nothing
+					}
+				}
+				catch (InvalidClassException e) {
+					// do nothing
+				}
+				catch (CannotSeeAgent e) {
+					// do nothing
+				}
+				
+			}
+		}
 		// if you find one with a more senior leader than you, join it and leave yours
 					
 		
-		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
+		
 		for (IPConRIC ric : currentRICs) {
 			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			if (value!=null) {
@@ -417,6 +455,18 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}*/
 		
 		/*
+		 * Leave all RICs you should
+		 * FIXME TODO this is probably bad, since most will duplicate clusters ?
+		 * Also you might think that you want to do stuff in these clusters before you leave, so...
+		 * (ie, you will leave a cluster after doing stuff in RICs inside it because you only knew you would leave one RIC)
+		 */
+		while (!ricsToLeave.isEmpty()) {
+			IPConRIC ric = ricsToLeave.removeFirst();
+			LeaveCluster act = new LeaveCluster(getIPConHandle(), ric.getCluster());
+			ipconActions.add(act);
+		}
+		
+		/*
 		 * Get obligations
 		 * Get permissions
 		 * Use permissions to instantiate obligations
@@ -512,6 +562,16 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			passJunction();
 		}
 		submitMove(move);
+	}
+
+	private ArrayList<IPConRIC> getRICsForIssue(String issue) {
+		ArrayList<IPConRIC> ricsForIssue = new ArrayList<IPConRIC>();
+		for (IPConRIC ric : ipconService.getCurrentRICs(getIPConHandle())) {
+			if (ric.getIssue().equalsIgnoreCase(issue)) {
+				ricsForIssue.add(ric);
+			}
+		}
+		return ricsForIssue;
 	}
 
 	private Boolean checkClusterMembership() {
@@ -1567,7 +1627,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
 	private void process(ClusterPing arg0) {
 		logger.info(getID() + " processing ClusterPing " + arg0);
-		this.nearbyRICs.put(arg0.getRIC(), arg0.getValue());
+		this.nearbyRICs.put(arg0.getRIC(), arg0);
 	}
 
 	/**

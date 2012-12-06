@@ -67,7 +67,7 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 	 * ASSUMES that you can see all lanes at a given distance
 	 */
 	@Override
-	public RoadLocation getAgentLocation(UUID participantID) {
+	public RoadLocation getAgentLocation(UUID participantID) throws CannotSeeAgent {
 		final RoadLocation theirLoc = super.getAgentLocation(participantID);
 		final RoadLocation myLoc = super.getAgentLocation(myID);
 		if (theirLoc == null ) {
