@@ -245,8 +245,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 */
 		Boolean inMultipleClusters = checkClusterMembership();
 		if (inMultipleClusters) {
-			logger.warn(getID() + " is in multiple clusters ! : " + getNearbyRICs());
+			logger.warn(getID() + " is in multiple clusters ! : " + ipconService.getCurrentRICs(getIPConHandle()));
 		}
+		
+		// check for vehicles infront/behind you with matching issues and compatible values
+		// look in nearbyRICs - possible to get location of those vehicles ? clusterpings are range-less...
+		// if you find one with a more senior leader than you, join it and leave yours
+					
 		
 		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
 		for (IPConRIC ric : currentRICs) {
@@ -366,6 +371,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 				}
 			}*/
+			
+			
 		}
 		
 		
@@ -464,7 +471,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		for (Entry<IPConRIC,Object> entry : institutionalFacts.entrySet()) {
 			messageQueue.add(
 					new ClusterPing(
-							Performative.INFORM, getTime(), network.getAddress(), new Pair<IPConRIC,Object>(entry.getKey(),entry.getValue())
+							Performative.INFORM, getTime(), network.getAddress(), 
+							new Pair<RoadLocation,Pair<IPConRIC,Object>>( myLoc, new Pair<IPConRIC,Object>(entry.getKey(),entry.getValue()) )
 					)
 			);
 		}
@@ -508,7 +516,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
 	private Boolean checkClusterMembership() {
 		ArrayList<UUID> clusters = new ArrayList<UUID>();
-		for (IPConRIC ric : getNearbyRICs()) {
+		for (IPConRIC ric : ipconService.getCurrentRICs(getIPConHandle())) {
 			clusters.add(ric.getCluster());
 		}
 		return ( (!clusters.isEmpty()) && (clusters.size()==1) );
@@ -1559,7 +1567,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
 	private void process(ClusterPing arg0) {
 		logger.info(getID() + " processing ClusterPing " + arg0);
-		this.nearbyRICs.put(arg0.getData().getA(), arg0.getData().getB());
+		this.nearbyRICs.put(arg0.getRIC(), arg0.getValue());
 	}
 
 	/**
