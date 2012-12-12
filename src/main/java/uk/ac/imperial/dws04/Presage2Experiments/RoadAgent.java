@@ -257,40 +257,33 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		for (Entry<IPConRIC,ClusterPing> entry : this.nearbyRICs.entrySet()) {
 			// if youre not in the cluster and it has a chosen value
 			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getValue()!=null ) {
-				// and it's chosen value is acceptable
-				// TODO FIXME should check all the other RICs in the cluster, along with the RICs in your current cluster,
-				// then work out which cluster to be in...
-				try {
-					if (isWithinTolerance(entry.getKey().getIssue(), entry.getValue().getValue())) {
-						// try to get their location - if you can, then they're close enough
-						RoadLocation theirLoc = locationService.getAgentLocation(entry.getValue().getFrom().getId());
-						// the cluster has a chosen value and the agent is "close" - check the leader's seniority
-						ArrayList<IPConAgent> leads = ipconService.getRICLeader(entry.getKey().getRevision(), entry.getKey().getIssue(), entry.getKey().getCluster());
-						for (IPConAgent lead : leads) {
-							// if the leader is more senior (so you might join) 
-							if (leaderIsMoreSenior(lead)) {
-								ricsToJoin.add(entry.getKey());
-								ArrayList<IPConRIC> issueRICs = getRICsForIssue(entry.getKey().getIssue());
-								for (IPConRIC ric : issueRICs) {
-									ricsToLeave.add(ric);
-								}
-							}
-						}
+				// try to get their location - if you can, then they're close enough (throwing away the result)
+				locationService.getAgentLocation(entry.getValue().getFrom().getId());
+				int join = 0;
+				int stay = 0;
+				// for (rics in cluster)
+				for (IPConRIC ricInCluster : ipconService.getRICsInCluster(entry.getKey().getCluster())) {
+				// checkAcceptability of chosen valye in ric
+					if (checkAcceptability(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()).getValue())) {
+						// if true, increment "join"
+						join++;
 					}
 					else {
-						// do nothing
+						// if false, increment stay
+						stay++;
+					}
+				// end if
+				} // end for
+				if (join>stay) {
+					// FIXME TODO fix this to take rics out of consideration for rest of cycle because youre about to leave it
+					ricsToJoin.add(entry.getKey());
+					ArrayList<IPConRIC> issueRICs = getRICsForIssue(entry.getKey().getIssue());
+					for (IPConRIC ric : issueRICs) {
+						ricsToLeave.add(ric);
 					}
 				}
-				catch (InvalidClassException e) {
-					// do nothing
-				}
-				catch (CannotSeeAgent e) {
-					// do nothing
-				}
-				
 			}
 		}
-		// if you find one with a more senior leader than you, join it and leave yours
 					
 		
 		
@@ -566,6 +559,39 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		submitMove(move);
 	}
 
+	/**
+	 * @param ric
+	 * @param value
+	 * @return true if the RIC and its chosen value is acceptable, so you may wish to join it
+	 */
+	private boolean checkAcceptability(IPConRIC ric, Object value) {
+		try {
+			if (isWithinTolerance(ric.getIssue(), value)) {
+				// the cluster has a chosen value and the agent is "close" - check the leader's seniority
+				ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+				for (IPConAgent lead : leads) {
+					// if the leader is more senior (so you might join) 
+					if (leaderIsMoreSenior(lead)) {
+						return true;
+					}
+					else {
+						return false;
+					}
+				}
+			}
+			else {
+				return false;
+			}
+		}
+		catch (InvalidClassException e) {
+			return false;
+		}
+		catch (CannotSeeAgent e) {
+			return false;
+		}
+		return false;
+	}
+
 	private ArrayList<IPConRIC> getRICsForIssue(String issue) {
 		ArrayList<IPConRIC> ricsForIssue = new ArrayList<IPConRIC>();
 		for (IPConRIC ric : ipconService.getCurrentRICs(getIPConHandle())) {
@@ -672,7 +698,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @throws InvalidClassException if value is the wrong type
 	 */
 	protected Boolean isWithinTolerance(String issue, Object value) throws InvalidClassException {
-		if (!(value instanceof Integer)) {
+		if ((value==null) || !(value instanceof Integer)) {
 			throw new InvalidClassException("Only integer goals are supported. Value was a " + value.getClass());
 		}
 		else {
