@@ -155,7 +155,7 @@ public class IPConService extends EnvironmentService {
 	 * @param revision
 	 * @param issue
 	 * @param cluster
-	 * @return the IPConFact 'Chosen' (NOT the value for the specified RIC or null if zero or multiple (shouldn't happen) values
+	 * @return the IPConFact 'Chosen' (NOT the value for the specified RIC) or null if zero or multiple (shouldn't happen) values
 	 */
 	public Chosen getChosen(Integer revision, String issue, UUID cluster) {
 		ArrayList<IPConFact> obj = new ArrayList<IPConFact>();
