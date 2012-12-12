@@ -201,7 +201,7 @@ public class ParticipantIPConService extends IPConService {
 	/* (non-Javadoc)
 	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getChosen(java.lang.Integer, java.lang.String, java.util.UUID)
 	 */
-	@Override
+	/*@Override
 	public Chosen getChosen(Integer revision, String issue, UUID cluster) {
 		if ( revision!=null && issue!=null && cluster!=null && (!super.getAgentRoles(this.handle, revision, issue, cluster).isEmpty()) ) {
 			return super.getChosen(revision, issue, cluster);
@@ -209,7 +209,7 @@ public class ParticipantIPConService extends IPConService {
 		else {
 			throw new SharedStateAccessException("A participant may not view info about a RIC they are not in!");
 		}
-	}
+	}*/
 
 	/* (non-Javadoc)
 	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getAgentRoles(uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent, java.lang.Integer, java.lang.String, java.util.UUID)
