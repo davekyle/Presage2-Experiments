@@ -261,8 +261,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				locationService.getAgentLocation(entry.getValue().getFrom().getId());
 				int join = 0;
 				int stay = 0;
+				Collection<IPConRIC> clusterRICs = ipconService.getRICsInCluster(entry.getKey().getCluster());
 				// for (rics in cluster)
-				for (IPConRIC ricInCluster : ipconService.getRICsInCluster(entry.getKey().getCluster())) {
+				for (IPConRIC ricInCluster : clusterRICs) {
 				// checkAcceptability of chosen valye in ric
 					if (checkAcceptability(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()).getValue())) {
 						// if true, increment "join"
@@ -276,10 +277,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				} // end for
 				if (join>stay) {
 					// FIXME TODO fix this to take rics out of consideration for rest of cycle because youre about to leave it
-					ricsToJoin.add(entry.getKey());
-					ArrayList<IPConRIC> issueRICs = getRICsForIssue(entry.getKey().getIssue());
-					for (IPConRIC ric : issueRICs) {
-						ricsToLeave.add(ric);
+					// and also to join all of the RICs in the cluster, not just the one you got the msg from...
+					for (IPConRIC ricInCluster : clusterRICs) {
+						// ricsToLeave should remove yourself from the cluster the RIC is in, not just the RIC
+						ricsToLeave.addAll(getRICsForIssue(ricInCluster.getIssue()));
+						ricsToJoin.add(ricInCluster);
 					}
 				}
 			}
