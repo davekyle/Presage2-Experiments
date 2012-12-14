@@ -41,6 +41,7 @@ public class IPConMsgToRuleEngine extends MessagesToRuleEngine {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public Message constrainMessage(Message m){
+		logger.trace("Checking " + m + " for constraints");
 		if (m instanceof IPConActionMsg) {
 			IPConAction action = ((IPConActionMsg)m).getData();
 			if (action instanceof TimeStampedAction) {
