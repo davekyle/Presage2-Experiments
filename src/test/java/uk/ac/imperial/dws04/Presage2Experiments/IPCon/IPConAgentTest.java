@@ -597,20 +597,39 @@ public class IPConAgentTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testClusterJoin() throws Exception {
+	public void testClusterMerge() throws Exception {
 		logger.info("\nBeginning test of joining nearby clusters...");		
 		// Make an agent, execute(), check there are 2 RICs (spacing and speed)
-		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(1, 50, 1));
 
 		a1.execute();
 		incrementTime();
 
 		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		assertThat(rics.size(), is( 2 ) );
-		logger.info("Succesful setup.");
+		
+		// insert random chosen fact (or try to...)
+		for (IPConRIC ric : rics) {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			Integer ballot = 0;
+			Object value = 1;
+			session.insert(new Chosen(revision, ballot, value, issue, cluster));
+		}
+		
+		incrementTime();
+		
+		for (IPConRIC ric : rics) {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			assertThat(globalIPConService.getChosen(revision, issue, cluster), is( notNullValue() ));
+		}
+		logger.info("Successful setup.");
 		
 		// create another agent
-		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1);
+		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(1, 50, 1));
 		
 		// execute some more and check that a1 and a2 are both in (the same) 2 clusters
 		for (int i = 1; i<=10; i++) {
@@ -619,6 +638,14 @@ public class IPConAgentTest {
 			a2.execute();
 			incrementTime();
 		}
+		
+		for (IPConRIC ric : rics) {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			assertThat(globalIPConService.getChosen(revision, issue, cluster), is( notNullValue() ));
+		}
+		
 		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		assertThat(a1RICs.size(), is( 2 ) );
 		assertThat(a1RICs.toArray(new IPConRIC[2])[0].getCluster(), is(a1RICs.toArray(new IPConRIC[2])[1].getCluster()) );
