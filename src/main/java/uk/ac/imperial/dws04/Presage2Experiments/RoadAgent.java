@@ -110,7 +110,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	@SuppressWarnings("rawtypes")
 	private LinkedList<Message> messageQueue;
 	private LinkedList<IPConActionMsg> ownMsgs;
-	private HashMap<IPConRIC,Object> institutionalFacts;
+	/** Issue to Chosen fact **/
+	private HashMap<String,Chosen> institutionalFacts;
 	 
 	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
 		super(id, name);
@@ -136,7 +137,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		ipconActions = new LinkedList<IPConAction>();
 		messageQueue = new LinkedList<Message>();
 		ownMsgs = new LinkedList<IPConActionMsg> ();
-		institutionalFacts = new HashMap<IPConRIC,Object>();
+		institutionalFacts = new HashMap<String, Chosen>();
 	}
 	
 	/**
@@ -255,6 +256,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// check for vehicles infront/behind you with matching issues and compatible values
 		// look in nearbyRICs - possible to get location of those vehicles ? clusterpings are range-less...
 		for (Entry<IPConRIC,ClusterPing> entry : this.nearbyRICs.entrySet()) {
+			
+			
+			// FIXME TODO should remove duplicates around here somewhere
+			
+			
+			
+			
 			// if youre not in the cluster and it has a chosen value
 			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getValue()!=null ) {
 				// try to get their location - if you can, then they're close enough (throwing away the result)
@@ -264,18 +272,23 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				Collection<IPConRIC> clusterRICs = ipconService.getRICsInCluster(entry.getKey().getCluster());
 				// for (rics in cluster)
 				for (IPConRIC ricInCluster : clusterRICs) {
-				// checkAcceptability of chosen valye in ric
-					if (checkAcceptability(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()).getValue())) {
+				// checkAcceptability of chosen value in ric
+					logger.debug(getID() + " is considering " + ricInCluster);
+					if (isPreferableToCurrent(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()))) {
+					//if (checkAcceptability(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()))) {
 						// if true, increment "join"
 						join++;
+						logger.debug(getID() + " incremented in favour of " + ricInCluster + " - " + join + ":" + stay);
 					}
 					else {
 						// if false, increment stay
 						stay++;
+						logger.debug(getID() + " incremented against " + ricInCluster + " - " + join + ":" + stay);
 					}
 				// end if
 				} // end for
 				if (join>stay) {
+					logger.debug(getID() + " found that it should join cluster " + entry.getKey().getCluster());
 					// FIXME TODO fix this to take rics out of consideration for rest of cycle because youre about to leave it
 					// and also to join all of the RICs in the cluster, not just the one you got the msg from...
 					for (IPConRIC ricInCluster : clusterRICs) {
@@ -290,12 +303,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		
 		for (IPConRIC ric : currentRICs) {
-			Object value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			Chosen value = getChosenFact(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			if (value!=null) {
 				// "null" should never be chosen as a value, so we can do this ?
-				value = ((Chosen)value).getValue();
-				logger.trace(getID() + " thinks " + value + " has been chosen in " + ric);
-				institutionalFacts.put(ric, value);
+				institutionalFacts.put(ric.getIssue(), value);
+				logger.trace(getID() + " thinks " + value.getValue() + " has been chosen in " + ric);
 			}
 			else {
 				// "null" should never be chosen as a value, so we can do this ?
@@ -365,7 +377,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					UUID cluster = null;
 					if (!institutionalFacts.isEmpty()) {
 						// pick a very-psuedo-random cluster you're already in
-						cluster = institutionalFacts.keySet().iterator().next().getCluster();
+						cluster = institutionalFacts.entrySet().iterator().next().getValue().getCluster();
 						logger.trace(getID() + " arrogating in existing cluster " + cluster);
 					}
 					else {
@@ -515,11 +527,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		/*
 		 * Generate broadcast msgs indicating which RICs you're in
 		 */
-		for (Entry<IPConRIC,Object> entry : institutionalFacts.entrySet()) {
+		for (Entry<String,Chosen> entry : institutionalFacts.entrySet()) {
+			IPConRIC ric = new IPConRIC(entry.getValue().getRevision(), entry.getValue().getIssue(), entry.getValue().getCluster());
 			messageQueue.add(
 					new ClusterPing(
 							Performative.INFORM, getTime(), network.getAddress(), 
-							new Pair<RoadLocation,Pair<IPConRIC,Object>>( myLoc, new Pair<IPConRIC,Object>(entry.getKey(),entry.getValue()) )
+							new Pair<RoadLocation,Pair<IPConRIC,Object>>( myLoc, new Pair<IPConRIC,Object>(ric,entry.getValue()) )
 					)
 			);
 		}
@@ -560,6 +573,38 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		submitMove(move);
 	}
+		
+	private boolean isPreferableToCurrent(IPConRIC ric, Object value) {
+		if (value instanceof Chosen) {
+			value = ((Chosen) value).getValue();
+		}
+		try {
+			// if other cluster is tolerable and current isnt, then switch
+			if (isWithinTolerance(ric.getIssue(), value) && !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()))) {
+				return true;
+			}
+			// if current and other cluster are both tolerable... compare leader seniority
+			else if (isWithinTolerance(ric.getIssue(), value) && isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()))) {
+				// check the other leader's seniority
+				IPConAgent currentLead = null;
+				ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+				for (IPConAgent lead : leads) {
+					// if the leader is more senior (so you might join) 
+					if (leaderIsMoreSenior(lead, currentLead)) {
+						return true;
+						// break out of loop with return, so you only add one at most
+					}
+				}
+				return false; // if none of them are more senior then don't join
+			}
+		} catch (InvalidClassException e) {
+			// TODO Auto-generated catch block
+			logger.debug(e);
+			return false;
+		}
+		// return false if you except or something else goes wrong
+		return false;
+	}
 
 	/**
 	 * @param ric
@@ -568,6 +613,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private boolean checkAcceptability(IPConRIC ric, Object value) {
 		try {
+			if (value instanceof Chosen) {
+				value = ((Chosen) value).getValue();
+			}
 			if (isWithinTolerance(ric.getIssue(), value)) {
 				// the cluster has a chosen value and the agent is "close" - check the leader's seniority
 				ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
@@ -680,6 +728,15 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private boolean leaderIsMoreSenior(IPConAgent leader) {
 		 return ( leader.getIPConID().compareTo(getIPConHandle().getIPConID()) == 1); 
 	}
+	
+	/**
+	 * @param leader1
+	 * @param leader2
+	 * @return true if leader1 is more senior than leader2
+	 */
+	private boolean leaderIsMoreSenior(IPConAgent leader1, IPConAgent leader2) {
+		 return ( leader1.getIPConID().compareTo(leader2.getIPConID()) == 1); 
+	}
 
 	/**
 	 * FIXME TODO should probably not just get this from IPCon (that's sort of cheating)
@@ -696,11 +753,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * 
 	 * @param issue name of issue to be checked
 	 * @param value value to be checked
-	 * @return true if the given value is within the tolerance for the goal relating to the given issue, null if no goal for that issue, false otherwise
+	 * @return true if the given value is within the tolerance for the goal relating to the given issue, null if no goal for that issue, false otherwise (or if tested value was null, since null cannot be a goal)
 	 * @throws InvalidClassException if value is the wrong type
 	 */
 	protected Boolean isWithinTolerance(String issue, Object value) throws InvalidClassException {
-		if ((value==null) || !(value instanceof Integer)) {
+		if (value==null) {
+			return false;
+		}
+		else if (!(value instanceof Integer)) {
 			throw new InvalidClassException("Only integer goals are supported. Value was a " + value.getClass());
 		}
 		else {
