@@ -110,7 +110,7 @@ public class ParticipantIPConService extends IPConService {
 	 */
 	@Override
 	public Collection<IPConRIC> getRICsInCluster(UUID cluster) {
-		if ( cluster!=null && (!super.getAgentRoles(this.handle, null, null, cluster).isEmpty()) ) {
+		if ( cluster!=null /*&& (!super.getAgentRoles(this.handle, null, null, cluster).isEmpty())*/ ) {
 			// Have to hack this rather than calling the super because the super calls getFacts which is unavailable to agents
 			HashSet<IPConRIC> set = new HashSet<IPConRIC>();
 			QueryResults facts = session.getQueryResults("getFactsNamed", new Object[]{Variable.v, Variable.v, cluster, "IPConRIC"});
@@ -120,7 +120,7 @@ public class ParticipantIPConService extends IPConService {
 			return set;
 		}
 		else {
-			throw new SharedStateAccessException("A participant may not view info about a RIC they are not in!");
+			throw new SharedStateAccessException("A participant may not view info about a RIC that does not exist!");
 		}
 	}
 
@@ -190,11 +190,11 @@ public class ParticipantIPConService extends IPConService {
 	 */
 	@Override
 	public Integer getQuorumSize(Integer revision, String issue, UUID cluster) {
-		if ( revision!=null && issue!=null && cluster!=null && (!super.getAgentRoles(this.handle, revision, issue, cluster).isEmpty()) ) {
+		if ( revision!=null && issue!=null && cluster!=null /*&& (!super.getAgentRoles(this.handle, revision, issue, cluster).isEmpty())*/ ) {
 			return super.getQuorumSize(revision, issue, cluster);
 		}
 		else {
-			throw new SharedStateAccessException("A participant may not view info about a RIC they are not in!");
+			throw new SharedStateAccessException("A participant may not view info about a RIC that does not exist!");
 		}
 	}
 	
@@ -232,11 +232,11 @@ public class ParticipantIPConService extends IPConService {
 	@Override
 	public ArrayList<IPConAgent> getRICLeader(Integer revision, String issue,
 			UUID cluster) {
-		if ( revision!=null && issue!=null && cluster!=null && (!super.getAgentRoles(this.handle, revision, issue, cluster).isEmpty()) ) {
+		if ( revision!=null && issue!=null && cluster!=null /*&& (!super.getAgentRoles(this.handle, revision, issue, cluster).isEmpty())*/ ) {
 			return super.getRICLeader(revision, issue, cluster);
 		}
 		else {
-			throw new SharedStateAccessException("A participant may not view info about a RIC they are not in!");
+			throw new SharedStateAccessException("A participant may not view info about a RIC that does not exist!");
 		}
 	}
 
