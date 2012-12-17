@@ -43,11 +43,16 @@ public class IPConMsgToRuleEngine extends MessagesToRuleEngine {
 	public Message constrainMessage(Message m){
 		logger.trace("Checking " + m + " for constraints");
 		if (m instanceof IPConActionMsg) {
+			//logger.trace(m + " is an IPConActionMsg");
 			IPConAction action = ((IPConActionMsg)m).getData();
+			//logger.trace("Action was " + action);
 			if (action instanceof TimeStampedAction) {
 				((TimeStampedAction) action).setT(SimTime.get().intValue());
+				//logger.trace("Set the time to " + SimTime.get().intValue());
 			}
+			//logger.trace("Inserting...");
 			sessionPtr.insert(action);
+			//logger.trace("Inserted.");
 			logger.trace("Inserting " + ((IPConActionMsg)m).getData() + " to kbase. Message was " + m + ".");
 			return m;
 		}

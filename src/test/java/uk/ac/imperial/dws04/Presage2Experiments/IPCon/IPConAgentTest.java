@@ -239,13 +239,13 @@ public class IPConAgentTest {
 		return a;
 	}
 	
-	public void incrementTime(){
+	public void incrementTime(int t){
 		time.increment();
 		networkController.incrementTime();
 		
 		// Sam hack to make the network controller threads finish before trying to run the rulesengine
 		try {
-			Thread.sleep(500);
+			Thread.sleep(t);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -253,6 +253,10 @@ public class IPConAgentTest {
 		// otherwise msgs never delivered...
 		networkController.onParticipantsComplete(null);
 		env.incrementTime();
+	}
+	
+	public void incrementTime() {
+		incrementTime(500);
 	}
 	
 	private void insert(Object obj) {

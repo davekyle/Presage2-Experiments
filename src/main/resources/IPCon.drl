@@ -67,6 +67,11 @@ declare LeaveCluster
 	@expires( 1s )
 end
 
+declare JoinAsLearner
+	@role( event )
+	@expires( 1s )
+end
+
 declare RemRole
 	@role( event )
 	@expires( 1s )
