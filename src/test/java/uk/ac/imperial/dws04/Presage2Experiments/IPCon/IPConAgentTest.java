@@ -612,7 +612,7 @@ public class IPConAgentTest {
 		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		assertThat(rics.size(), is( 2 ) );
 		
-		// insert random chosen fact (or try to...)
+		// insert random chosen fact (or try to...) into both of A1's RICs
 		for (IPConRIC ric : rics) {
 			Integer revision = ric.getRevision();
 			String issue = ric.getIssue();
@@ -643,6 +643,7 @@ public class IPConAgentTest {
 			incrementTime();
 		}
 		
+		// A1's rics still have a chosen value in each
 		for (IPConRIC ric : rics) {
 			Integer revision = ric.getRevision();
 			String issue = ric.getIssue();
@@ -658,7 +659,8 @@ public class IPConAgentTest {
 		assertThat(a2RICs.size(), is( 2 ) );
 		
 		logger.info("A1 (" + a1RICs + ") and A2 (" + a2RICs + ") both in 2 RICs.");
-		
+
+		// A1 and A2 are both in the same two clusters - A2 left it's clusters and merged with A1
 		for (IPConRIC a1RIC : a1RICs) {
 			assertThat( a2RICs, hasItem(a1RIC) );
 		}
@@ -702,7 +704,7 @@ public class IPConAgentTest {
 		logger.info("Finished test of arrogating in a leaderless RIC\n");
 	}
 	
-	@Test
+	/*@Test
 	public void testJoinRICInCurrentCluster() throws Exception {
 		logger.info("\nBeginning test of joining RIC in current cluster...");		
 
@@ -752,7 +754,7 @@ public class IPConAgentTest {
 		}
 		logger.info("** Join test passed: A1 and A2 both in same RICs **");
 		logger.info("Finished test of joining RIC in current cluster\n");
-	}
+	}*/
 	
 	@Test
 	public void testClusterResign() throws Exception {
