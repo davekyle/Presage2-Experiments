@@ -1006,11 +1006,11 @@ public class IPConAgentTest {
 		 */
 		
 		/*
-		 * One of them arrogates
+		 * Agents independently decide values
 		 */
 		
 		/*
-		 * Agents join
+		 * Agents merge
 		 */
 		
 		/*
