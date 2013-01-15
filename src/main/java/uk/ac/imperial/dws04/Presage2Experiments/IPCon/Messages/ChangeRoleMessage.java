@@ -16,6 +16,7 @@ import uk.ac.imperial.presage2.util.protocols.FSMConversation;
  * @author dws04
  *
  */
+@Deprecated
 public class ChangeRoleMessage extends BroadcastMessage<IPConRoleChangeMessageData> {
 	
 	ChangeRoleMessage(FSMConversation conv, NetworkAddress agentId, String issue, Integer ballotNum, Boolean addOrRem, Role oldRole, Role newRole) {

@@ -41,6 +41,7 @@ import uk.ac.imperial.presage2.util.protocols.FSMConversation;
  * @author dws04
  *
  */
+@Deprecated
 public abstract class IPConProtocol extends FSMProtocol {
 
 	private final Logger logger;
