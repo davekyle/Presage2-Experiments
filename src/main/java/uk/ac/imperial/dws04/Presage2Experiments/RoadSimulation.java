@@ -260,7 +260,8 @@ public class RoadSimulation extends InjectedSimulation {
 				if (this.storage != null) {
 					//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
 					PersistentAgent state = this.storage.getAgent(uuid);
-					state.setProperty("insertedAt", e.getTime().toString());
+					Integer time = (e.getTime().intValue()+1);
+					state.setProperty("insertedAt", time.toString());
 				}
 			}
 		}
