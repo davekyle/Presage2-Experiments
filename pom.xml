@@ -75,10 +75,10 @@
 	<build>
 		<resources>
 	      <resource>
-	        <directory>src/mmain/java</directory>
+	        <directory>src/main/java</directory>
 	        <excludes>
-	          <exclude>IPConProtocol.java</exclude>
-	          <exclude>ChangeRoleMessage.java</exclude>
+	          <exclude>**/IPConProtocol.java</exclude>
+	          <exclude>**/ChangeRoleMessage.java</exclude>
 	        </excludes>
 	      </resource>
 	    </resources>
