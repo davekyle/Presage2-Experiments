@@ -255,7 +255,13 @@ public class RoadSimulation extends InjectedSimulation {
 		if (Random.randomInt()%2!=0) {
 			Integer junctionOffset = this.getEnvironmentService().getNextInsertionJunction();
 			if (junctionOffset!=null) {
-				createNextAgent(0, junctionOffset);
+				UUID uuid = createNextAgent(0, junctionOffset);
+				// do a entry in the db for this
+				if (this.storage != null) {
+					//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
+					PersistentAgent state = this.storage.getAgent(uuid);
+					state.setProperty("insertedAt", e.getTime().toString());
+				}
 			}
 		}
 		return 0;
@@ -266,7 +272,7 @@ public class RoadSimulation extends InjectedSimulation {
 	 * @param lane
 	 * @param startOffset
 	 */
-	private void createNextAgent(int lane, int startOffset) {
+	private UUID createNextAgent(int lane, int startOffset) {
 		UUID uuid = Random.randomUUID();
 		String name = "agent"+ agentNames.size();
 		RoadLocation startLoc = new RoadLocation(lane, startOffset);
@@ -279,7 +285,7 @@ public class RoadSimulation extends InjectedSimulation {
 		agentNames.put(uuid, name);
 		logger.debug("Now tracking " + agentNames.size() + " agents.");
 		this.agentLocations.put(uuid, startLoc);
-		// do a entry in the db for this // TODO what does this comment mean ?
+		return uuid;
 	}
 	
 	private RoadAgentGoals createNewAgentGoals() {
@@ -324,9 +330,9 @@ public class RoadSimulation extends InjectedSimulation {
 				return ids;
 			}
 		});
-		if (this.graphDb != null) {
+		if (this.storage != null) {
 			//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
-			TransientAgentState state = this.graphDb.getAgentState(uuid, e.time.intValue());
+			PersistentAgent state = this.storage.getAgent(uuid);
 			state.setProperty("leftAt", e.time.toString());
 		}
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
