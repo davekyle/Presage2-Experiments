@@ -1463,7 +1463,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// Choose the first safe move you find
 			case SAFE :  {
 				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe action...");
-				discardUnsafeActions(actions);
 				Collections.sort(actions, new PairBDescComparator<Integer>());
 				if (!actions.isEmpty()) {
 					result = actions.getFirst();
@@ -1474,11 +1473,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						}
 					}
 					else {
-						logger.fatal("SHOULD NEVER HAPPEN - [" + getID() + "] Agent " + getName() + " had an unsafe move allowed by discardUnsafeActions! Attempting move: " + result.getA());
-						/*logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Attempting move: " + result.getA());
+						logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Attempting move: " + result.getA());
 						if (result.getA().getX()!=0) {
 							logger.debug("Agent is going to change lanes.");
-						}*/
+						}
 					}
 				}
 				else {
@@ -1497,7 +1495,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						act.setB(Math.abs(act.getA().getXInt() - this.goals.getSpeed()));
 					}
 					Collections.sort(actions, new PairBDescComparator<Integer>());
-					result = actions.getFirst();
+					result = actions.getLast();
 					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe_goals move: " + result.getA());
 					if (result.getA().getX()!=0) {
 						logger.debug("Agent is going to change lanes.");
