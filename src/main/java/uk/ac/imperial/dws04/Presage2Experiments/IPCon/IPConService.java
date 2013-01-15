@@ -70,6 +70,7 @@ public class IPConService extends EnvironmentService {
 		session.setGlobal("logger", this.logger);
 		session.setGlobal("IPCNV_val", IPCNV.val());
 		session.setGlobal("IPCNV_bal", IPCNV.bal());
+		logger.trace("Initialising IPConService timeHandle to " + SimTime.get().intValue());
 		timeHandle = session.insert(new IPConTime(SimTime.get().intValue()));
 		for (Role role : Role.values()) {
 			session.insert(role);
@@ -105,6 +106,7 @@ public class IPConService extends EnvironmentService {
 	
 	@EventListener
 	public void onEndOfCycle(EndOfTimeCycle event) {
+		logger.debug("Updating timehandle: " + timeHandle + " to " + event.getTime().intValue()+1);
 		session.update(timeHandle, event.getTime().intValue()+1);
 	}
 	

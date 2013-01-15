@@ -30,7 +30,9 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.SharedStateAccessException;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
+import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.participant.Participant;
+import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
 
 /**
@@ -238,6 +240,15 @@ public class ParticipantIPConService extends IPConService {
 		else {
 			throw new SharedStateAccessException("A participant may not view info about a RIC that does not exist!");
 		}
+	}
+
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#onEndOfCycle(uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle)
+	 */
+	@Override
+	public void onEndOfCycle(EndOfTimeCycle event) {
+		// remove annotation so that it doesn't listen (since it doesn't have session access)
+		// do nothing
 	}
 
 	
