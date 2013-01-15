@@ -20,10 +20,12 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
+import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
+import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.core.db.StorageService;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentAgent;
@@ -100,6 +102,7 @@ public class RoadSimulation extends InjectedSimulation {
 		// TODO if this is a param, needs to be loaded in getModules() or something instead
 		// the uuid's aren't governed by the same seed, so if you want to compare do it by agentname instead
 		Random.seed = 123456;
+		new SimTime(new IntegerTime());
 	}
 	
 	@Inject
@@ -203,11 +206,16 @@ public class RoadSimulation extends InjectedSimulation {
 	@Override
 	protected Set<AbstractModule> getModules() {
 		Set<AbstractModule> modules = new HashSet<AbstractModule>();
-	 
+
+		// Rules engine stuff
+		modules.add(new RuleModule().addClasspathDrlFile("IPConUtils.drl")
+			.addClasspathDrlFile("IPConPowPer.drl")
+			.addClasspathDrlFile("IPCon.drl")
+			.addClasspathDrlFile("IPConOblSan.drl")
+			);
+		
 		// 2D area that wraps at the top
 		modules.add(Area.Bind.area2D(lanes, length).addEdgeHandler(Edge.Y_MAX, WrapEdgeHandler.class));
-		// rule module
-		modules.add(new RuleModule());
 		// Environment with MoveHandler and ParticipantLocationService
 		modules.add(new AbstractEnvironmentModule()
 			.addActionHandler(LaneMoveHandler.class)
@@ -229,12 +237,6 @@ public class RoadSimulation extends InjectedSimulation {
 		// Location plugin
 		// TODO need to modify the plugin
 		modules.add(new PluginModule().addPlugin(LocationStoragePlugin.class));
-		// Rules engine stuff
-		modules.add(new RuleModule().addClasspathDrlFile("IPConUtils.drl")
-			.addClasspathDrlFile("IPConPowPer.drl")
-			.addClasspathDrlFile("IPCon.drl")
-			.addClasspathDrlFile("IPConOblSan.drl")
-			);
 		return modules;
 	}
 	
