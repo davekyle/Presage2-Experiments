@@ -1,6 +1,5 @@
 target/
 .project
 .settings
-run/
 .classpath
 .DS_Store

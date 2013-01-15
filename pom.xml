@@ -73,6 +73,15 @@
 	</repositories>
 
 	<build>
+		<resources>
+	      <resource>
+	        <directory>src/mmain/java</directory>
+	        <excludes>
+	          <exclude>IPConProtocol.java</exclude>
+	          <exclude>ChangeRoleMessage.java</exclude>
+	        </excludes>
+	      </resource>
+	    </resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
