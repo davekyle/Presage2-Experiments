@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -55,7 +56,7 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	private enum OwnChoiceMethod {SAFE, PLANNED};
+	private enum OwnChoiceMethod {SAFE, PLANNED, SAFE_GOALS};
 	private enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
@@ -1452,28 +1453,59 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @return 
 	 */
 	private CellMove chooseFromSafeMoves(LinkedList<Pair<CellMove, Integer>> actions, OwnChoiceMethod ownChoiceMethod) {
-		Pair<CellMove, Integer> result;
+		Pair<CellMove, Integer> result = null;
 		if (actions.isEmpty()) {
 			logger.error("[" + getID() + "] Agent " + getName() + " couldn't find any moves at all ! Totally shouldn't be here, so slowing as much as possible.");
 			return driver.decelerateToCrawl();
 		}
 		else {
 			switch (ownChoiceMethod) {
+			// Choose the first safe move you find
 			case SAFE :  {
 				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe action...");
+				discardUnsafeActions(actions);
 				Collections.sort(actions, new PairBDescComparator<Integer>());
-				result = actions.getFirst();
-				if (result.getB().equals(Integer.MAX_VALUE)) {
-					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe move: " + result.getA());
+				if (!actions.isEmpty()) {
+					result = actions.getFirst();
+					if (result.getB().equals(Integer.MAX_VALUE)) {
+						logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe move: " + result.getA());
+						if (result.getA().getX()!=0) {
+							logger.debug("Agent is going to change lanes.");
+						}
+					}
+					else {
+						logger.fatal("SHOULD NEVER HAPPEN - [" + getID() + "] Agent " + getName() + " had an unsafe move allowed by discardUnsafeActions! Attempting move: " + result.getA());
+						/*logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Attempting move: " + result.getA());
+						if (result.getA().getX()!=0) {
+							logger.debug("Agent is going to change lanes.");
+						}*/
+					}
+				}
+				else {
+					logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there are any safe moves to make ! Slowing as fast as possible !");
+					result = new Pair<CellMove, Integer>(driver.decelerateMax(), 0);
+				}
+				return result.getA();
+			}
+			// Choose a safe move that sets your speed as close to your goal as possible
+			case SAFE_GOALS : {
+				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe_goals action...");
+				discardUnsafeActions(actions);
+				if (!actions.isEmpty()) {
+					// Reset the value of the move to how close it is to your goalspeed
+					for (Pair<CellMove,Integer> act : actions) {
+						act.setB(Math.abs(act.getA().getXInt() - this.goals.getSpeed()));
+					}
+					Collections.sort(actions, new PairBDescComparator<Integer>());
+					result = actions.getFirst();
+					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe_goals move: " + result.getA());
 					if (result.getA().getX()!=0) {
 						logger.debug("Agent is going to change lanes.");
 					}
 				}
 				else {
-					logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Attempting move: " + result.getA());
-					if (result.getA().getX()!=0) {
-						logger.debug("Agent is going to change lanes.");
-					}
+					logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there are any safe_goals moves to make ! Slowing as fast as possible !");
+					result = new Pair<CellMove, Integer>(driver.decelerateMax(), 0);
 				}
 				return result.getA();
 			}
@@ -1488,6 +1520,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param actions list of action/safety pairs - if int is not Integer.MAX_VALUE, then discard it.
+	 */
+	private void discardUnsafeActions(LinkedList<Pair<CellMove, Integer>> actions) {
+		Iterator<Pair<CellMove, Integer>> it = actions.iterator();
+		while (it.hasNext()) {
+			if (it.next().getB()!=Integer.MAX_VALUE) {
+				it.remove();
+			}
+		}
+	}
+
 	/**
 	 * @param neighbourChoiceMethod TODO
 	 * @return a reasoned move/viability pair. Viability is Integer.Max_VALUE if the move is safe, or not if otherwise.
