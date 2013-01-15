@@ -112,6 +112,7 @@ public class RoadSimulation extends InjectedSimulation {
 	
 	@Inject(optional = true)
 	public void setStorage(StorageService storage) {
+		super.setStorage(storage);
 		this.storage = storage;
 	}
 	
