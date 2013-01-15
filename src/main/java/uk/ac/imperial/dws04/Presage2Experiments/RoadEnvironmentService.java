@@ -151,7 +151,8 @@ public class RoadEnvironmentService extends EnvironmentService {
 				result = startOffset;
 				notAdded = false;
 			}
-			else if (this.getLocationService().getAgentLocation(targetUUID).getOffset() + this.getSpeedService().getStoppingDistance(targetUUID) < startOffset) {
+			//else if (this.getLocationService().getAgentLocation(targetUUID).getOffset() + this.getSpeedService().getStoppingDistance(targetUUID) < startOffset) {
+			else if (this.getLocationService().getAgentLocation(targetUUID).getOffset() + this.getSpeedService().getAgentSpeed(targetUUID) + this.getSpeedService().getMaxAccel() < startOffset) {
 				logger.debug("Agent " + targetUUID + " was detected at location " + this.getLocationService().getAgentLocation(targetUUID) + " but should stop in time.");
 				result = startOffset;
 				notAdded = false;

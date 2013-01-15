@@ -24,6 +24,7 @@ import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
+import uk.ac.imperial.presage2.core.simulator.ParticipantsComplete;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
@@ -243,6 +244,8 @@ public class RoadSimulation extends InjectedSimulation {
 	
 	/**
 	 * Allows new agents to be inserted at the onramps at the end of a timecycle based on a function
+	 * (Should be on ParticipantsComplete so that the state can be updated after they are inserted,
+	 * but then this function cannot tell if an agent is on the space ...)
 	 * @param e
 	 * @return
 	 */

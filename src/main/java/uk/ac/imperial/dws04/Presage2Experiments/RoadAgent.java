@@ -159,6 +159,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	@Override
 	public void initialise() {
+		logger.debug("Initialising RoadAgent " + this.getName() + " / " + this.getID());
 		super.initialise();
 		// get the ParticipantRoadLocationService.
 		try {
@@ -1469,7 +1470,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 				}
 				else {
-					logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Decelerating as much as possible...");
+					logger.warn("[" + getID() + "] Agent " + getName() + " doesn't think there is a safe move to make ! Attempting move: " + result.getA());
 					if (result.getA().getX()!=0) {
 						logger.debug("Agent is going to change lanes.");
 					}
