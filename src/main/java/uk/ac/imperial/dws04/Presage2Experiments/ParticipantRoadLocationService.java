@@ -183,8 +183,8 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 		UUID result = null;
 		int startLoc = ((RoadLocation) super.getAgentLocation(myID)).getOffset();
 		for (int i = 0; i <= this.getPerceptionRange(); i++) {
-			if ( !getAreaService().getCell(lane, ((startLoc-i)%this.getAreaService().getSizeY()), 0).isEmpty() ) {
-				for (UUID a : getAreaService().getCell(lane, ((startLoc-i)%this.getAreaService().getSizeY()), 0)) {
+			if ( !getAreaService().getCell(lane, MathsUtils.mod((startLoc-i),this.getAreaService().getSizeY()), 0).isEmpty() ) {
+				for (UUID a : getAreaService().getCell(lane, MathsUtils.mod((startLoc-i),this.getAreaService().getSizeY()), 0)) {
 					if (a!=myID) {
 						result = a; // should only be one
 					}
