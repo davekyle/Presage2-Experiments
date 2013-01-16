@@ -117,16 +117,26 @@ public class ParticipantSpeedService extends SpeedService {
 		// } else {
 		try { // try to observe them; if you can then they're close enough.
 			final Location theirLoc = getLocationService().getAgentLocation(participantID);
+			final Location myLoc = getLocationService().getAgentLocation(myID);
+		
+			if (participantID.equals(myID)) {
+				return super.getStoppingDistance(participantID);
+			}
+			else {
+				// work out if you're looking infront of you or behind you
+				// FIXME should agents alongside you be counted as infront or behind ?
+				boolean checkFront;
+				if (theirLoc.getX()>=myLoc.getX()) {
+					checkFront = true;
+				}
+				else {
+					checkFront = false;
+				}
+				return super.getAdjustedStoppingDistance(participantID, checkFront);
+			}
 		} catch (CannotSeeAgent e) {
 			throw e;
 		}
-		if (participantID.equals(myID)) {
-			return super.getStoppingDistance(participantID);
-		}
-		else {
-			return super.getAdjustedStoppingDistance(participantID);
-		}
-		// }
 	}
 
 	/**

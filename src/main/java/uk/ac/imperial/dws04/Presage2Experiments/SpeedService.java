@@ -150,12 +150,19 @@ public class SpeedService extends EnvironmentService {
 	
 	/**
 	 * @param speed
-	 * @return the distance required for the given agent to stop TAKING INTO ACCOUNT THEY CAN DECEL BEFORE DOING WHAT YOU CALCULATE.
-	 * FIXME what if they accel ? (ie when you're looking for possible collisions behind you when changing lanes)
+	 * @param checkingFront true if you're checking agents infront of you (so they could decel); false if checking behind you (so could accel)
+	 * @return the distance required for the given agent to stop TAKING INTO ACCOUNT THEY CAN {AC/DE}CEL BEFORE DOING WHAT YOU CALCULATE.
 	 */
-	public int getAdjustedStoppingDistance(UUID agent) {
+	public int getAdjustedStoppingDistance(UUID agent, boolean checkingFront) {
 		double mD = (Integer)getMaxDecel();
-		double speed = getAgentSpeed(agent)-mD;
+		double mA = (Integer)getMaxAccel();
+		double speed;
+		if (checkingFront) {
+			speed = getAgentSpeed(agent)-mD;
+		}
+		else {
+			speed = getAgentSpeed(agent)+mA;
+		}
 		// stop them thinking cars can move backwards
 		if (speed<0) speed = 0;
 		// a is what is left over if speed-nmD is not 0
