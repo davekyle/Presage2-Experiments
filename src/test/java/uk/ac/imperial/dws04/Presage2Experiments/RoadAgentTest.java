@@ -247,7 +247,7 @@ public class RoadAgentTest {
 		int startSpeed = Random.randomInt(maxSpeed)+1;
 		int startLane = Random.randomInt(lanes);
 		int spacing = 0;
-		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, null, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
 
 		incrementTime();
@@ -275,9 +275,9 @@ public class RoadAgentTest {
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
-		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, null, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
-		RoadAgent b = createAgent("b", new RoadLocation(startLane, 5), 0, new RoadAgentGoals(0, 0, 0));
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 5), 0, new RoadAgentGoals(0, null, 0));
 
 		incrementTime();
 
@@ -330,9 +330,9 @@ public class RoadAgentTest {
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
-		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, null, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
-		RoadAgent b = createAgent("b", new RoadLocation(startLane, 2), 0, new RoadAgentGoals(0, 0, 0));
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 2), 0, new RoadAgentGoals(0, null, 0));
 
 		incrementTime();
 
@@ -358,10 +358,10 @@ public class RoadAgentTest {
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
-		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, null, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 0), startSpeed, goals);
-		RoadAgent b = createAgent("b", new RoadLocation(startLane, 2), 0, new RoadAgentGoals(0, 0, 0));
-		RoadAgent c = createAgent("c", new RoadLocation(startLane+1, 2), 0, new RoadAgentGoals(0, 0, 0));
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 2), 0, new RoadAgentGoals(0, null, 0));
+		RoadAgent c = createAgent("c", new RoadLocation(startLane+1, 2), 0, new RoadAgentGoals(0, null, 0));
 
 		incrementTime();
 
@@ -392,9 +392,9 @@ public class RoadAgentTest {
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
-		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, null, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 5), startSpeed, goals);
-		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, null, 0));
 
 		incrementTime();
 
@@ -447,9 +447,9 @@ public class RoadAgentTest {
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
-		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, null, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 9), startSpeed, goals);
-		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, null, 0));
 
 		incrementTime();
 
@@ -475,10 +475,10 @@ public class RoadAgentTest {
 		int startSpeed = 3;
 		int startLane = 1;
 		int spacing = 0;
-		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, 0, spacing);
+		RoadAgentGoals goals = new RoadAgentGoals(startSpeed, null, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(startLane, 9), startSpeed, goals);
-		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, 0, 0));
-		RoadAgent c = createAgent("c", new RoadLocation(startLane+1, 0), 0, new RoadAgentGoals(0, 0, 0));
+		RoadAgent b = createAgent("b", new RoadLocation(startLane, 0), 0, new RoadAgentGoals(0, null, 0));
+		RoadAgent c = createAgent("c", new RoadLocation(startLane+1, 0), 0, new RoadAgentGoals(0, null, 0));
 
 		incrementTime();
 
@@ -511,10 +511,10 @@ public class RoadAgentTest {
 		int cSpeed = 3; int cStart = 3;
 		int aLane = 0;
 		int spacing = 0;
-		RoadAgentGoals goals = new RoadAgentGoals(aSpeed, 0, spacing);
+		RoadAgentGoals goals = new RoadAgentGoals(aSpeed, null, spacing);
 		RoadAgent a = createAgent("a", new RoadLocation(aLane, aStart), aSpeed, goals);
-		RoadAgent b = createAgent("b", new RoadLocation(aLane, bStart), bSpeed, new RoadAgentGoals(0, 0, 0));
-		RoadAgent c = createAgent("c", new RoadLocation(aLane+1, cStart), cSpeed, new RoadAgentGoals(0, 0, 0));
+		RoadAgent b = createAgent("b", new RoadLocation(aLane, bStart), bSpeed, new RoadAgentGoals(0, null, 0));
+		RoadAgent c = createAgent("c", new RoadLocation(aLane+1, cStart), cSpeed, new RoadAgentGoals(0, null, 0));
 
 		incrementTime();
 
