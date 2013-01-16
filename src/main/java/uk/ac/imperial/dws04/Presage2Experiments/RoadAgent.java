@@ -1571,17 +1571,30 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private Pair<CellMove,Integer> worstCaseNeighbourChoice(int lane, boolean checkFront) {
 		int newSpeed;
+		
+		
+		
 		// this doesn't really show if something isn't safe, but it does show if something is safe
 		// (ie, only true if you know you can go at your preferred speed instead of one for safety's sake.
+		// TODO FIXME fairly sure I can remove this
 		boolean canMoveAtPreferred = false;
+		
+		
+		
 		logger.debug("[" + getID() + "] Agent " + getName() + " is checking lane " + lane + " for a valid move");
 		
 
 		
-		// need to fix this for rear as well, since you need to ADD to their speed if theyre behind you (they may accel this turn, whereas for front you care if they decel)
 	
 		Integer stoppingSpeedFront = getStoppingSpeedFront(lane);
-		Integer stoppingSpeedRear = getStoppingSpeedRear(lane);
+		Integer stoppingSpeedRear;
+		// only need to check if you're changing lanes
+		if (lane!=myLoc.getLane()) {
+			stoppingSpeedRear = getStoppingSpeedRear(lane);
+		}
+		else {
+			stoppingSpeedRear = -1;
+		}
 		
 		// check you can physically reach a speed inside the range
 		if (  	( (stoppingSpeedFront < 0) || ( (mySpeed>stoppingSpeedFront) && (mySpeed-speedService.getMaxDecel() > stoppingSpeedFront) ) )  ||
@@ -1622,8 +1635,35 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @return the min speed you can safely move at to avoid a car behind (or beside) in the indicated lane crashing into you. Will be negative if no vehicle found
 	 */
 	private Integer getStoppingSpeedRear(int lane) {
-		// TODO Auto-generated method stub
-		return null;
+		// need to fix this for rear as well, since you need to ADD to their speed if theyre behind you (they may accel this turn, whereas for front you care if they decel)
+		Integer reqStopDistRear;
+		Integer stoppingSpeedRear;
+		// get agent to check
+		UUID targetRear = this.locationService.getAgentToRear(lane);
+		// if there is someone there
+		if (targetRear!=null) {
+			// get the agent behind's stopping distance
+			logger.debug("[" + getID() + "] Agent " + getName() + " saw agent " + targetRear + " at " + (RoadLocation)locationService.getAgentLocation(targetRear));
+			int targetStopDist = speedService.getStoppingDistance(targetRear);
+			logger.debug("[" + getID() + "] Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
+			// get the location they will stop at if they accel this turn then decell until stopping
+			// -> their currentLoc + their stopDist
+			int targetStopOffset = targetStopDist + ((RoadLocation)locationService.getAgentLocation(targetRear)).getOffset() + 1;
+			logger.debug("[" + getID() + "] Agent " + getName() + " thinks that target could stop at " + targetStopOffset);
+			// you need to be able to stop on the location one infront of it (which is why plus one), so work out how far that is from you
+			reqStopDistRear = locationService.getOffsetDistanceBetween(myLoc, new RoadLocation(targetStopOffset, lane));
+			logger.debug("[" + getID() + "] Agent " + getName() + " is at " + myLoc.getOffset() + " has a reqStopDistRear of " + reqStopDistRear);
+			// what speed do you need to travel at for that ?
+			stoppingSpeedRear = speedService.getSpeedToStopInDistance(reqStopDistRear);
+			logger.debug("[" + getID() + "] Agent " + getName() + " thinks it needs to move at " + stoppingSpeedRear + " to stop in " + reqStopDistRear);
+			
+		}
+		// if there is no one there you can go at any speed you want (use negative to indicate this)
+		else {
+			stoppingSpeedRear = -1;
+		}
+		
+		return stoppingSpeedRear;
 	}
 
 	/**
@@ -1657,6 +1697,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 
 	/**
+	 * FIXME TODO FAIRLY CONFIDENT I CAN MASSIVELY REDUCE THE SIZE OF THIS BECAUSE YOU ALREADY CHECKED WHETHER OR NOT ITS POSSIBLE TO REACH THE DESIRED SPEED
+	 * 
 	 * @param newSpeed
 	 * @param reqStopDist
 	 * @return a reasoned move/viability pair. Viability is Integer.Max_VALUE if the move is safe, or not if otherwise.
