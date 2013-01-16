@@ -175,6 +175,29 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 		
 	}
 	
+	/** 
+	 * @param lane to check 
+	 * @return UUID of closest agent to rear (or agent alongside), or null if there wasn't one
+	 */
+	public UUID getAgentToRear(int lane){
+		UUID result = null;
+		int startLoc = ((RoadLocation) super.getAgentLocation(myID)).getOffset();
+		for (int i = 0; i <= this.getPerceptionRange(); i++) {
+			if ( !getAreaService().getCell(lane, ((startLoc-i)%this.getAreaService().getSizeY()), 0).isEmpty() ) {
+				for (UUID a : getAreaService().getCell(lane, ((startLoc-i)%this.getAreaService().getSizeY()), 0)) {
+					if (a!=myID) {
+						result = a; // should only be one
+					}
+				}
+				if (result!=null) {
+					break;
+				}
+			}
+		}
+		return result;
+		
+	}
+	
 	/**
 	 * Won't return a junction next to the agent
 	 * @return the next junction offset. Should wrap and return the first one if there are no more. Returns null if there are no junctions.
