@@ -1662,6 +1662,24 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 * so if targetIsAhead then you care, otherwise you don't care
 			 * (if theyre behind you and theyre going to wrap then you should wrap as well... CHECK THIS ?)
 			 * 
+			 * Need to make sure that if you are detecting someone infront of you as being behind you (due to wrap)
+			 * then they are going to wrap - if theyre not going to wrap, then you dont care about them -
+			 * they will be infront of you the whole time...
+			 * 
+			 * ie..
+			 * 
+			 * if (targetIsAhead) {
+			 * 	if (offset>length) {
+			 * 		// care
+			 * 	}
+			 * 	else {
+			 * 		// don't care
+			 * 	}
+			 * }
+			 * else {
+			 * 	// theyre actually behind you, so do the below
+			 * }
+			 * 
 			 */
 			
 			// you need to be able to stop on the location one infront of it (which is why plus one), so work out how far that is from you
