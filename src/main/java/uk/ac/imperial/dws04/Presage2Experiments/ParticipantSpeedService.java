@@ -124,7 +124,7 @@ public class ParticipantSpeedService extends SpeedService {
 			}
 			else {
 				// work out if you're looking infront of you or behind you
-				// FIXME should agents alongside you be counted as infront or behind ?
+				// FIXME TODO should probably remove this whole thing since I decided to use super.getAdjusted in the agent
 				boolean checkFront;
 				if (theirLoc.getX()>=myLoc.getX()) {
 					checkFront = true;
