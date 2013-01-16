@@ -1561,7 +1561,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		int newSpeed;
 		// this doesn't really show if something isn't safe, but it does show if something is safe
 		// (ie, only true if you know you can go at your preferred speed instead of one for safety's sake.
-		boolean safe = false;
+		boolean canMoveAtPreferred = false;
 		Integer reqStopDist = null; // init to null incase we get to needing it and it hasnt been assigned..
 		
 		logger.debug("[" + getID() + "] Agent " + getName() + " is checking lane " + lane + " for a valid move");
@@ -1588,7 +1588,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			if (stoppingSpeed > goals.getSpeed()) {
 				newSpeed = goals.getSpeed();
 				logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
-				safe = true;
+				canMoveAtPreferred = true;
 			}// otherwise, aim to go at that speed
 			else {
 				newSpeed = stoppingSpeed; 
@@ -1599,7 +1599,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		else {
 			newSpeed = goals.getSpeed();
 			logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
-			safe = true;
+			canMoveAtPreferred = true;
 		}
 		// get the difference between it and your current speed
 		int speedDelta = mySpeed-newSpeed;
@@ -1674,7 +1674,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 					else {
 						// If you *know* you're safe, then chill.
-						if (!safe) {
+						if (!canMoveAtPreferred) {
 							logger.debug("[" + getID() + "] Agent " + getName() + " doesn't think they can meet speedDelta of " + speedDelta);
 							// not convince we'll get here...
 							return new Pair<CellMove,Integer>(driver.decelerateMax(), reqStopDist);
