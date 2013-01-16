@@ -1640,19 +1640,33 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		Integer stoppingSpeedRear;
 		// get agent to check
 		UUID targetRear = this.locationService.getAgentToRear(lane);
+		RoadLocation targetRearLoc = (RoadLocation)locationService.getAgentLocation(targetRear);
+		boolean targetIsAhead = false;
+		if (targetRearLoc.getOffset() > myLoc.getOffset()) {
+			targetIsAhead = true;
+			// FIXME TODO if the person is actually infront of you, so your looking-back wrapped, then you only care about them if their move will wrap 
+		}
 		// if there is someone there
 		if (targetRear!=null) {
 			// get the agent behind's stopping distance
-			logger.debug("[" + getID() + "] Agent " + getName() + " saw agent " + targetRear + " at " + (RoadLocation)locationService.getAgentLocation(targetRear));
-			int targetStopDist = speedService.getStoppingDistance(targetRear);
+			logger.debug("[" + getID() + "] Agent " + getName() + " saw agent " + targetRear + " at " + targetRearLoc);
+			int targetStopDist = speedService.getAdjustedStoppingDistance(targetRear, false);
 			logger.debug("[" + getID() + "] Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
 			// get the location they will stop at if they accel this turn then decell until stopping
 			// -> their currentLoc + their stopDist
 			int targetStopOffset = targetStopDist + ((RoadLocation)locationService.getAgentLocation(targetRear)).getOffset() + 1;
 			logger.debug("[" + getID() + "] Agent " + getName() + " thinks that target could stop at " + targetStopOffset);
+			
+			/*
+			 * //FIXME TODO if this offset is greater than the length of the world then the agent's move will wrap
+			 * so if targetIsAhead then you care, otherwise you don't care
+			 * (if theyre behind you and theyre going to wrap then you should wrap as well... CHECK THIS ?)
+			 * 
+			 */
+			
 			// you need to be able to stop on the location one infront of it (which is why plus one), so work out how far that is from you
-			reqStopDistRear = locationService.getOffsetDistanceBetween(myLoc, new RoadLocation(targetStopOffset, lane));
-			logger.debug("[" + getID() + "] Agent " + getName() + " is at " + myLoc.getOffset() + " has a reqStopDistRear of " + reqStopDistRear);
+			reqStopDistRear = locationService.getOffsetDistanceBetween(new RoadLocation(targetStopOffset, lane), myLoc);
+			logger.debug("[" + getID() + "] Agent " + getName() + " is at " + myLoc.getOffset() + " so has a reqStopDistRear of " + reqStopDistRear);
 			// what speed do you need to travel at for that ?
 			stoppingSpeedRear = speedService.getSpeedToStopInDistance(reqStopDistRear);
 			logger.debug("[" + getID() + "] Agent " + getName() + " thinks it needs to move at " + stoppingSpeedRear + " to stop in " + reqStopDistRear);
@@ -1679,7 +1693,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		if (targetFront!=null) {
 			// get agent in front's stopping distance
 			logger.debug("[" + getID() + "] Agent " + getName() + " saw agent " + targetFront + " at " + (RoadLocation)locationService.getAgentLocation(targetFront));
-			int targetStopDist = speedService.getStoppingDistance(targetFront);
+			int targetStopDist = speedService.getAdjustedStoppingDistance(targetFront, true);
 			logger.debug("[" + getID() + "] Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
 			// add the distance between you and their current location (then minus 1 to make sure you can stop BEFORE them)
 			reqStopDistFront = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront)))-1;
