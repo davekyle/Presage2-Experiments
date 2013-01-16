@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Level;
 
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
@@ -56,8 +57,8 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	private enum OwnChoiceMethod {SAFE, PLANNED, SAFE_GOALS};
-	private enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
+	public enum OwnChoiceMethod {SAFE, PLANNED, SAFE_GOALS};
+	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
 	protected Driver driver;
@@ -113,8 +114,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private LinkedList<IPConActionMsg> ownMsgs;
 	/** Issue to Chosen fact **/
 	private HashMap<String,Chosen> institutionalFacts;
+	private OwnChoiceMethod ownChoiceMethod;
+	private NeighbourChoiceMethod neighbourChoiceMethod;
 	 
-	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals) {
+	public RoadAgent(UUID id, String name, RoadLocation myLoc, int mySpeed, RoadAgentGoals goals, OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod) {
 		super(id, name);
 		this.myLoc = myLoc;
 		this.mySpeed = mySpeed;
@@ -139,8 +142,15 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		messageQueue = new LinkedList<Message>();
 		ownMsgs = new LinkedList<IPConActionMsg> ();
 		institutionalFacts = new HashMap<String, Chosen>();
+		this.ownChoiceMethod = ownChoiceMethod;
+		this.neighbourChoiceMethod = neighbourChoiceMethod;
 	}
 	
+	public RoadAgent(UUID uuid, String name, RoadLocation startLoc,
+			int startSpeed, RoadAgentGoals goals) {
+		this(uuid, name, startLoc, startSpeed, goals, OwnChoiceMethod.SAFE, NeighbourChoiceMethod.WORSTCASE);
+	}
+
 	/**
 	 * @return the ipconHandle
 	 */
@@ -548,9 +558,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		
 		
-		// FIXME TODO implement these then choose them properly :P
-		NeighbourChoiceMethod neighbourChoiceMethod = NeighbourChoiceMethod.WORSTCASE;
-		OwnChoiceMethod ownChoiceMethod = OwnChoiceMethod.SAFE;
 	 
 		logger.info("[" + getID() + "] My location is: " + this.myLoc + 
 										", my speed is " + this.mySpeed + 
@@ -1383,7 +1390,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private int safeMoveSpeedToExit(int nextJunctionDist, int maxSpeed, int lane) {
 		 logger.debug("[" + getID() + "] Agent " + getName() + " the maximum safe speed in lane " + lane + " is " + maxSpeed);
 		// check to see if nextJunctionDist is a multiple of this speed (mod(nJD,speed)==0)
-		if (MathsUtils.mod(nextJunctionDist,maxSpeed)==0) {
+		if ((maxSpeed==0) || (MathsUtils.mod(nextJunctionDist,maxSpeed)==0)) {
 			// if it is, yay
 			return maxSpeed;
 		}

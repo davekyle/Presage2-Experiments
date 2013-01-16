@@ -20,6 +20,8 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.NeighbourChoiceMethod;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
@@ -83,6 +85,14 @@ public class RoadSimulation extends InjectedSimulation {
 	 
 	@Parameter(name="junctionCount")
 	public int junctionCount;
+	
+	@Parameter(name="ownChoiceMethod", optional=true)
+	public String ownChoiceMethod = OwnChoiceMethod.SAFE.name();
+	public OwnChoiceMethod ownCM = null;
+	
+	@Parameter(name="neighbourChoiceMethod", optional=true)
+	public String neighbourChoiceMethod = NeighbourChoiceMethod.WORSTCASE.name();
+	public NeighbourChoiceMethod neighbourCM = null;
 	
 	HashMap<UUID, String> agentNames;
 	HashMap<UUID,RoadLocation> agentLocations;
@@ -195,7 +205,7 @@ public class RoadSimulation extends InjectedSimulation {
 			// don't want speeds to be 0
 			int startSpeed = Random.randomInt(maxSpeed)+1;
 			RoadAgentGoals goals = createNewAgentGoals();
-			s.addParticipant(new RoadAgent(uuid, name, startLoc, startSpeed, goals));
+			s.addParticipant(new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM()));
 			agentLocations.put(uuid, startLoc);
 			agentNames.put(uuid, name);
 			logger.debug("Now tracking " + agentNames.size() + " agents.");
@@ -279,7 +289,7 @@ public class RoadSimulation extends InjectedSimulation {
 		RoadLocation startLoc = new RoadLocation(lane, startOffset);
 		int startSpeed = 0;
 		RoadAgentGoals goals = createNewAgentGoals();
-		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals);
+		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM());
 		this.scenario.addParticipant(p);
 		p.initialise();
 		logger.info("Inserting " + name + " [" + uuid + "] at " + startLoc);
@@ -338,6 +348,44 @@ public class RoadSimulation extends InjectedSimulation {
 		}
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
+	}
+	
+	private OwnChoiceMethod getOwnCM() {
+		if (ownCM!=null) {
+			return ownCM;
+		}
+		else {
+			logger.trace("Parsing ownChoiceMethod=" + ownChoiceMethod);
+			for (OwnChoiceMethod ocm : OwnChoiceMethod.values()) {
+				if (this.ownChoiceMethod.equalsIgnoreCase(ocm.name())) {
+					this.ownCM = ocm;
+					return ocm;
+				}
+			}
+			// if you don't find it, return SAFE;
+			logger.trace("Couldn't find ocm=" + ownChoiceMethod + " so using SAFE");
+			this.ownCM = OwnChoiceMethod.SAFE;
+			return this.ownCM;
+		}
+	}
+	
+	private NeighbourChoiceMethod getNeighbourCM() {
+		if (neighbourCM!=null) {
+			return neighbourCM;
+		}
+		else {
+			logger.trace("Parsing neighbourChoiceMethod=" + neighbourChoiceMethod);
+			for (NeighbourChoiceMethod ncm : NeighbourChoiceMethod.values()) {
+				if (this.neighbourChoiceMethod.equalsIgnoreCase(ncm.name())) {
+					this.neighbourCM = ncm;
+					return ncm;
+				}
+			}
+			// if you don't find it, return WORSTCASE;
+			logger.trace("Couldn't find ncm=" + neighbourChoiceMethod + " so using WORSTCASE");
+			this.neighbourCM = NeighbourChoiceMethod.WORSTCASE; 
+			return this.neighbourCM;
+		}
 	}
 
 }
