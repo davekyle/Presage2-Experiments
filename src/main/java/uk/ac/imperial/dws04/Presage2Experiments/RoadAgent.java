@@ -1554,22 +1554,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 	}
 	
-	private Pair<CellMove,Integer> worstCaseNeighbourChoice(int lane) {
-		Pair<CellMove,Integer> frontResult = worstCaseNeighbourChoice(lane, true);
-		Pair<CellMove,Integer> result = null;
-		/*if ((myLoc.getLane()!=lane) && (frontResult.getB()==Integer.MAX_VALUE)) {
-			result = worstCaseNeighbourChoice(lane, false);
-		}
-		else {*/
-			result = frontResult;
-		//}
-		return result;
-	}
-	
 	/**
 	 * @return a reasoned move/viability pair. Viability is Integer.Max_VALUE if the move is safe, or not if otherwise.
 	 */
-	private Pair<CellMove,Integer> worstCaseNeighbourChoice(int lane, boolean checkFront) {
+	private Pair<CellMove,Integer> worstCaseNeighbourChoice(int lane) {
 		int newSpeed;
 		
 		
@@ -1585,24 +1573,32 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 
 		
-	
-		Integer stoppingSpeedFront = getStoppingSpeedFront(lane);
+		Pair<Integer,Integer> pairFront = getStoppingSpeedFront(lane);
+		Integer stoppingSpeedFront = pairFront.getA();
+		Integer utilityFront = pairFront.getB();
 		Integer stoppingSpeedRear;
+		Integer utilityRear;
+		Integer utility;
 		// only need to check if you're changing lanes
 		if (lane!=myLoc.getLane()) {
-			stoppingSpeedRear = getStoppingSpeedRear(lane);
+			Pair<Integer,Integer> pairRear = getStoppingSpeedRear(lane);
+			stoppingSpeedRear = pairRear.getA();
+			utilityRear = pairRear.getB();
 		}
 		else {
 			stoppingSpeedRear = -1;
+			utilityRear = Integer.MAX_VALUE;
 		}
 		
 		// check you can physically reach a speed inside the range
-		if (  	( (stoppingSpeedFront < 0) || ( (mySpeed>stoppingSpeedFront) && (mySpeed-speedService.getMaxDecel() > stoppingSpeedFront) ) )  ||
+		/*if (  	( (stoppingSpeedFront < 0) || ( (mySpeed>stoppingSpeedFront) && (mySpeed-speedService.getMaxDecel() > stoppingSpeedFront) ) )  ||
 				( (stoppingSpeedRear > speedService.getMaxSpeed()) || ( (mySpeed<stoppingSpeedRear) && (mySpeed+speedService.getMaxAccel() < stoppingSpeedRear) ) ) ) { 
-			logger.debug("[" + getID() + "] Agent " + getName() + " doesn't think they can stop in time in lane " + lane);
+			//logger.debug("[" + getID() + "] Agent " + getName() + " doesn't think they can stop in time in lane " + lane);
+			logger.debug("[" + getID() + "] Agent " + getName() + " got StoppingSpeedFront:" + stoppingSpeedFront + ", mySpeed:" + mySpeed + ". maxDecel:" + speedService.getMaxDecel() + 
+																	" and StoppingSpeedRear:" + stoppingSpeedRear + ", maxSpeed:" + speedService.getMaxSpeed());
 			newSpeed=-1;
 		}
-		else {
+		else {*/
 			// you can physically hit a speed inside the range
 			/*
 			 * if goalSpeed > front, newSpeed = front
@@ -1611,20 +1607,23 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 */
 			if (goals.getSpeed() > stoppingSpeedFront) {
 				newSpeed = stoppingSpeedFront;
-				logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at safe speed of " + newSpeed);
+				utility = utilityFront;
+				logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at speed of " + newSpeed);
 			}
 			else if (goals.getSpeed() < stoppingSpeedRear) {
 				newSpeed = stoppingSpeedRear;
-				logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at safe speed of " + newSpeed);
+				utility = utilityRear;
+				logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at speed of " + newSpeed);
 			}
 			else {
 				newSpeed = goals.getSpeed();
+				utility = Integer.MAX_VALUE;
 				logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
 				canMoveAtPreferred = true;
 			}
-		}
+		//}
 		
-		return convertChosenSpeedToAction(newSpeed, canMoveAtPreferred);
+		return convertChosenSpeedToAction(newSpeed, canMoveAtPreferred, utility);
 		
 		//return this.driver.randomValid();
 	}
@@ -1632,9 +1631,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	/**
 	 * 
 	 * @param lane
-	 * @return the min speed you can safely move at to avoid a car behind (or beside) in the indicated lane crashing into you. Will be negative if no vehicle found
+	 * @return the min speed you can safely move at to avoid a car behind (or beside) in the indicated lane crashing into you. Will be negative if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values.
 	 */
-	private Integer getStoppingSpeedRear(int lane) {
+	private Pair<Integer,Integer> getStoppingSpeedRear(int lane) {
 		// need to fix this for rear as well, since you need to ADD to their speed if theyre behind you (they may accel this turn, whereas for front you care if they decel)
 		Integer reqStopDistRear;
 		Integer stoppingSpeedRear;
@@ -1646,7 +1645,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			boolean targetIsAhead = false;
 			if (targetRearLoc.getOffset() > myLoc.getOffset()) {
 				targetIsAhead = true; 
-				logger.debug("[" + getID() + "] Agent " + getName() + " saw " + targetRear + " ahead");
+				logger.debug("[" + getID() + "] Agent " + getName() + " saw that " + targetRear + " is actually ahead");
 			}
 			// get the agent behind's stopping distance
 			logger.debug("[" + getID() + "] Agent " + getName() + " saw agent " + targetRear + " at " + targetRearLoc);
@@ -1688,8 +1687,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 * they will be infront of you the whole time..
 			 */
 			if (targetIsAhead && (targetStopOffset<=this.locationService.getWrapPoint())) {
-				// otherwise, don't care
+				// if target is ahead of you and they won't wrap, don't care
 				stoppingSpeedRear = -1;
+				reqStopDistRear = Integer.MAX_VALUE;
 				}
 			else {
 				// you need to be able to stop on the location one infront of it (which is why plus one), so work out how far that is from you
@@ -1703,17 +1703,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		// if there is no one there you can go at any speed you want (use negative to indicate this)
 		else {
+			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone behind them");
 			stoppingSpeedRear = -1;
+			reqStopDistRear = Integer.MAX_VALUE;
 		}
 		
-		return stoppingSpeedRear;
+		return new Pair<Integer,Integer>(stoppingSpeedRear, reqStopDistRear);
 	}
 
 	/**
 	 * @param lane
-	 * @return the max speed you can safely move at to avoid crashing into a car infront (or beside) in the indicated lane). Will be Int.MaxVal if no vehicle found.
+	 * @return the max speed you can safely move at to avoid crashing into a car infront (or beside) in the indicated lane). Will be Int.MaxVal if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values.
 	 */
-	private Integer getStoppingSpeedFront(int lane) {
+	private Pair<Integer,Integer> getStoppingSpeedFront(int lane) {
 		Integer reqStopDistFront;
 		Integer stoppingSpeedFront;
 		// get agent to check
@@ -1735,8 +1737,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// if there isn't anyone there, you can go at any speed you want (use Int.MaxVal to indicate this)
 		else {
 			stoppingSpeedFront = Integer.MAX_VALUE;
+			reqStopDistFront = Integer.MAX_VALUE;
 		}
-		return stoppingSpeedFront;
+		return new Pair<Integer, Integer>(stoppingSpeedFront, reqStopDistFront);
 	}
 
 	/**
@@ -1746,11 +1749,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param reqStopDist
 	 * @return a reasoned move/viability pair. Viability is Integer.Max_VALUE if the move is safe, or not if otherwise.
 	 */
-	private Pair<CellMove, Integer> convertChosenSpeedToAction(int newSpeed, boolean canMoveAtPreferred) {
+	private Pair<CellMove, Integer> convertChosenSpeedToAction(int newSpeed, boolean canMoveAtPreferred, Integer utility) {
 		// passed in from previous code - if impossible then it doesn't matter what action you return - it won't be chosen
 		if (newSpeed<0) {
 			logger.debug("[" + getID() + "] Agent " + getName() + " doesn't think they can stop in time");
-			return new Pair<CellMove,Integer>(driver.decelerateMax(), -1);
+			return new Pair<CellMove,Integer>(driver.decelerateMax(), utility);
 		}
 		else {
 			// get the difference between it and your current speed
@@ -1829,7 +1832,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 							if (!canMoveAtPreferred) {
 								logger.debug("[" + getID() + "] Agent " + getName() + " doesn't think they can meet speedDelta of " + speedDelta);
 								// not convince we'll get here... (was originally reqStopDist, but switched to any non-MAX_INT value when refactored) 
-								return new Pair<CellMove,Integer>(driver.decelerateMax(), 0);
+								return new Pair<CellMove,Integer>(driver.decelerateMax(), utility);
 							}
 							else {
 								logger.debug("[" + getID() + "] Agent " + getName() + " doesn't think they can meet speedDelta of " + speedDelta + " so decellerating as much as they can");
