@@ -414,8 +414,8 @@ public class SpeedServiceTest {
 		} catch (CannotSeeAgent ex) {
 		}
 		
-		// one less than you expect due to looking at someone else
-		assertEquals(0, b.speedService.getStoppingDistance(a.getID()));
+		// greater than you expect due to looking at someone else behind you
+		assertEquals(3, b.speedService.getAdjustedStoppingDistance(a.getID(), false));
 		try {
 			// can't see
 			a.speedService.getStoppingDistance(d.getID());
