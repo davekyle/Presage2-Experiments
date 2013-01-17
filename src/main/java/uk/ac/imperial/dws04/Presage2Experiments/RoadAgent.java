@@ -1497,6 +1497,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe_goals action...");
 				discardUnsafeActions(actions);
 				if (!actions.isEmpty()) {
+					logger.debug("[" + getID() + "] Agent " + getName() + " choosing from: " + actions);
 					// Reset the value of the move to how close it is to your goalspeed
 					for (Pair<CellMove,Integer> act : actions) {
 						logger.debug("[" + getID() + "] Agent " + getName() + " considering move:" + act.getA()); 
