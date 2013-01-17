@@ -167,6 +167,10 @@ public class RoadLocationService extends LocationService {
 		sharedState.delete("util.location", uuid);
 	}
 	
+	public int getWrapPoint() {
+		return this.getAreaService().getSizeY();
+	}
+	
 	
 
 }
