@@ -21,11 +21,14 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationServiceTest.TestAgent;
 import uk.ac.imperial.presage2.core.Action;
 import uk.ac.imperial.presage2.core.IntegerTime;
+import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
+import uk.ac.imperial.presage2.core.event.Event;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.messaging.Input;
+import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
@@ -108,12 +111,17 @@ public class LaneMoveHandlerTest {
 		System.setIn(old);
 	}
 	
-	public void assertCollisions(int n) {
+	/**
+	 * n should be 0 or null, due to excepting when collisions!=0
+	 */
+	public void assertCollisions(Integer n) {
+		Integer collisions = null;
 		try {
-			assertEquals(n, handler.checkForCollisions(null));
+			collisions = handler.checkForCollisions(null);
 		} catch (Exception e) {
 			System.out.println("Caught an exception:" + e);
 		}
+		assertEquals((Integer)n, (Integer)collisions);
 	}
 	
 	class TestAgent extends AbstractParticipant {
@@ -376,7 +384,7 @@ public class LaneMoveHandlerTest {
 		incrementTime();
 		// two collisions counted as both agents detect double occupied cell.
 		//assertEquals(2, handler.checkForCollisions(null));
-		assertCollisions(2);
+		assertCollisions(null);
 		// note their locations have still be updated.
 		a.assertLocation(1, 3);
 		b.assertLocation(1, 3);
@@ -393,7 +401,7 @@ public class LaneMoveHandlerTest {
 		b.performAction(new CellMove(0, 2));
 		incrementTime();
 		//assertEquals(2, handler.checkForCollisions(null));
-		assertCollisions(2);
+		assertCollisions(null);
 		a.assertLocation(1, 6);
 		b.assertLocation(1, 6);
 	}
@@ -439,7 +447,7 @@ public class LaneMoveHandlerTest {
 		b.performAction(new CellMove(0, 5));
 		incrementTime();
 		//assertEquals(1, handler.checkForCollisions(null));
-		assertCollisions(1);
+		assertCollisions(null);
 		a.assertLocation(1, 2);
 		b.assertLocation(1, 3);
 
@@ -596,7 +604,7 @@ public class LaneMoveHandlerTest {
 		a.assertLocation(2, 1);
 		b.assertLocation(1, 1);
 		//assertEquals(2, handler.checkForCollisions(null));
-		assertCollisions(2);
+		assertCollisions(null);
 	}
 
 	@Test
@@ -750,6 +758,32 @@ public class LaneMoveHandlerTest {
 		incrementTime();
 		a.assertLocation(1, 9);
 		b.assertLocation(1, 0);
+		assertCollisions(0);
+	}
+	
+	@Test
+	public void testDomino5() throws Exception {
+		setUp();
+		TestAgent a = createTestAgent("a", new RoadLocation(1, 0), 5);
+		TestAgent b = createTestAgent("b", new RoadLocation(1, 4), 5);
+
+		incrementTime();
+		a.assertLocation(1, 0);
+		b.assertLocation(1, 4);
+		
+		/*   | | | |      | |a| |
+		 *   | |b| |	  | | | |
+		 *   | |.| |      | | | |
+		 *   | |.| | -->  | | | |
+		 *   | |a| |      | | | |
+		 *   Collision: no
+		 */
+		
+		a.performAction(new CellMove(0, 5));
+		b.performAction(new CellMove(0, 5));
+		incrementTime();
+		a.assertLocation(1, 5);
+		b.assertLocation(1, 9);
 		assertCollisions(0);
 	}
 	
