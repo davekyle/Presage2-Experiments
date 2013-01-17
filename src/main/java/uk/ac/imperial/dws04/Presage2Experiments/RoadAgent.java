@@ -1646,6 +1646,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			boolean targetIsAhead = false;
 			if (targetRearLoc.getOffset() > myLoc.getOffset()) {
 				targetIsAhead = true; 
+				logger.debug("[" + getID() + "] Agent " + getName() + " saw " + targetRear + " ahead");
 			}
 			// get the agent behind's stopping distance
 			logger.debug("[" + getID() + "] Agent " + getName() + " saw agent " + targetRear + " at " + targetRearLoc);
@@ -1678,25 +1679,26 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 * 	// theyre actually behind you, so do the below
 			 * }
 			 * 
-			 *  --> if (targetIsAhead && (targetStopOffset>length)) care
-			 *  --> else stoppingSpeedRear = -1
+			 *  --> if (targetIsAhead && !(targetStopOffset>length)) don't care ; stoppingSpeedRear = -1
+			 *  --> else care
 			 * 
 			 */
 			/* Need to make sure that if you are detecting someone infront of you as being behind you (due to wrap)
 			 * then they are going to wrap - if theyre not going to wrap, then you dont care about them -
 			 * they will be infront of you the whole time..
 			 */
-			if (targetIsAhead && (targetStopOffset>this.locationService.getWrapPoint())) {
+			if (targetIsAhead && (targetStopOffset<=this.locationService.getWrapPoint())) {
+				// otherwise, don't care
+				stoppingSpeedRear = -1;
+				}
+			else {
 				// you need to be able to stop on the location one infront of it (which is why plus one), so work out how far that is from you
 				reqStopDistRear = locationService.getOffsetDistanceBetween(new RoadLocation(targetStopOffset, lane), myLoc);
 				logger.debug("[" + getID() + "] Agent " + getName() + " is at " + myLoc.getOffset() + " so has a reqStopDistRear of " + reqStopDistRear);
 				// what speed do you need to travel at for that ?
 				stoppingSpeedRear = speedService.getSpeedToStopInDistance(reqStopDistRear);
 				logger.debug("[" + getID() + "] Agent " + getName() + " thinks it needs to move at " + stoppingSpeedRear + " to stop in " + reqStopDistRear);
-			}
-			else {
-				// otherwise, don't care
-				stoppingSpeedRear = -1;
+			
 			}
 		}
 		// if there is no one there you can go at any speed you want (use negative to indicate this)
