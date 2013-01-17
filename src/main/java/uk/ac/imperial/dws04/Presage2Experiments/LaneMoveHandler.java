@@ -274,7 +274,7 @@ public class LaneMoveHandler extends MoveHandler {
 					throw new Exception(collisionsOccured + " collisions occurred in this cycle.");
 				} catch (Exception e) {
 					e.printStackTrace();
-					System.err.println();
+					/*System.err.println();
 					System.err.println();
 					System.err.println("Do you want to exit? y/n:");
 					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -291,7 +291,9 @@ public class LaneMoveHandler extends MoveHandler {
 					}
 					else {
 						System.err.println("Continuing...");
-					}
+					}*/
+					System.err.println("Exiting.");
+					System.exit(1);
 				}
 			}
 			return collisionsOccured;
