@@ -1503,7 +1503,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 					Collections.sort(actions, new PairBDescComparator<Integer>());
 					result = actions.getLast();
-					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe_goals move: " + result.getA());
+					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe_goals move: " + result.getA() + " with difference from goalSpeed of " + result.getB());
 					if (result.getA().getX()!=0) {
 						logger.debug("Agent is going to change lanes.");
 					}
@@ -1590,6 +1590,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			utilityRear = Integer.MAX_VALUE;
 		}
 		
+		// if either of the choices are unsafe, then set speed based on that
+		if (utilityFront!=Integer.MAX_VALUE) {
+			newSpeed = stoppingSpeedFront;
+			utility = utilityFront;
+			logger.debug("[" + getID() + "] Agent " + getName() + " found unsafe move due to front so deciding to move at speed of " + newSpeed);
+		}
+		else if (utilityRear!=Integer.MAX_VALUE) {
+			newSpeed = stoppingSpeedRear;
+			utility = utilityRear;
+			logger.debug("[" + getID() + "] Agent " + getName() + " found unsafe move due to rear so deciding to move at speed of " + newSpeed);
+		}
+		else {
+			
 		// check you can physically reach a speed inside the range
 		/*if (  	( (stoppingSpeedFront < 0) || ( (mySpeed>stoppingSpeedFront) && (mySpeed-speedService.getMaxDecel() > stoppingSpeedFront) ) )  ||
 				( (stoppingSpeedRear > speedService.getMaxSpeed()) || ( (mySpeed<stoppingSpeedRear) && (mySpeed+speedService.getMaxAccel() < stoppingSpeedRear) ) ) ) { 
@@ -1621,7 +1634,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
 				canMoveAtPreferred = true;
 			}
-		//}
+		}
 		
 		return convertChosenSpeedToAction(newSpeed, canMoveAtPreferred, utility);
 		
