@@ -1435,10 +1435,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			if (locationService.isValidLane(availableLanes.get(i))) {
 				temp = createMoveFromNeighbours(availableLanes.get(i), neighbourChoiceMethod);
 				if (temp.getB().equals(Integer.MAX_VALUE)) {
-					logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + availableLanes.get(i)); 
+					logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + availableLanes.get(i) + " : " + temp); 
 				}
 				else {
-					logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + availableLanes.get(i));
+					logger.debug("[" + getID() + "] Agent " + getName() + " found an unsafe move in lane " + availableLanes.get(i) + " : " + temp);
 				}
 				actions.add(new Pair<CellMove,Integer>(new CellMove((availableLanes.get(i)-myLoc.getLane()), (int)temp.getA().getY()), temp.getB()));
 			}
@@ -1503,8 +1503,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						act.setB(Math.abs(act.getA().getYInt() - this.goals.getSpeed()));
 					}
 					Collections.sort(actions, new PairBDescComparator<Integer>());
-					result = actions.getFirst();
-					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe_goals move: " + result.getA() + " with difference from goalSpeed of " + result.getB());
+					result = actions.getLast();
+					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe_goals move: " + result + " with difference from goalSpeed of " + result.getB());
 					if (result.getA().getX()!=0) {
 						logger.debug("Agent is going to change lanes.");
 					}
