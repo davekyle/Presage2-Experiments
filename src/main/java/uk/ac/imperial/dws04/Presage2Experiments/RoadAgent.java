@@ -1499,10 +1499,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				if (!actions.isEmpty()) {
 					// Reset the value of the move to how close it is to your goalspeed
 					for (Pair<CellMove,Integer> act : actions) {
-						act.setB(Math.abs(act.getA().getXInt() - this.goals.getSpeed()));
+						logger.debug("[" + getID() + "] Agent " + getName() + " considering move:" + act.getA()); 
+						act.setB(Math.abs(act.getA().getYInt() - this.goals.getSpeed()));
 					}
 					Collections.sort(actions, new PairBDescComparator<Integer>());
-					result = actions.getLast();
+					result = actions.getFirst();
 					logger.debug("[" + getID() + "] Agent " + getName() + " attempting safe_goals move: " + result.getA() + " with difference from goalSpeed of " + result.getB());
 					if (result.getA().getX()!=0) {
 						logger.debug("Agent is going to change lanes.");
@@ -1589,19 +1590,20 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			stoppingSpeedRear = -1;
 			utilityRear = Integer.MAX_VALUE;
 		}
+		logger.debug("[" + getID() + "] Agent " + getName() + " checked lane " + lane + " and got front:" + stoppingSpeedFront + "/" + utilityFront + " rear:" + stoppingSpeedRear + "/" + utilityRear);
 		
-		// if either of the choices are unsafe, then set speed based on that
+		/*// if either of the choices are unsafe, then set speed based on that
 		if (utilityFront!=Integer.MAX_VALUE) {
 			newSpeed = stoppingSpeedFront;
 			utility = utilityFront;
-			logger.debug("[" + getID() + "] Agent " + getName() + " found unsafe move due to front so deciding to move at speed of " + newSpeed);
+			logger.debug("[" + getID() + "] Agent " + getName() + " found speed restriction due to front so deciding to move at speed of " + newSpeed);
 		}
 		else if (utilityRear!=Integer.MAX_VALUE) {
 			newSpeed = stoppingSpeedRear;
 			utility = utilityRear;
-			logger.debug("[" + getID() + "] Agent " + getName() + " found unsafe move due to rear so deciding to move at speed of " + newSpeed);
+			logger.debug("[" + getID() + "] Agent " + getName() + " found speed restriction due to rear so deciding to move at speed of " + newSpeed);
 		}
-		else {
+		else {*/
 			
 		// check you can physically reach a speed inside the range
 		/*if (  	( (stoppingSpeedFront < 0) || ( (mySpeed>stoppingSpeedFront) && (mySpeed-speedService.getMaxDecel() > stoppingSpeedFront) ) )  ||
@@ -1634,7 +1636,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				logger.debug("[" + getID() + "] Agent " + getName() + " deciding to move at preferred speed of " + newSpeed);
 				canMoveAtPreferred = true;
 			}
-		}
+		//}
 		
 		return convertChosenSpeedToAction(newSpeed, canMoveAtPreferred, utility);
 		
@@ -1705,7 +1707,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				reqStopDistRear = Integer.MAX_VALUE;
 				}
 			else {
+				targetStopOffset = MathsUtils.mod(targetStopOffset, this.locationService.getWrapPoint());
 				// you need to be able to stop on the location one infront of it (which is why plus one), so work out how far that is from you
+				// need to change order depending on whether the agent is behind you or not - 
 				reqStopDistRear = locationService.getOffsetDistanceBetween(new RoadLocation(targetStopOffset, lane), myLoc);
 				logger.debug("[" + getID() + "] Agent " + getName() + " is at " + myLoc.getOffset() + " so has a reqStopDistRear of " + reqStopDistRear);
 				// what speed do you need to travel at for that ?
@@ -1741,7 +1745,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			logger.debug("[" + getID() + "] Agent " + getName() + " thinks that target's stopping distance is " + targetStopDist);
 			// add the distance between you and their current location (then minus 1 to make sure you can stop BEFORE them)
 			reqStopDistFront = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront)))-1;
-			logger.debug("[" + getID() + "] Agent " + getName() + " got a reqStopDist of " + reqStopDistFront
+			logger.debug("[" + getID() + "] Agent " + getName() + " got a reqStopDistFront of " + reqStopDistFront
 					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(targetFront) +")= " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront))) + ") ");
 			// work out what speed you can be at to stop in time
 			stoppingSpeedFront = speedService.getSpeedToStopInDistance(reqStopDistFront);
