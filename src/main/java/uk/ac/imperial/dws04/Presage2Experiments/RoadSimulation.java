@@ -94,6 +94,9 @@ public class RoadSimulation extends InjectedSimulation {
 	public String neighbourChoiceMethod = NeighbourChoiceMethod.WORSTCASE.name();
 	public NeighbourChoiceMethod neighbourCM = null;
 	
+	@Parameter(name="seed", optional=true)
+	public String seed = null; 
+	
 	HashMap<UUID, String> agentNames;
 	HashMap<UUID,RoadLocation> agentLocations;
 
@@ -112,7 +115,7 @@ public class RoadSimulation extends InjectedSimulation {
 		agentNames = new HashMap<UUID, String>();
 		// TODO if this is a param, needs to be loaded in getModules() or something instead
 		// the uuid's aren't governed by the same seed, so if you want to compare do it by agentname instead
-		Random.seed = 123456;
+		//Random.seed = 123456;
 		new SimTime(new IntegerTime());
 	}
 	
@@ -217,6 +220,10 @@ public class RoadSimulation extends InjectedSimulation {
 	 */
 	@Override
 	protected Set<AbstractModule> getModules() {
+		// this needs to be here rather than constructor, because params won't have been injected when ctor is called.
+		if (seed!=null) {
+			Random.seed = Long.decode(seed);
+		}
 		Set<AbstractModule> modules = new HashSet<AbstractModule>();
 
 		// Rules engine stuff
