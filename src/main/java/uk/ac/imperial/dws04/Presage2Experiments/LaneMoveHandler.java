@@ -274,7 +274,7 @@ public class LaneMoveHandler extends MoveHandler {
 					throw new Exception(collisionsOccured + " collisions occurred in this cycle.");
 				} catch (Exception e) {
 					e.printStackTrace();
-					/*System.err.println();
+					System.err.println();
 					System.err.println();
 					System.err.println("Do you want to exit? y/n:");
 					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -291,9 +291,7 @@ public class LaneMoveHandler extends MoveHandler {
 					}
 					else {
 						System.err.println("Continuing...");
-					}*/
-					System.err.println("Exiting.");
-					System.exit(1);
+					}
 				}
 			}
 			return collisionsOccured;
@@ -305,8 +303,11 @@ public class LaneMoveHandler extends MoveHandler {
 	private boolean hasLeft(UUID uuid){
 		if (this.sharedState.getGlobal("haveLeft")==null) {
 			logger.error("Tried to check haveLeft for " + uuid + " but the shared state doesn't exist!");
+			return false;
 		}
-		return ((HashSet<UUID>) this.sharedState.getGlobal("haveLeft")).contains(uuid);
+		else {
+			return ((HashSet<UUID>) this.sharedState.getGlobal("haveLeft")).contains(uuid);
+		}
 	}
 
 }
