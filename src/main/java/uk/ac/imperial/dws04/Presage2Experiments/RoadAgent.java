@@ -1431,6 +1431,63 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		logger.trace("list of lanes is: " + availableLanes);
 		//logger.setLevel(lvl);
 		
+		/*
+		 *  FIXME TODO
+		 *  
+		 *  Make a new method for choosing your move !
+		 *  
+		 *  Set<agent> set; // set of agents
+		 *  HashMap<agent,Collection<Pair<loc,loc>> agentMoveMap; // map of agents to their set of possible moves
+		 *  
+		 *  for (all lanes) {
+		 *  	set.add( getAgentToFront(lane) );
+		 *  	if (lane!=myLane) {
+		 *  		set.add( getAgentToRear(lane) );
+		 *  	}
+		 *  }
+		 *  for (agent : set) {
+		 *  	if (loc(agent) > myLoc) {
+		 *  		// generate all possible moves for agent and save start/end location to set in map
+		 *  		agentMoveMap.add( generateAllPossibleMoves(agent) );
+		 *  	}
+		 *  	else {
+		 *  		// generate possible moves IN SAME LANE for agent - they won't cut you up if theyre behind you
+		 *  		agentMoveMap.add( generateMovesInSameLane(agent) );
+		 *  	}
+		 *  }
+		 *  Collection<Pair<loc,loc>> myMoves;
+		 *  Collection<Pair<loc,loc>> safeMoves;
+		 *  // generate all possible moves for yourself, and save start/end locs for them
+		 *  myMoves = generateAllPossibleMoves(me);
+		 *  for (pairMe : myMoves) {
+		 *  	for (agent : set) {
+		 *  		for (pairThem : agentMoveMap.get(agent)) {
+		 *  			// check all my moves against all their moves, and keep any of mine which don't cause collisions
+		 *  			// TODO do i want check collisions or do I want to use my method ?
+		 *  			int collisions = checkCollision(pairMe,PairThem);
+		 *  			if (collisions==0) {
+		 *  				safeMoves.add( pairMe );
+		 *  			}
+		 *  			else {
+		 *  				// TODO : work out how to accept the least bad option
+		 *  				// TODO : in the actual simulations there should never be a need for this - under normal conditions there is always an option (usually, slow down)
+		 *  			}
+		 *  		}
+		 *  	}
+		 *  }
+		 *  
+		 *  // choose a move from the safe ones, depending on your move choice method
+		 *  Move move = chooseMove(safeMoves);
+		 *  return move;
+		 *  
+		 *  TODO ALTERNATIVE
+		 *  OR - could keep as much of current set up as possible but instead of checking each lane for agent and then checking
+		 *  stopping distance only in that lane, could check in all lanes for all agents (except those behind). This is a sort of
+		 *  compromise between what is suggested above and what we have at the moment... Need to work out which is more sensible
+		 *  
+		 *  
+		 */
+		
 		for (int i = 0; i <=availableLanes.size()-1; i++) {
 			if (locationService.isValidLane(availableLanes.get(i))) {
 				temp = createMoveFromNeighbours(availableLanes.get(i), neighbourChoiceMethod);
