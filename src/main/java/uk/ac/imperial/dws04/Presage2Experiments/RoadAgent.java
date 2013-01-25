@@ -13,8 +13,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
@@ -31,6 +33,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
+import uk.ac.imperial.dws04.utils.misc.MapValueAscComparator;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
@@ -1466,8 +1469,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		//logger.setLevel(lvl);		
 		
 		
-		Set<UUID> set; // set of agents
-		HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>> agentMoveMap; // map of agents to their set of possible moves
+		// set of agents
+		Set<UUID> set = new HashSet<UUID>();
+		// map of agents to their set of possible moves
+		HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>> agentMoveMap = new HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>>();
 
 		for (int lane = 0; lane<=locationService.getLanes(); lane++) {
 			set.add( locationService.getAgentToFront(lane) );
@@ -1486,7 +1491,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 		}
 		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> myMoves = generateMoves(this.getID(), true);
-		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> safeMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
+		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> noCollisionMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
 		// generate all possible moves for yourself, and save start/end locs for them
 		for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
 			Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
@@ -1497,7 +1502,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					// TODO do i want check collisions or do I want to use my method ?
 					boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
 					if (!collision) {
-						safeMoves.put( entryMe.getKey(), entryMe.getValue() );
+						noCollisionMoves.put( entryMe.getKey(), entryMe.getValue() );
 						logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
 					}
 				}
@@ -1505,7 +1510,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		
 		CellMove move;
-		if (safeMoves.isEmpty()) {
+		if (noCollisionMoves.isEmpty()) {
 			logger.warn("[" + getID() + "] Agent " + getName() + " could not find any moves without collisions ! Continuing at current speed since will crash either way...");
 			move = driver.constantSpeed();
 		}
@@ -1514,91 +1519,84 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
 			// weight should be the shortfall between your ability to stop in time and where you need to stop ?
 			// works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
-			HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(safeMoves);  
+			HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(noCollisionMoves);  
 	
 			// choose a move from the safe ones, depending on your move choice method
 			move = chooseMove(safetyWeightedMoves, ownChoiceMethod); 
 		}
 		return move;
-
-/*
- *  FIXME TODO
- *  
- *  Make a new method for choosing your move !
- *  
- *  Set<agent> set; // set of agents
- *  HashMap<agent,Collection<Pair<loc,loc>> agentMoveMap; // map of agents to their set of possible moves
- *  
- *  for (all lanes) {
- *  	set.add( getAgentToFrontOrAlongside(lane) );
- *  	if (lane!=myLane) {
- *  		set.add( getAgentToRear(lane) );
- *  	}
- *  }
- *  for (agent : set) {
- *  	if (loc(agent) >= myLoc) {
- *  		// generate all possible moves for agent and save start/end location to set in map
- *  		agentMoveMap.add( agent, generateAllPossibleMoves(agent) );
- *  	}
- *  	else {
- *  		// generate possible moves IN SAME LANE for agent - they won't cut you up if theyre behind you
- *  		agentMoveMap.add( agent, generateMovesInSameLane(agent) );
- *  	}
- *  }
- *  Collection<Pair<loc,loc>> myMoves; // these should be map of move -> endLoc. StartLoc is always same (current loc) :P
- *  Collection<Pair<loc,loc>> safeMoves;
- *  // generate all possible moves for yourself, and save start/end locs for them
- *  myMoves = generateAllPossibleMoves(me);
- *  for (pairMe : myMoves) {
- *  	for (agent : set) {
- *  		for (pairThem : agentMoveMap.get(agent)) {
- *  			// check all my moves against all their moves, and keep any of mine which don't cause collisions
- *  			// TODO do i want check collisions or do I want to use my method ?
- *  			int collisions = checkCollision(pairMe,PairThem);
- *  			if (collisions==0) {
- *  				safeMoves.add( pairMe );
- *  			}
- *  			else {
- *  				// TODO : work out how to accept the least bad option
- *  				// TODO : in the actual simulations there should never be a need for this - under normal conditions there is always an option (usually, slow down)
- *  			}
- *  		}
- *  	}
- *  }
- *  
- *  // check for stopping distance as currently (agents to front (& back if diff lane))
- *  // return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
- *  // weight should be the shortfall between your ability to stop in time and where you need to stop ?
- *  // works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
- *  safetyWeightedMoves = checkStoppingDistance(safeMoves);  
- *  
- *  // choose a move from the safe ones, depending on your move choice method
- *  Move move = chooseMove(safetyWeighted); 
- *  return move;
- *  
- *  TODO ALTERNATIVE
- *  OR - could keep as much of current set up as possible but instead of checking each lane for agent and then checking
- *  stopping distance only in that lane, could check in all lanes for all agents (except those behind). This is a sort of
- *  compromise between what is suggested above and what we have at the moment... Need to work out which is more sensible
- *   --> this won't work, as you will always be stuck behind the slowest moving agent for fear of them changing lanes and
- *   making you "drive through them".
- *   
- *   TODO :
- *   
- *   SO -
- *    - modify crash detection to ignore "moving through" people unless both start and stop in same lane, or we'll never get anywhere
- *    - check all agents infront or alongside for collisions with possible moves in any lane (that they can move into)
- *    - check ALL agents that pass that test for stopping distance.
- *   THIS ENSURES THAT - 
- *    - you won't crash next turn
- *    - you won't get into an untenable position
- *    - you can use the stopping distance test for getting the least bad outcome if no safe outcomes at desired speed
- *  
- *  
- */
-
 	}
 	
+	/**
+	 * 
+	 * @param safetyWeightedMoves map of move to weight. Weight is -ve if unsafe, otherwise bigger is better
+	 * @param ownChoiceMethod
+	 * @return preferred move from map based on ownChoiceMethod
+	 */
+	private CellMove chooseMove(HashMap<CellMove, Integer> safetyWeightedMoves, OwnChoiceMethod ownChoiceMethod) {
+		CellMove result = driver.constantSpeed();
+		if (!safetyWeightedMoves.isEmpty()) {
+			if (ownChoiceMethod.equals(OwnChoiceMethod.SAFE)) {
+				// sort by weighting and return the one with the highest weight
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				Collections.sort(list, new MapValueAscComparator());
+				result = list.getLast().getKey();
+			}
+			else if (ownChoiceMethod.equals(OwnChoiceMethod.SAFE_GOALS)) {
+				// sort by weighting
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				list = getSafestMoves(list);
+				// take any that are "safe" (ie not negative weight) and discard the rest if there are any that are safe, otherwise return the least-bad
+				// sort by difference between moveSpeed and goalSpeed
+			}
+		}
+		else {
+			logger.warn("[" + getID() + "] Agent " + getName() + " was not given any moves to choose from ! Continuing at current speed ...");
+		}
+		return result;
+	}
+
+	/**
+	 * If any of the values in the list entries are +ve (or 0), result will only contain those entries 
+	 * Otherwise, the result will contain only the entries with the highest value
+	 * @param list unsorted
+	 * @return sorted list from lowest value to highest value with additional constraints as above
+	 */
+	private LinkedList<Entry<CellMove, Integer>> getSafestMoves(final LinkedList<Entry<CellMove, Integer>> list) {
+		LinkedList<Entry<CellMove,Integer>> result = (LinkedList<Entry<CellMove, Integer>>)list.clone();
+		Collections.sort(result, new MapValueAscComparator());
+		Collections.reverse(result);
+		/* LIST NOW DESCENDING ORDER */
+		// if you have any +ve entries, you can remove all -ves
+		boolean havePositives = list.getFirst().getValue()>=0;
+		Integer highestSoFar = Integer.MIN_VALUE;
+		
+		// Pass 1 : remove negative values if you have any positives, and find +ve value
+		for (Entry<CellMove,Integer> entry : result) {
+			if (entry.getValue()>highestSoFar) {
+				highestSoFar = entry.getValue();
+			}
+			if (havePositives && entry.getValue()<0) {
+				result.remove(entry);
+			}
+		}
+		
+		// Pass 2: if you have no positives, remove all values less than highest value (if positives, then the list is as you want it)
+		if (!havePositives) {
+			for (Entry<CellMove,Integer> entry : result) {
+				if (entry.getValue()<highestSoFar) {
+					result.remove(entry);
+				}
+			}
+		}
+		Collections.reverse(result);
+		/* LIST NOW ASCENDING ORDER again */
+		
+		return result;
+	}
+
 	/**
 	 * 
 	 * @param a_start
