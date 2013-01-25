@@ -1511,7 +1511,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
 		// weight should be the shortfall between your ability to stop in time and where you need to stop ?
 		// works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
-		HashMap<CellMove,Integer>safetyWeightedMoves = checkStoppingDistances(safeMoves);  
+		HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(safeMoves);  
 
 		// choose a move from the safe ones, depending on your move choice method
 		CellMove move = chooseMove(safetyWeightedMoves); 
@@ -1595,52 +1595,40 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
 	}
 	
-	private HashMap<CellMove, Integer> checkStoppingDistances( HashMap<CellMove,Pair<RoadLocation, RoadLocation>> moves) {
+	/**
+	 * 
+	 * @param moves
+	 * @return map of moves to utilities. If the utility is negative, it's not a safe move. The larger the utility the better.
+	 */
+	private HashMap<CellMove, Integer> generateStoppingUtilities( HashMap<CellMove,Pair<RoadLocation, RoadLocation>> moves) {
 		HashMap<CellMove,Integer> result = new HashMap<CellMove,Integer>();
-		
-		RoadLocation startLoc = myLoc;
 		
 		
 		// for all moves in set
 		for (Entry<CellMove,Pair<RoadLocation, RoadLocation>> entry : moves.entrySet()) {
 			int endLane = entry.getValue().getB().getLane();
+			int speed = entry.getKey().getYInt();
 		// get stopping distance based on the movespeed
-			Integer moveStoppingDist = speedService.getStoppingDistance(entry.getKey().getYInt());
+			Integer moveStoppingDist = speedService.getStoppingDistance(speed);
 			Integer frontStoppingDist = getStoppingDistanceFront(endLane);
 			Integer rearStoppingDist;
 			if (endLane!=myLoc.getLane()) {
 				rearStoppingDist = getStoppingDistanceRear(endLane);
 			}
 			else {
-				rearStoppingDist = 0;
+				rearStoppingDist = Integer.MIN_VALUE;
 			}
-		// get difference between stopDist and agentToFront's stopDist (
+		// get difference between stopDist and agentToFront's stopDist
+			int frontDiff = frontStoppingDist - moveStoppingDist;
 		// if moving to another lane, also get difference between stopDist and agentToRear's stopDist
+		// (if no agent behind or if same lane, rearStopDist==MinInt -> rearDiff = MaxInt
+			int rearDiff = Integer.MAX_VALUE;
+			if (rearStoppingDist!=Integer.MIN_VALUE) {
+				rearDiff = rearStoppingDist - moveStoppingDist;
+			}
+			// give the smallest difference as the utility -> if it's negative, then it's not a safe move
+			result.put(entry.getKey(), Math.min(frontDiff, rearDiff));
 		}
-		
-		
-		/*
-		Pair<Integer,Integer> pairFront = getStoppingSpeedFront(lane);
-		Integer stoppingSpeedFront = pairFront.getA();
-		Integer utilityFront = pairFront.getB();
-		Integer stoppingSpeedRear;
-		Integer utilityRear;
-		Integer utility;
-		// only need to check if you're changing lanes
-		if (lane!=myLoc.getLane()) {
-			Pair<Integer,Integer> pairRear = getStoppingSpeedRear(lane);
-			stoppingSpeedRear = pairRear.getA();
-			utilityRear = pairRear.getB();
-		}
-		else {
-			stoppingSpeedRear = -1;
-			utilityRear = Integer.MAX_VALUE;
-		}
-		logger.debug("[" + getID() + "] Agent " + getName() + " checked lane " + lane + " and got front:" + stoppingSpeedFront + "/" + utilityFront + " rear:" + stoppingSpeedRear + "/" + utilityRear);
-		
-		 */
-		
-		
 		return result;
 	}
 
@@ -1931,7 +1919,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	/**
 	 * 
 	 * @param lane
-	 * @return stopping distance required due to agent behind (not) you in given lane. Will be MaxInt if no agent found. 
+	 * @return stopping distance required due to agent behind (not) you in given lane. Will be MIN Int (ie big -ve) if no agent found. 
 	 */
 	private Integer getStoppingDistanceRear(int lane) {
 		Integer reqStopDistRear;
@@ -1986,19 +1974,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 */
 			if (targetIsAhead && (targetStopOffset<=this.locationService.getWrapPoint())) {
 				// if target is ahead of you and they won't wrap, don't care
-				reqStopDistRear = Integer.MAX_VALUE;
+				reqStopDistRear = Integer.MIN_VALUE;
 			}
 			else {
 				targetStopOffset = MathsUtils.mod(targetStopOffset, this.locationService.getWrapPoint());
 				// you need to be able to stop on the location one infront of it (which is why previous plus one), so work out how far that is from you
-				// gives myLoc-theirLoc -> +ve if ok
+				// gives myLoc-theirLoc -> +ve means you have to make a move, will be -ve if they dont end up in front of you
 				reqStopDistRear = locationService.getOffsetDistanceBetween(new RoadLocation(targetStopOffset, lane), myLoc);
 				logger.debug("[" + getID() + "] Agent " + getName() + " is at " + myLoc.getOffset() + " so has a reqStopDistRear of " + reqStopDistRear);
 			}
 		}
 		else {
 			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone behind them");
-			reqStopDistRear = Integer.MAX_VALUE;
+			reqStopDistRear = Integer.MIN_VALUE;
 		}
 		return reqStopDistRear;
 	}
@@ -2011,7 +1999,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private Pair<Integer,Integer> getStoppingSpeedRear(int lane) {
 		Integer reqStopDistRear = getStoppingDistanceRear(lane);
 		Integer stoppingSpeedRear;
-		if (reqStopDistRear!=Integer.MAX_VALUE) {
+		if (reqStopDistRear!=Integer.MIN_VALUE) {
 			// what speed do you need to travel at for that ?
 			stoppingSpeedRear = speedService.getSpeedToStopInDistance(reqStopDistRear);
 			logger.debug("[" + getID() + "] Agent " + getName() + " thinks it needs to move at " + stoppingSpeedRear + " to stop in " + reqStopDistRear);
@@ -2019,6 +2007,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// if there is no one there you can go at any speed you want (use negative to indicate this)
 		else {
 			stoppingSpeedRear = -1;
+			// FIXME TODO NOTE THAT THIS SWITCHES FROM BIG -VE TO BIG +VE
+			reqStopDistRear = Integer.MAX_VALUE;
 		}
 		
 		return new Pair<Integer,Integer>(stoppingSpeedRear, reqStopDistRear);
