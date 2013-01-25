@@ -1449,6 +1449,207 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		return chooseFromSafeMoves(actions, ownChoiceMethod);
 	}
 	
+	private CellMove newCreateMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
+		Pair<CellMove, Integer> temp = null;
+		// This is an indirect assumption of only three lanes
+		//  - yes we only want to check in lanes we can move into, but
+		//  - we should also take into account agents not in those lanes which might move into them ahead of us.
+		ArrayList<Integer> availableLanes = new ArrayList<Integer>(3);
+		LinkedList<Pair<CellMove,Integer>> actions = new LinkedList<Pair<CellMove,Integer>>();
+		availableLanes.add(myLoc.getLane());
+		availableLanes.add(myLoc.getLane()+1);
+		availableLanes.add(myLoc.getLane()-1);
+		@SuppressWarnings("unused")
+		Level lvl = logger.getLevel();
+		//logger.setLevel(Level.TRACE);
+		logger.trace("list of lanes is: " + availableLanes);
+		//logger.setLevel(lvl);		
+		
+		
+		Set<UUID> set; // set of agents
+		HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>> agentMoveMap; // map of agents to their set of possible moves
+
+		for (int lane = 0; lane<=locationService.getLanes(); lane++) {
+			set.add( locationService.getAgentToFront(lane) );
+			if (lane!=myLoc.getLane()) {
+				set.add( locationService.getAgentStrictlyToRear(lane) );
+			}
+		}
+		for (UUID agent : set) {
+			if (locationService.getAgentLocation(agent).getOffset() >= myLoc.getOffset()) {
+				// generate all possible moves for agent and save start/end location to set in map
+				agentMoveMap.put( agent, generateMoves(agent, true) );
+			}
+			else {
+				// generate possible moves IN SAME LANE for agent - they won't cut you up if theyre behind you
+				agentMoveMap.put( agent, generateMoves(agent, false) );
+			}
+		}
+		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> myMoves = generateMoves(this.getID(), true);
+		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> safeMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
+		// generate all possible moves for yourself, and save start/end locs for them
+		for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
+			Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
+			for (UUID agent : set) {
+				for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
+					Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
+					// check all my moves against all their moves, and keep any of mine which don't cause collisions
+					// TODO do i want check collisions or do I want to use my method ?
+					int collisions = checkCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
+					if (collisions==0) {
+						safeMoves.put( entryMe.getKey(), entryMe.getValue() );
+					}
+					else {
+						// TODO : work out how to accept the least bad option
+						// TODO : in the actual simulations there should never be a need for this - under normal conditions there is always an option (usually, slow down)
+					}
+				}
+			}
+		}
+
+		// check for stopping distance as currently (agents to front (& back if diff lane))
+		// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
+		// weight should be the shortfall between your ability to stop in time and where you need to stop ?
+		// works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
+		HashMap<CellMove,Integer>safetyWeightedMoves = checkStoppingDistance(safeMoves);  
+
+		// choose a move from the safe ones, depending on your move choice method
+		CellMove move = chooseMove(safetyWeightedMoves); 
+		return move;
+
+/*
+ *  FIXME TODO
+ *  
+ *  Make a new method for choosing your move !
+ *  
+ *  Set<agent> set; // set of agents
+ *  HashMap<agent,Collection<Pair<loc,loc>> agentMoveMap; // map of agents to their set of possible moves
+ *  
+ *  for (all lanes) {
+ *  	set.add( getAgentToFrontOrAlongside(lane) );
+ *  	if (lane!=myLane) {
+ *  		set.add( getAgentToRear(lane) );
+ *  	}
+ *  }
+ *  for (agent : set) {
+ *  	if (loc(agent) >= myLoc) {
+ *  		// generate all possible moves for agent and save start/end location to set in map
+ *  		agentMoveMap.add( agent, generateAllPossibleMoves(agent) );
+ *  	}
+ *  	else {
+ *  		// generate possible moves IN SAME LANE for agent - they won't cut you up if theyre behind you
+ *  		agentMoveMap.add( agent, generateMovesInSameLane(agent) );
+ *  	}
+ *  }
+ *  Collection<Pair<loc,loc>> myMoves; // these should be map of move -> endLoc. StartLoc is always same (current loc) :P
+ *  Collection<Pair<loc,loc>> safeMoves;
+ *  // generate all possible moves for yourself, and save start/end locs for them
+ *  myMoves = generateAllPossibleMoves(me);
+ *  for (pairMe : myMoves) {
+ *  	for (agent : set) {
+ *  		for (pairThem : agentMoveMap.get(agent)) {
+ *  			// check all my moves against all their moves, and keep any of mine which don't cause collisions
+ *  			// TODO do i want check collisions or do I want to use my method ?
+ *  			int collisions = checkCollision(pairMe,PairThem);
+ *  			if (collisions==0) {
+ *  				safeMoves.add( pairMe );
+ *  			}
+ *  			else {
+ *  				// TODO : work out how to accept the least bad option
+ *  				// TODO : in the actual simulations there should never be a need for this - under normal conditions there is always an option (usually, slow down)
+ *  			}
+ *  		}
+ *  	}
+ *  }
+ *  
+ *  // check for stopping distance as currently (agents to front (& back if diff lane))
+ *  // return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
+ *  // weight should be the shortfall between your ability to stop in time and where you need to stop ?
+ *  // works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
+ *  safetyWeightedMoves = checkStoppingDistance(safeMoves);  
+ *  
+ *  // choose a move from the safe ones, depending on your move choice method
+ *  Move move = chooseMove(safetyWeighted); 
+ *  return move;
+ *  
+ *  TODO ALTERNATIVE
+ *  OR - could keep as much of current set up as possible but instead of checking each lane for agent and then checking
+ *  stopping distance only in that lane, could check in all lanes for all agents (except those behind). This is a sort of
+ *  compromise between what is suggested above and what we have at the moment... Need to work out which is more sensible
+ *   --> this won't work, as you will always be stuck behind the slowest moving agent for fear of them changing lanes and
+ *   making you "drive through them".
+ *   
+ *   TODO :
+ *   
+ *   SO -
+ *    - modify crash detection to ignore "moving through" people unless both start and stop in same lane, or we'll never get anywhere
+ *    - check all agents infront or alongside for collisions with possible moves in any lane (that they can move into)
+ *    - check ALL agents that pass that test for stopping distance.
+ *   THIS ENSURES THAT - 
+ *    - you won't crash next turn
+ *    - you won't get into an untenable position
+ *    - you can use the stopping distance test for getting the least bad outcome if no safe outcomes at desired speed
+ *  
+ *  
+ */
+
+	}
+	
+	/**
+	 * 
+	 * @param agent agent to check
+	 * @param allMoves true if should return all moves, false if should return only moves in same lane
+	 * @return hashmap of moves that the given agent could make in the next cycle, or emptySet if agent could not be seen. Key is CellMove, Value is pair of start/end loc
+	 */
+	private HashMap<CellMove,Pair<RoadLocation,RoadLocation>> generateMoves(UUID agent, boolean allMoves) {
+		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> result = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
+		
+		RoadLocation startLoc = null;
+		ArrayList<Integer> laneOffsets= new ArrayList<Integer>(1);
+		Integer startSpeed = null;
+		int maxAccel = speedService.getMaxAccel();
+		int maxDecel = speedService.getMaxDecel();
+		int maxSpeed = speedService.getMaxSpeed();
+		int wrapPoint = locationService.getWrapPoint();
+		
+		// get the current location of the agent in question
+		try {
+			startLoc = locationService.getAgentLocation(agent);
+			startSpeed = speedService.getAgentSpeed(agent);
+		} catch (CannotSeeAgent e) {
+			// return empty set
+			logger.info(getID() + " tried to generateMoves for " + agent + ", who they cannot see.");
+		}
+		
+		if ( (startLoc!=null) && (startSpeed!=null) ) {
+			// get the lanes to be considered, but in relative terms
+			if (allMoves) {
+				for (int i=-1;i<2;i++) {
+					if (locationService.isValidLane(i)) {
+						laneOffsets.add(i);
+					}
+				}
+			}
+			else {
+				laneOffsets.add(0);
+			}
+			
+			// for all lane offsets
+			for (int laneMove : laneOffsets) {
+				// for all speeds from currentSpeed-maxDecel to max(currentSpeed+maxAccel,maxSpeed)
+				int topSpeed = Math.max(startSpeed+maxAccel, maxSpeed);
+				for (int speedMove=startSpeed-maxDecel; speedMove<=topSpeed; speedMove++) {
+					// add the move corresponding to the lane offset + speed
+					CellMove move = new CellMove(laneMove,speedMove);
+					RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
+					result.put(move, new Pair<RoadLocation,RoadLocation>(startLoc,endLoc));
+				}
+			}
+		}
+		
+		return result;
+	}
+
 	private CellMove createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
@@ -1464,76 +1665,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		//logger.setLevel(Level.TRACE);
 		logger.trace("list of lanes is: " + availableLanes);
 		//logger.setLevel(lvl);
-		
-		/*
-		 *  FIXME TODO
-		 *  
-		 *  Make a new method for choosing your move !
-		 *  
-		 *  Set<agent> set; // set of agents
-		 *  HashMap<agent,Collection<Pair<loc,loc>> agentMoveMap; // map of agents to their set of possible moves
-		 *  
-		 *  for (all lanes) {
-		 *  	set.add( getAgentToFront(lane) );
-		 *  	if (lane!=myLane) {
-		 *  		set.add( getAgentToRear(lane) );
-		 *  	}
-		 *  }
-		 *  for (agent : set) {
-		 *  	if (loc(agent) > myLoc) {
-		 *  		// generate all possible moves for agent and save start/end location to set in map
-		 *  		agentMoveMap.add( generateAllPossibleMoves(agent) );
-		 *  	}
-		 *  	else {
-		 *  		// generate possible moves IN SAME LANE for agent - they won't cut you up if theyre behind you
-		 *  		agentMoveMap.add( generateMovesInSameLane(agent) );
-		 *  	}
-		 *  }
-		 *  Collection<Pair<loc,loc>> myMoves;
-		 *  Collection<Pair<loc,loc>> safeMoves;
-		 *  // generate all possible moves for yourself, and save start/end locs for them
-		 *  myMoves = generateAllPossibleMoves(me);
-		 *  for (pairMe : myMoves) {
-		 *  	for (agent : set) {
-		 *  		for (pairThem : agentMoveMap.get(agent)) {
-		 *  			// check all my moves against all their moves, and keep any of mine which don't cause collisions
-		 *  			// TODO do i want check collisions or do I want to use my method ?
-		 *  			int collisions = checkCollision(pairMe,PairThem);
-		 *  			if (collisions==0) {
-		 *  				safeMoves.add( pairMe );
-		 *  			}
-		 *  			else {
-		 *  				// TODO : work out how to accept the least bad option
-		 *  				// TODO : in the actual simulations there should never be a need for this - under normal conditions there is always an option (usually, slow down)
-		 *  			}
-		 *  		}
-		 *  	}
-		 *  }
-		 *  
-		 *  // choose a move from the safe ones, depending on your move choice method
-		 *  Move move = chooseMove(safeMoves);
-		 *  return move;
-		 *  
-		 *  TODO ALTERNATIVE
-		 *  OR - could keep as much of current set up as possible but instead of checking each lane for agent and then checking
-		 *  stopping distance only in that lane, could check in all lanes for all agents (except those behind). This is a sort of
-		 *  compromise between what is suggested above and what we have at the moment... Need to work out which is more sensible
-		 *   --> this won't work, as you will always be stuck behind the slowest moving agent for fear of them changing lanes and
-		 *   making you "drive through them".
-		 *   
-		 *   TODO :
-		 *   
-		 *   SO -
-		 *    - modify crash detection to ignore "moving through" people unless both start and stop in same lane, or we'll never get anywhere
-		 *    - check all agents infront for collisions with possible moves in any lane (that they can move into)
-		 *    - check ALL agents that pass that test for stopping distance.
-		 *   THIS ENSURES THAT - 
-		 *    - you won't crash next turn
-		 *    - you won't get into an untenable position
-		 *    - you can use the stopping distance test for getting the least bad outcome if no safe outcomes at desired speed
-		 *  
-		 *  
-		 */
 		
 		for (int i = 0; i <=availableLanes.size()-1; i++) {
 			if (locationService.isValidLane(availableLanes.get(i))) {
