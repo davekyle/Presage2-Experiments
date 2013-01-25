@@ -1713,6 +1713,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @return hashmap of moves that the given agent could make in the next cycle, or emptySet if agent could not be seen. Key is CellMove, Value is pair of start/end loc
 	 */
 	private HashMap<CellMove,Pair<RoadLocation,RoadLocation>> generateMoves(UUID agent, boolean allMoves) {
+		logger.info("[" + getID() + "] Agent " + getName() + " trying to generate moves for " + agent);
 		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> result = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
 		
 		RoadLocation startLoc = null;
@@ -1749,7 +1750,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			for (int laneMove : laneOffsets) {
 				// for all speeds from currentSpeed-maxDecel to max(currentSpeed+maxAccel,maxSpeed)
 				int topSpeed = Math.max(startSpeed+maxAccel, maxSpeed);
-				for (int speedMove=startSpeed-maxDecel; speedMove<=topSpeed; speedMove++) {
+				int minSpeed = Math.max(0, startSpeed-maxDecel);
+				for (int speedMove=minSpeed; speedMove<=topSpeed; speedMove++) {
 					// add the move corresponding to the lane offset + speed
 					CellMove move = new CellMove(laneMove,speedMove);
 					RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
