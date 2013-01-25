@@ -1547,14 +1547,34 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by weighting
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				list = getSafestMoves(list);
 				// take any that are "safe" (ie not negative weight) and discard the rest if there are any that are safe, otherwise return the least-bad
+				LinkedList<Map.Entry<CellMove,Integer>> safestMoves = getSafestMovesAndSort(list);
 				// sort by difference between moveSpeed and goalSpeed
+				LinkedList<Pair<CellMove,Integer>> sortedList = sortBySpeedDiff(safestMoves);
+				result = sortedList.getFirst().getA();
 			}
 		}
 		else {
 			logger.warn("[" + getID() + "] Agent " + getName() + " was not given any moves to choose from ! Continuing at current speed ...");
 		}
+		logger.debug("[" + getID() + "] Agent " + getName() + " chose to " + result);
+		return result;
+	}
+
+	/**
+	 * 
+	 * @param list - can ignore the value in the entry. Only key (move) is of interest
+	 * @return list sorted in ascending order by the difference between the speed of the move and the agent's goal speed (the Pair.B)
+	 */
+	private LinkedList<Pair<CellMove,Integer>> sortBySpeedDiff(LinkedList<Entry<CellMove, Integer>> list) {
+		LinkedList<Pair<CellMove,Integer>> result = new LinkedList<Pair<CellMove,Integer>>();
+		Integer goalSpeed = this.getGoals().getSpeed();
+		// iterate the list and calculate the difference between the move's speed and the goal speed, then insert to the new list
+		for (Entry<CellMove,Integer> entry : list) {
+			CellMove move = entry.getKey();
+			result.add(new Pair<CellMove, Integer>(move, Math.abs(move.getYInt()-goalSpeed)));
+		}		
+		Collections.sort(result, new PairBDescComparator());
 		return result;
 	}
 
@@ -1562,9 +1582,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * If any of the values in the list entries are +ve (or 0), result will only contain those entries 
 	 * Otherwise, the result will contain only the entries with the highest value
 	 * @param list unsorted
-	 * @return sorted list from lowest value to highest value with additional constraints as above
+	 * @return list sorted in descending order with additional constraints as above
 	 */
-	private LinkedList<Entry<CellMove, Integer>> getSafestMoves(final LinkedList<Entry<CellMove, Integer>> list) {
+	private LinkedList<Entry<CellMove, Integer>> getSafestMovesAndSort(final LinkedList<Entry<CellMove, Integer>> list) {
 		LinkedList<Entry<CellMove,Integer>> result = (LinkedList<Entry<CellMove, Integer>>)list.clone();
 		Collections.sort(result, new MapValueAscComparator());
 		Collections.reverse(result);
@@ -1591,8 +1611,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				}
 			}
 		}
-		Collections.reverse(result);
-		/* LIST NOW ASCENDING ORDER again */
 		
 		return result;
 	}
