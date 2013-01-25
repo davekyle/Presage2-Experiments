@@ -467,7 +467,7 @@ public class LaneMoveHandlerTest {
 		 *   | | |      | |b|
 		 *   | |b| -->  | | |
 		 *   |a| |      | | |
-		 *   Collision: yes
+		 *   Collision: yes --> no
 		 */
 
 		a.performAction(new CellMove(1, 3));
@@ -476,7 +476,8 @@ public class LaneMoveHandlerTest {
 		a.assertLocation(2, 3);
 		b.assertLocation(2, 2);
 		//assertEquals(1, handler.checkForCollisions(null));
-		assertCollisions(1);
+		//assertCollisions(1);
+		assertCollisions(0);
 	}
 	
 	@Test
@@ -493,14 +494,15 @@ public class LaneMoveHandlerTest {
 		 *   | | | |      |b| | |
 		 *   | |b| | -->  | | | |
 		 *   |a| | |      | | | |
-		 *   Collision: yes
+		 *   Collision: yes --> no
 		 */
 
 		a.performAction(new CellMove(1, 3));
 		b.performAction(new CellMove(-1, 1));
 		incrementTime();
 		//assertEquals(1, handler.checkForCollisions(null));
-		assertCollisions(1);
+		//assertCollisions(1);
+		assertCollisions(0);
 		b.assertLocation(1, 2);
 		a.assertLocation(2, 3);
 	}
@@ -595,7 +597,7 @@ public class LaneMoveHandlerTest {
 		 *   | | | |      | | | |
 		 *   | | | | -->  |b|a| |
 		 *   |a|b| |      | | | |
-		 *   Collision: yes
+		 *   Collision: yes --> no.
 		 */
 
 		a.performAction(new CellMove(1, 1));
@@ -604,7 +606,8 @@ public class LaneMoveHandlerTest {
 		a.assertLocation(2, 1);
 		b.assertLocation(1, 1);
 		//assertEquals(2, handler.checkForCollisions(null));
-		assertCollisions(null);
+		//assertCollisions(null);
+		assertCollisions(0);
 	}
 
 	@Test

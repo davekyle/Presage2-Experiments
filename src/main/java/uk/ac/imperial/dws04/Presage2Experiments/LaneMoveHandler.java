@@ -245,7 +245,24 @@ public class LaneMoveHandler extends MoveHandler {
 				if (!hasLeft(a)){
 					RoadLocation current = (RoadLocation) getLocationService()
 							.getAgentLocation(a);
-					if (current.getLane() == finishAt.getLane()) {
+					// new code here
+					if ( (current.getLane() == finishAt.getLane()) && !laneChange) {
+						// same lane, if he is behind us then it is a collision
+						int hisOffset = current.getOffset();
+						int myOffset = finishAt.getOffset();
+						boolean heWrapped = hisOffset < candidateLocs.get(a).getOffset();
+						boolean iWrapped = myOffset < startFrom.getOffset();
+						if(!iWrapped && heWrapped) {
+							hisOffset += areaLength;
+						}
+						if (hisOffset < myOffset) {
+							logger.warn("Collision Occured: Agent "
+									+ agentsOnCurrentCell + " went through " + a + " on cell " + finishAt);
+							collisionsOccured++;
+						}
+					}
+					// commenting out old code
+				/*	if (current.getLane() == finishAt.getLane()) {
 						// same lane, if he is behind us then it is a collision
 						int hisOffset = current.getOffset();
 						int myOffset = finishAt.getOffset();
@@ -266,7 +283,7 @@ public class LaneMoveHandler extends MoveHandler {
 						logger.warn("Collision Occured: Agent "
 								+ agentsOnCurrentCell + " crossed paths with " + a + " between cells " + finishAt);
 						collisionsOccured++;
-					}
+					}*/
 				}
 			}
 			if (collisionsOccured>0) {
