@@ -1511,7 +1511,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
 		// weight should be the shortfall between your ability to stop in time and where you need to stop ?
 		// works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
-		HashMap<CellMove,Integer>safetyWeightedMoves = checkStoppingDistance(safeMoves);  
+		HashMap<CellMove,Integer>safetyWeightedMoves = checkStoppingDistances(safeMoves);  
 
 		// choose a move from the safe ones, depending on your move choice method
 		CellMove move = chooseMove(safetyWeightedMoves); 
@@ -1595,6 +1595,55 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
 	}
 	
+	private HashMap<CellMove, Integer> checkStoppingDistances( HashMap<CellMove,Pair<RoadLocation, RoadLocation>> moves) {
+		HashMap<CellMove,Integer> result = new HashMap<CellMove,Integer>();
+		
+		RoadLocation startLoc = myLoc;
+		
+		
+		// for all moves in set
+		for (Entry<CellMove,Pair<RoadLocation, RoadLocation>> entry : moves.entrySet()) {
+			int endLane = entry.getValue().getB().getLane();
+		// get stopping distance based on the movespeed
+			Integer moveStoppingDist = speedService.getStoppingDistance(entry.getKey().getYInt());
+			Integer frontStoppingDist = getStoppingDistanceFront(endLane);
+			Integer rearStoppingDist;
+			if (endLane!=myLoc.getLane()) {
+				rearStoppingDist = getStoppingDistanceRear(endLane);
+			}
+			else {
+				rearStoppingDist = 0;
+			}
+		// get difference between stopDist and agentToFront's stopDist (
+		// if moving to another lane, also get difference between stopDist and agentToRear's stopDist
+		}
+		
+		
+		/*
+		Pair<Integer,Integer> pairFront = getStoppingSpeedFront(lane);
+		Integer stoppingSpeedFront = pairFront.getA();
+		Integer utilityFront = pairFront.getB();
+		Integer stoppingSpeedRear;
+		Integer utilityRear;
+		Integer utility;
+		// only need to check if you're changing lanes
+		if (lane!=myLoc.getLane()) {
+			Pair<Integer,Integer> pairRear = getStoppingSpeedRear(lane);
+			stoppingSpeedRear = pairRear.getA();
+			utilityRear = pairRear.getB();
+		}
+		else {
+			stoppingSpeedRear = -1;
+			utilityRear = Integer.MAX_VALUE;
+		}
+		logger.debug("[" + getID() + "] Agent " + getName() + " checked lane " + lane + " and got front:" + stoppingSpeedFront + "/" + utilityFront + " rear:" + stoppingSpeedRear + "/" + utilityRear);
+		
+		 */
+		
+		
+		return result;
+	}
+
 	/**
 	 * 
 	 * @param agent agent to check
@@ -1878,18 +1927,16 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		//return this.driver.randomValid();
 	}
-
+	
 	/**
 	 * 
 	 * @param lane
-	 * @return the min speed you can safely move at to avoid a car behind (or beside) in the indicated lane crashing into you. Will be negative if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values.
+	 * @return stopping distance required due to agent behind (not) you in given lane. Will be MaxInt if no agent found. 
 	 */
-	private Pair<Integer,Integer> getStoppingSpeedRear(int lane) {
-		// need to fix this for rear as well, since you need to ADD to their speed if theyre behind you (they may accel this turn, whereas for front you care if they decel)
+	private Integer getStoppingDistanceRear(int lane) {
 		Integer reqStopDistRear;
-		Integer stoppingSpeedRear;
 		// get agent to check
-		UUID targetRear = this.locationService.getAgentToRear(lane);
+		UUID targetRear = this.locationService.getAgentStrictlyToRear(lane);
 		// if there is someone there
 		if (targetRear!=null) {
 			RoadLocation targetRearLoc = (RoadLocation)locationService.getAgentLocation(targetRear);
@@ -1939,38 +1986,51 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 */
 			if (targetIsAhead && (targetStopOffset<=this.locationService.getWrapPoint())) {
 				// if target is ahead of you and they won't wrap, don't care
-				stoppingSpeedRear = -1;
 				reqStopDistRear = Integer.MAX_VALUE;
-				}
+			}
 			else {
 				targetStopOffset = MathsUtils.mod(targetStopOffset, this.locationService.getWrapPoint());
-				// you need to be able to stop on the location one infront of it (which is why plus one), so work out how far that is from you
-				// need to change order depending on whether the agent is behind you or not - 
+				// you need to be able to stop on the location one infront of it (which is why previous plus one), so work out how far that is from you
+				// gives myLoc-theirLoc -> +ve if ok
 				reqStopDistRear = locationService.getOffsetDistanceBetween(new RoadLocation(targetStopOffset, lane), myLoc);
 				logger.debug("[" + getID() + "] Agent " + getName() + " is at " + myLoc.getOffset() + " so has a reqStopDistRear of " + reqStopDistRear);
-				// what speed do you need to travel at for that ?
-				stoppingSpeedRear = speedService.getSpeedToStopInDistance(reqStopDistRear);
-				logger.debug("[" + getID() + "] Agent " + getName() + " thinks it needs to move at " + stoppingSpeedRear + " to stop in " + reqStopDistRear);
-			
 			}
+		}
+		else {
+			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone behind them");
+			reqStopDistRear = Integer.MAX_VALUE;
+		}
+		return reqStopDistRear;
+	}
+ 
+	/**
+	 * 
+	 * @param lane
+	 * @return the min speed you can safely move at to avoid a car behind (or beside) in the indicated lane crashing into you. Will be negative if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values (which is MaxInt if no agent behind)
+	 */
+	private Pair<Integer,Integer> getStoppingSpeedRear(int lane) {
+		Integer reqStopDistRear = getStoppingDistanceRear(lane);
+		Integer stoppingSpeedRear;
+		if (reqStopDistRear!=Integer.MAX_VALUE) {
+			// what speed do you need to travel at for that ?
+			stoppingSpeedRear = speedService.getSpeedToStopInDistance(reqStopDistRear);
+			logger.debug("[" + getID() + "] Agent " + getName() + " thinks it needs to move at " + stoppingSpeedRear + " to stop in " + reqStopDistRear);
 		}
 		// if there is no one there you can go at any speed you want (use negative to indicate this)
 		else {
-			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone behind them");
 			stoppingSpeedRear = -1;
-			reqStopDistRear = Integer.MAX_VALUE;
 		}
 		
 		return new Pair<Integer,Integer>(stoppingSpeedRear, reqStopDistRear);
 	}
-
+	
 	/**
+	 * 
 	 * @param lane
-	 * @return the max speed you can safely move at to avoid crashing into a car infront (or beside) in the indicated lane). Will be Int.MaxVal if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values.
+	 * @return stopping distance required due to agent ahead (or alongside) you in given lane. Will be MaxInt if no agent found.
 	 */
-	private Pair<Integer,Integer> getStoppingSpeedFront(int lane) {
+	private Integer getStoppingDistanceFront(int lane) {
 		Integer reqStopDistFront;
-		Integer stoppingSpeedFront;
 		// get agent to check
 		UUID targetFront = this.locationService.getAgentToFront(lane);
 		// if there is someone there
@@ -1983,6 +2043,22 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			reqStopDistFront = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront)))-1;
 			logger.debug("[" + getID() + "] Agent " + getName() + " got a reqStopDistFront of " + reqStopDistFront
 					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(targetFront) +")= " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront))) + ") ");
+		}
+		else {
+			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone in front of them");
+			reqStopDistFront = Integer.MAX_VALUE;
+		}
+		return reqStopDistFront;
+	}
+
+	/**
+	 * @param lane
+	 * @return the max speed you can safely move at to avoid crashing into a car infront (or beside) in the indicated lane). Will be Int.MaxVal if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values.
+	 */
+	private Pair<Integer,Integer> getStoppingSpeedFront(int lane) {
+		Integer reqStopDistFront = getStoppingDistanceFront(lane);
+		Integer stoppingSpeedFront;
+		if (reqStopDistFront!=Integer.MAX_VALUE) {
 			// work out what speed you can be at to stop in time
 			stoppingSpeedFront = speedService.getSpeedToStopInDistance(reqStopDistFront);
 			logger.debug("[" + getID() + "] Agent " + getName() + " thinks they need to travel at " + stoppingSpeedFront + " to stop in " + reqStopDistFront);
@@ -1990,7 +2066,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// if there isn't anyone there, you can go at any speed you want (use Int.MaxVal to indicate this)
 		else {
 			stoppingSpeedFront = Integer.MAX_VALUE;
-			reqStopDistFront = Integer.MAX_VALUE;
 		}
 		return new Pair<Integer, Integer>(stoppingSpeedFront, reqStopDistFront);
 	}
