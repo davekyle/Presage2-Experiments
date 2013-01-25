@@ -1495,26 +1495,30 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
 					// check all my moves against all their moves, and keep any of mine which don't cause collisions
 					// TODO do i want check collisions or do I want to use my method ?
-					int collisions = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
-					if (collisions==0) {
+					boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
+					if (!collision) {
 						safeMoves.put( entryMe.getKey(), entryMe.getValue() );
-					}
-					else {
-						// TODO : work out how to accept the least bad option
-						// TODO : in the actual simulations there should never be a need for this - under normal conditions there is always an option (usually, slow down)
+						logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
 					}
 				}
 			}
 		}
-
-		// check for stopping distance as currently (agents to front (& back if diff lane))
-		// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
-		// weight should be the shortfall between your ability to stop in time and where you need to stop ?
-		// works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
-		HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(safeMoves);  
-
-		// choose a move from the safe ones, depending on your move choice method
-		CellMove move = chooseMove(safetyWeightedMoves, ownChoiceMethod); 
+		
+		CellMove move;
+		if (safeMoves.isEmpty()) {
+			logger.warn("[" + getID() + "] Agent " + getName() + " could not find any moves without collisions ! Continuing at current speed since will crash either way...");
+			move = driver.constantSpeed();
+		}
+		else {
+			// check for stopping distance as currently (agents to front (& back if diff lane))
+			// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
+			// weight should be the shortfall between your ability to stop in time and where you need to stop ?
+			// works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
+			HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(safeMoves);  
+	
+			// choose a move from the safe ones, depending on your move choice method
+			move = chooseMove(safetyWeightedMoves, ownChoiceMethod); 
+		}
 		return move;
 
 /*
@@ -1597,6 +1601,39 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	/**
 	 * 
+	 * @param a_start
+	 * @param a_end
+	 * @param b_start
+	 * @param b_end
+	 * @return true if there would be a collision between a and b, false otherwise
+	 */
+	private boolean checkForCollisions(RoadLocation a_start, RoadLocation a_end, RoadLocation b_start, RoadLocation b_end) {
+		boolean result = false;
+		boolean laneChange = a_start.getLane()==a_end.getLane();
+		if (a_end.equals(b_end)) {
+			result = true;
+		}
+		else {
+			if ( (b_end.getLane() == a_end.getLane()) && !laneChange) {
+				// same lane, if he is behind us then it is a collision
+				int hisOffset = b_end.getOffset();
+				int myOffset = a_end.getOffset();
+				int areaLength = locationService.getWrapPoint();
+				boolean heWrapped = b_end.getOffset() < b_start.getOffset();
+				boolean iWrapped = a_end.getOffset() < a_start.getOffset();
+				if(!iWrapped && heWrapped) {
+					hisOffset += areaLength;
+				}
+				if (hisOffset < myOffset) {
+					result = true;
+				}
+			}
+		}
+		return result;	
+	}
+
+	/**
+	 * 
 	 * @param moves map of own moves to startloc/endloc pair
 	 * @return map of own moves to utilities. If the utility is negative, it's not a safe move. The larger the utility the better.
 	 */
@@ -1656,7 +1693,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			startSpeed = speedService.getAgentSpeed(agent);
 		} catch (CannotSeeAgent e) {
 			// return empty set
-			logger.info(getID() + " tried to generateMoves for " + agent + ", who they cannot see.");
+			logger.info("[" + getID() + "] Agent " + getName() + " tried to generateMoves for " + agent + ", who they cannot see.");
 		}
 		
 		if ( (startLoc!=null) && (startSpeed!=null) ) {
