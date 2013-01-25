@@ -195,7 +195,28 @@ public class ParticipantRoadLocationService extends RoadLocationService {
 			}
 		}
 		return result;
-		
+	}
+	
+	/** 
+	 * @param lane to check 
+	 * @return UUID of closest agent to rear (not alongside), or null if there wasn't one
+	 */
+	public UUID getAgentStrictlyToRear(int lane){
+		UUID result = null;
+		int startLoc = ((RoadLocation) super.getAgentLocation(myID)).getOffset();
+		for (int i = 1; i <= this.getPerceptionRange(); i++) {
+			if ( !getAreaService().getCell(lane, MathsUtils.mod((startLoc-i),this.getAreaService().getSizeY()), 0).isEmpty() ) {
+				for (UUID a : getAreaService().getCell(lane, MathsUtils.mod((startLoc-i),this.getAreaService().getSizeY()), 0)) {
+					if (a!=myID) {
+						result = a; // should only be one
+					}
+				}
+				if (result!=null) {
+					break;
+				}
+			}
+		}
+		return result;
 	}
 	
 	/**
