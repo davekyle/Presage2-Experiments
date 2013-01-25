@@ -1415,7 +1415,40 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 	}
 	
-	@SuppressWarnings("unused")
+	private CellMove _working_createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
+		Pair<CellMove, Integer> temp = null;
+		// This is an indirect assumption of only three lanes
+		//  - yes we only want to check in lanes we can move into, but
+		//  - we should also take into account agents not in those lanes which might move into them ahead of us.
+		ArrayList<Integer> availableLanes = new ArrayList<Integer>(3);
+		LinkedList<Pair<CellMove,Integer>> actions = new LinkedList<Pair<CellMove,Integer>>();
+		availableLanes.add(myLoc.getLane());
+		availableLanes.add(myLoc.getLane()+1);
+		availableLanes.add(myLoc.getLane()-1);
+		@SuppressWarnings("unused")
+		Level lvl = logger.getLevel();
+		//logger.setLevel(Level.TRACE);
+		logger.trace("list of lanes is: " + availableLanes);
+		//logger.setLevel(lvl);
+		
+		for (int i = 0; i <=availableLanes.size()-1; i++) {
+			if (locationService.isValidLane(availableLanes.get(i))) {
+				temp = createMoveFromNeighbours(availableLanes.get(i), neighbourChoiceMethod);
+				if (temp.getB().equals(Integer.MAX_VALUE)) {
+					logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + availableLanes.get(i) + " : " + temp); 
+				}
+				else {
+					logger.debug("[" + getID() + "] Agent " + getName() + " found an unsafe move in lane " + availableLanes.get(i) + " : " + temp);
+				}
+				actions.add(new Pair<CellMove,Integer>(new CellMove((availableLanes.get(i)-myLoc.getLane()), (int)temp.getA().getY()), temp.getB()));
+			}
+			else {
+				// skip, not a valid lane
+			}
+		}
+		return chooseFromSafeMoves(actions, ownChoiceMethod);
+	}
+	
 	private CellMove createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
@@ -1426,6 +1459,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		availableLanes.add(myLoc.getLane());
 		availableLanes.add(myLoc.getLane()+1);
 		availableLanes.add(myLoc.getLane()-1);
+		@SuppressWarnings("unused")
 		Level lvl = logger.getLevel();
 		//logger.setLevel(Level.TRACE);
 		logger.trace("list of lanes is: " + availableLanes);
@@ -1484,6 +1518,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		 *  OR - could keep as much of current set up as possible but instead of checking each lane for agent and then checking
 		 *  stopping distance only in that lane, could check in all lanes for all agents (except those behind). This is a sort of
 		 *  compromise between what is suggested above and what we have at the moment... Need to work out which is more sensible
+		 *   --> this won't work, as you will always be stuck behind the slowest moving agent for fear of them changing lanes and
+		 *   making you "drive through them".
+		 *   
+		 *   TODO :
+		 *   
+		 *   SO -
+		 *    - modify crash detection to ignore "moving through" people unless both start and stop in same lane, or we'll never get anywhere
+		 *    - check all agents infront for collisions with possible moves in any lane (that they can move into)
+		 *    - check ALL agents that pass that test for stopping distance.
+		 *   THIS ENSURES THAT - 
+		 *    - you won't crash next turn
+		 *    - you won't get into an untenable position
+		 *    - you can use the stopping distance test for getting the least bad outcome if no safe outcomes at desired speed
 		 *  
 		 *  
 		 */
