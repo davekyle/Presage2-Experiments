@@ -1536,14 +1536,16 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private CellMove chooseMove(HashMap<CellMove, Integer> safetyWeightedMoves, OwnChoiceMethod ownChoiceMethod) {
 		CellMove result = driver.constantSpeed();
 		if (!safetyWeightedMoves.isEmpty()) {
-			if (ownChoiceMethod.equals(OwnChoiceMethod.SAFE)) {
+			switch (ownChoiceMethod) {
+			case SAFE : {
 				// sort by weighting and return the one with the highest weight
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
 				Collections.sort(list, new MapValueAscComparator());
 				result = list.getLast().getKey();
+				break;
 			}
-			else if (ownChoiceMethod.equals(OwnChoiceMethod.SAFE_GOALS)) {
+			case SAFE_GOALS : {
 				// sort by weighting
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
@@ -1552,6 +1554,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by difference between moveSpeed and goalSpeed
 				LinkedList<Pair<CellMove,Integer>> sortedList = sortBySpeedDiff(safestMoves);
 				result = sortedList.getFirst().getA();
+				break;
+			}
+			default : {
+				logger.warn("[" + getID() + "] Agent " + getName() + " does not know how to choose by the method \"" + ownChoiceMethod.toString() + "\" so is continuing at current speed");
+				break;
+			}
 			}
 		}
 		else {
