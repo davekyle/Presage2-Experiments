@@ -578,7 +578,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			move = createExitMove(junctionDist, neighbourChoiceMethod);
 		}
 		else {
-			move = createMove(ownChoiceMethod, neighbourChoiceMethod);
+			//move = createMove(ownChoiceMethod, neighbourChoiceMethod);
+			move = newCreateMove(ownChoiceMethod, neighbourChoiceMethod);
 		}
 		if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
 			passJunction();
@@ -1453,12 +1454,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 	
 	private CellMove newCreateMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
-		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
 		//  - yes we only want to check in lanes we can move into, but
 		//  - we should also take into account agents not in those lanes which might move into them ahead of us.
 		ArrayList<Integer> availableLanes = new ArrayList<Integer>(3);
-		LinkedList<Pair<CellMove,Integer>> actions = new LinkedList<Pair<CellMove,Integer>>();
 		availableLanes.add(myLoc.getLane());
 		availableLanes.add(myLoc.getLane()+1);
 		availableLanes.add(myLoc.getLane()-1);
@@ -1475,35 +1474,49 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>> agentMoveMap = new HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>>();
 
 		for (int lane = 0; lane<=locationService.getLanes(); lane++) {
-			set.add( locationService.getAgentToFront(lane) );
+			UUID agentFront = locationService.getAgentToFront(lane);
+			if (agentFront!=null) {
+				logger.debug("[" + getID() + "] Agent " + getName() + " saw " + agentFront + " in front in lane " + lane);
+				set.add( agentFront );
+			}
 			if (lane!=myLoc.getLane()) {
-				set.add( locationService.getAgentStrictlyToRear(lane) );
+				UUID agentRear = locationService.getAgentStrictlyToRear(lane);
+				if (agentRear!=null) {
+					logger.debug("[" + getID() + "] Agent " + getName() + " saw " + agentRear + " behind in lane " + lane);
+					set.add( agentRear );
+				}
 			}
 		}
 		for (UUID agent : set) {
 			if (locationService.getAgentLocation(agent).getOffset() >= myLoc.getOffset()) {
-				// generate all possible moves for agent and save start/end location to set in map
+				// generate all possible moves for agents in front of you and save start/end location to set in map
 				agentMoveMap.put( agent, generateMoves(agent, true) );
 			}
 			else {
-				// generate possible moves IN SAME LANE for agent - they won't cut you up if theyre behind you
+				// generate possible moves IN SAME LANE for agents behind you - they won't cut you up if theyre behind you
 				agentMoveMap.put( agent, generateMoves(agent, false) );
 			}
 		}
+		
+		// generate all possible moves for yourself, and save start/end locs for them
 		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> myMoves = generateMoves(this.getID(), true);
 		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> noCollisionMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
-		// generate all possible moves for yourself, and save start/end locs for them
-		for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
-			Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
-			for (UUID agent : set) {
-				for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
-					Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
-					// check all my moves against all their moves, and keep any of mine which don't cause collisions
-					// TODO do i want check collisions or do I want to use my method ?
-					boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
-					if (!collision) {
-						noCollisionMoves.put( entryMe.getKey(), entryMe.getValue() );
-						logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
+		
+		if (set.isEmpty()) {
+			noCollisionMoves = myMoves;
+		}
+		else {
+			for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
+				Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
+				for (UUID agent : set) {
+					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
+						Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
+						// check all my moves against all their moves, and keep any of mine which don't cause collisions
+						boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
+						if (!collision) {
+							noCollisionMoves.put( entryMe.getKey(), entryMe.getValue() );
+							logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
+						}
 					}
 				}
 			}
@@ -1515,10 +1528,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			move = driver.constantSpeed();
 		}
 		else {
-			// check for stopping distance as currently (agents to front (& back if diff lane))
+			// check for stopping distance (agents to front (& back if diff lane))
 			// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
-			// weight should be the shortfall between your ability to stop in time and where you need to stop ?
-			// works in one direction, but what about 2 directions ? (ie you have to stop before the people in front of you, but after the people behind you)
+			// weight should be the shortfall between your ability to stop in time and where you need to stop
 			HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(noCollisionMoves);  
 	
 			// choose a move from the safe ones, depending on your move choice method
@@ -1724,7 +1736,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// get the lanes to be considered, but in relative terms
 			if (allMoves) {
 				for (int i=-1;i<2;i++) {
-					if (locationService.isValidLane(i)) {
+					if (locationService.isValidLane(startLoc.getLane() + i)) {
 						laneOffsets.add(i);
 					}
 				}
