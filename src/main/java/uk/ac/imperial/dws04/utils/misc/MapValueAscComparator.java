@@ -12,7 +12,7 @@ import java.util.Map.Entry;
  * @author dws04
  *
  */
-public class MapValueDescComparator<V extends Comparable<? super V>> implements Comparator<Map.Entry<?, V>> {
+public class MapValueAscComparator<V extends Comparable<? super V>> implements Comparator<Map.Entry<?, V>> {
 
 	/** 
 	 * Note: this class has a natural ordering that is inconsistent with equals.
