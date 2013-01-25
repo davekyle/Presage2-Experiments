@@ -1495,7 +1495,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
 					// check all my moves against all their moves, and keep any of mine which don't cause collisions
 					// TODO do i want check collisions or do I want to use my method ?
-					int collisions = checkCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
+					int collisions = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
 					if (collisions==0) {
 						safeMoves.put( entryMe.getKey(), entryMe.getValue() );
 					}
@@ -1514,7 +1514,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(safeMoves);  
 
 		// choose a move from the safe ones, depending on your move choice method
-		CellMove move = chooseMove(safetyWeightedMoves); 
+		CellMove move = chooseMove(safetyWeightedMoves, ownChoiceMethod); 
 		return move;
 
 /*
@@ -1597,8 +1597,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	/**
 	 * 
-	 * @param moves
-	 * @return map of moves to utilities. If the utility is negative, it's not a safe move. The larger the utility the better.
+	 * @param moves map of own moves to startloc/endloc pair
+	 * @return map of own moves to utilities. If the utility is negative, it's not a safe move. The larger the utility the better.
 	 */
 	private HashMap<CellMove, Integer> generateStoppingUtilities( HashMap<CellMove,Pair<RoadLocation, RoadLocation>> moves) {
 		HashMap<CellMove,Integer> result = new HashMap<CellMove,Integer>();
@@ -1606,13 +1606,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		// for all moves in set
 		for (Entry<CellMove,Pair<RoadLocation, RoadLocation>> entry : moves.entrySet()) {
+			int startLane = entry.getValue().getA().getLane();
 			int endLane = entry.getValue().getB().getLane();
 			int speed = entry.getKey().getYInt();
 		// get stopping distance based on the movespeed
 			Integer moveStoppingDist = speedService.getStoppingDistance(speed);
 			Integer frontStoppingDist = getStoppingDistanceFront(endLane);
 			Integer rearStoppingDist;
-			if (endLane!=myLoc.getLane()) {
+			if (endLane!=startLane) {
 				rearStoppingDist = getStoppingDistanceRear(endLane);
 			}
 			else {
