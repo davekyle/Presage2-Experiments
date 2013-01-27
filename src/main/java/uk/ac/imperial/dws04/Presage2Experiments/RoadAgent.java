@@ -32,8 +32,10 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.ConstantWeightedMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SameLaneWeightedMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SpeedWeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
-import uk.ac.imperial.dws04.utils.misc.WeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
@@ -60,7 +62,7 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	public enum OwnChoiceMethod {SAFE, PLANNED, SAFE_GOALS};
+	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
@@ -151,7 +153,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	public RoadAgent(UUID uuid, String name, RoadLocation startLoc,
 			int startSpeed, RoadAgentGoals goals) {
-		this(uuid, name, startLoc, startSpeed, goals, OwnChoiceMethod.SAFE_GOALS, NeighbourChoiceMethod.WORSTCASE);
+		this(uuid, name, startLoc, startSpeed, goals, OwnChoiceMethod.SAFE_CONSTANT, NeighbourChoiceMethod.WORSTCASE);
 	}
 
 	/**
@@ -1552,11 +1554,20 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		CellMove result = driver.constantSpeed();
 		if (!safetyWeightedMoves.isEmpty()) {
 			switch (ownChoiceMethod) {
-			case SAFE : {
+			case SAFE_CONSTANT : {
 				// sort by weighting and return the one with the highest weight
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				Collections.sort(list, new WeightedMoveComparator());
+				Collections.sort(list, new ConstantWeightedMoveComparator(this.mySpeed));
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
+				result = list.getLast().getKey();
+				break;
+			}
+			case SAFE_FAST : {
+				// sort by weighting and return the one with the highest weight
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				Collections.sort(list, new SpeedWeightedMoveComparator());
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				break;
@@ -1611,7 +1622,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private LinkedList<Entry<CellMove, Integer>> getSafestMovesAndSort(final LinkedList<Entry<CellMove, Integer>> list) {
 		LinkedList<Entry<CellMove,Integer>> result = (LinkedList<Entry<CellMove, Integer>>)list.clone();
-		Collections.sort(result, new WeightedMoveComparator());
+		Collections.sort(result, new SpeedWeightedMoveComparator());
 		Collections.reverse(result);
 		/* LIST NOW DESCENDING ORDER */
 		// if you have any +ve entries, you can remove all -ves
@@ -1783,7 +1794,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					// add the move corresponding to the lane offset + speed
 					CellMove move = new CellMove(laneMove,speedMove);
 					RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
-					result.put(move, new Pair<RoadLocation,RoadLocation>(startLoc,endLoc));
+					// need to not insert laneChanges with no speed...
+					if (!( (move.getYInt()==0) && (move.getXInt()!=0) )) {
+						result.put(move, new Pair<RoadLocation,RoadLocation>(startLoc,endLoc));
+					}
 				}
 			}
 		}
@@ -1842,10 +1856,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			return driver.decelerateToCrawl();
 		}
 		else {
+			logger.trace("[" + getID() + "] Agent " + getName() + " choosing a " + ownChoiceMethod + " action...");
 			switch (ownChoiceMethod) {
 			// Choose the first safe move you find
-			case SAFE :  {
-				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe action...");
+			case SAFE_FAST :  {
 				Collections.sort(actions, new PairBDescComparator<Integer>());
 				if (!actions.isEmpty()) {
 					result = actions.getFirst();
@@ -1870,7 +1884,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			// Choose a safe move that sets your speed as close to your goal as possible
 			case SAFE_GOALS : {
-				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe_goals action...");
 				discardUnsafeActions(actions);
 				if (!actions.isEmpty()) {
 					logger.debug("[" + getID() + "] Agent " + getName() + " choosing from: " + actions);
@@ -2078,6 +2091,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 */
 			if (targetIsAhead && (targetStopOffset<=this.locationService.getWrapPoint())) {
 				// if target is ahead of you and they won't wrap, don't care
+				logger.debug("[" + getID() + "] Agent " + getName() + " saw target ahead of them when checking behind, and they won't wrap, so discounting");
 				reqStopDistRear = Integer.MIN_VALUE;
 			}
 			else {
@@ -2136,7 +2150,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// add the distance between you and their current location (then minus 1 to make sure you can stop BEFORE them)
 			reqStopDistFront = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront)))-1;
 			logger.debug("[" + getID() + "] Agent " + getName() + " got a reqStopDistFront of " + reqStopDistFront
-					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(targetFront) +")= " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront))) + ") ");
+					+ " ( " + targetStopDist + " + (distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(targetFront) +") = " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront))) + ") - 1 ) ");
 		}
 		else {
 			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone in front of them");
@@ -2399,5 +2413,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// submit prospective action with nulls to be filled in from permission
 			prospectiveActions.add(new Response1B(getIPConHandle(), null, null, null, revision, ballot, issue, cluster));
 		}
+	}
+	
+	/**
+	 * Used for testing and if the environment needs it. Agents can never get agent objects, so should be safe.
+	 * @return
+	 */
+	public UUID getAuthKey() {
+		return this.authkey;
 	}
 }

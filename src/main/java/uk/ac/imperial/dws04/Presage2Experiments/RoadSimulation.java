@@ -87,7 +87,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public int junctionCount;
 	
 	@Parameter(name="ownChoiceMethod", optional=true)
-	public String ownChoiceMethod = OwnChoiceMethod.SAFE_GOALS.name();
+	public String ownChoiceMethod = OwnChoiceMethod.SAFE_CONSTANT.name();
 	public OwnChoiceMethod ownCM = null;
 	
 	@Parameter(name="neighbourChoiceMethod", optional=true)
@@ -371,7 +371,7 @@ public class RoadSimulation extends InjectedSimulation {
 			}
 			// if you don't find it, return SAFE;
 			logger.trace("Couldn't find ocm=" + ownChoiceMethod + " so using SAFE");
-			this.ownCM = OwnChoiceMethod.SAFE;
+			this.ownCM = OwnChoiceMethod.SAFE_FAST;
 			return this.ownCM;
 		}
 	}
