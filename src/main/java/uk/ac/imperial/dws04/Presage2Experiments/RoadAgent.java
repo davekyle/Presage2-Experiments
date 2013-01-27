@@ -1548,6 +1548,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @return preferred move from map based on ownChoiceMethod
 	 */
 	private CellMove chooseMove(HashMap<CellMove, Integer> safetyWeightedMoves, OwnChoiceMethod ownChoiceMethod) {
+		logger.debug("[" + getID() + "] Agent " + getName() + " choosing " + ownChoiceMethod + " move from moves: " + safetyWeightedMoves);
 		CellMove result = driver.constantSpeed();
 		if (!safetyWeightedMoves.isEmpty()) {
 			switch (ownChoiceMethod) {
@@ -1681,6 +1682,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		// for all moves in set
 		for (Entry<CellMove,Pair<RoadLocation, RoadLocation>> entry : moves.entrySet()) {
+			logger.trace("[" + getID() + "] Agent " + getName() + " processing move " + entry + " for stopping utilities.");
 			int startLane = entry.getValue().getA().getLane();
 			int endLane = entry.getValue().getB().getLane();
 			int speed = entry.getKey().getYInt();
@@ -1694,14 +1696,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			else {
 				rearStoppingDist = Integer.MIN_VALUE;
 			}
+			logger.trace("[" + getID() + "] Agent " + getName() + " got moveStop=" + moveStoppingDist + ", rearStop=" + rearStoppingDist + ", frontStop=" + frontStoppingDist);
 		// get difference between stopDist and agentToFront's stopDist
-			int frontDiff = frontStoppingDist - moveStoppingDist;
+			int frontDiff = Integer.MAX_VALUE;
+			if (frontStoppingDist!=Integer.MAX_VALUE) {
+				frontDiff = frontStoppingDist - moveStoppingDist;
+			}
 		// if moving to another lane, also get difference between stopDist and agentToRear's stopDist
 		// (if no agent behind or if same lane, rearStopDist==MinInt -> rearDiff = MaxInt
 			int rearDiff = Integer.MAX_VALUE;
 			if (rearStoppingDist!=Integer.MIN_VALUE) {
 				rearDiff = rearStoppingDist - moveStoppingDist;
 			}
+			logger.trace("[" + getID() + "] Agent " + getName() + " got rearDiff=" + rearDiff + ", frontDiff=" + frontDiff);
 			// give the smallest difference as the utility -> if it's negative, then it's not a safe move
 			result.put(entry.getKey(), Math.min(frontDiff, rearDiff));
 		}
