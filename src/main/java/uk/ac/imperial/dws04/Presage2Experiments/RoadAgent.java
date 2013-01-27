@@ -1510,14 +1510,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
 				for (UUID agent : set) {
 					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
-						Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
-						// check all my moves against all their moves, and keep any of mine which don't cause collisions
-						boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
-						if (!collision) {
-							// FIXME TODO adding the move multiple times here (once for each agent you wont crash into...)
-							// shouldn't have an effect due to hashmaps not taking dups, but still...
-							noCollisionMoves.put( entryMe.getKey(), entryMe.getValue() );
-							logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
+						if (!noCollisionMoves.containsKey(entryMe.getKey())) {
+							Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
+							// check all my moves against all their moves, and keep any of mine which don't cause collisions
+							boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
+							if (!collision) {
+								noCollisionMoves.put( entryMe.getKey(), entryMe.getValue() );
+								logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
+							}
 						}
 					}
 				}
