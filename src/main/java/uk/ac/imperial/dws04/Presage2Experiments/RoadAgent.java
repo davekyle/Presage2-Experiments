@@ -33,7 +33,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
-import uk.ac.imperial.dws04.utils.misc.MapValueAscComparator;
+import uk.ac.imperial.dws04.utils.misc.WeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
@@ -151,7 +151,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	public RoadAgent(UUID uuid, String name, RoadLocation startLoc,
 			int startSpeed, RoadAgentGoals goals) {
-		this(uuid, name, startLoc, startSpeed, goals, OwnChoiceMethod.SAFE, NeighbourChoiceMethod.WORSTCASE);
+		this(uuid, name, startLoc, startSpeed, goals, OwnChoiceMethod.SAFE_GOALS, NeighbourChoiceMethod.WORSTCASE);
 	}
 
 	/**
@@ -1556,7 +1556,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by weighting and return the one with the highest weight
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				Collections.sort(list, new MapValueAscComparator());
+				Collections.sort(list, new WeightedMoveComparator());
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				break;
 			}
@@ -1568,7 +1569,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				LinkedList<Map.Entry<CellMove,Integer>> safestMoves = getSafestMovesAndSort(list);
 				// sort by difference between moveSpeed and goalSpeed
 				LinkedList<Pair<CellMove,Integer>> sortedList = sortBySpeedDiff(safestMoves);
-				result = sortedList.getFirst().getA();
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + sortedList);
+				result = sortedList.getLast().getA();
 				break;
 			}
 			default : {
@@ -1587,7 +1589,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	/**
 	 * 
 	 * @param list - can ignore the value in the entry. Only key (move) is of interest
-	 * @return list sorted in ascending order by the difference between the speed of the move and the agent's goal speed (the Pair.B)
+	 * @return list sorted in desc order by the difference between the speed of the move and the agent's goal speed (the Pair.B) (so last entry is best)
 	 */
 	private LinkedList<Pair<CellMove,Integer>> sortBySpeedDiff(LinkedList<Entry<CellMove, Integer>> list) {
 		LinkedList<Pair<CellMove,Integer>> result = new LinkedList<Pair<CellMove,Integer>>();
@@ -1609,7 +1611,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private LinkedList<Entry<CellMove, Integer>> getSafestMovesAndSort(final LinkedList<Entry<CellMove, Integer>> list) {
 		LinkedList<Entry<CellMove,Integer>> result = (LinkedList<Entry<CellMove, Integer>>)list.clone();
-		Collections.sort(result, new MapValueAscComparator());
+		Collections.sort(result, new WeightedMoveComparator());
 		Collections.reverse(result);
 		/* LIST NOW DESCENDING ORDER */
 		// if you have any +ve entries, you can remove all -ves
@@ -1617,20 +1619,37 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		Integer highestSoFar = Integer.MIN_VALUE;
 		
 		// Pass 1 : remove negative values if you have any positives, and find +ve value
-		for (Entry<CellMove,Integer> entry : result) {
+		/*for (Entry<CellMove,Integer> entry : result) {
 			if (entry.getValue()>highestSoFar) {
 				highestSoFar = entry.getValue();
 			}
 			if (havePositives && entry.getValue()<0) {
 				result.remove(entry);
 			}
+		}*/
+		Iterator<Entry<CellMove,Integer>> it1 = result.iterator();
+		while (it1.hasNext()) {
+			Entry<CellMove,Integer> entry = it1.next();
+			if (entry.getValue()>highestSoFar) {
+				highestSoFar = entry.getValue();
+			}
+			if (havePositives && entry.getValue()<0) {
+				it1.remove();
+			}
 		}
 		
 		// Pass 2: if you have no positives, remove all values less than highest value (if positives, then the list is as you want it)
 		if (!havePositives) {
-			for (Entry<CellMove,Integer> entry : result) {
+			/*for (Entry<CellMove,Integer> entry : result) {
 				if (entry.getValue()<highestSoFar) {
 					result.remove(entry);
+				}
+			}*/
+			Iterator<Entry<CellMove,Integer>> it2 = result.iterator();
+			while (it2.hasNext()) {
+				Entry<CellMove,Integer> entry = it2.next();
+				if (entry.getValue()<highestSoFar) {
+					it2.remove();
 				}
 			}
 		}
@@ -1758,7 +1777,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// for all lane offsets
 			for (int laneMove : laneOffsets) {
 				// for all speeds from currentSpeed-maxDecel to max(currentSpeed+maxAccel,maxSpeed)
-				int topSpeed = Math.max(startSpeed+maxAccel, maxSpeed);
+				int topSpeed = Math.min(startSpeed+maxAccel, maxSpeed);
 				int minSpeed = Math.max(0, startSpeed-maxDecel);
 				for (int speedMove=minSpeed; speedMove<=topSpeed; speedMove++) {
 					// add the move corresponding to the lane offset + speed

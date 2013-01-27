@@ -87,7 +87,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public int junctionCount;
 	
 	@Parameter(name="ownChoiceMethod", optional=true)
-	public String ownChoiceMethod = OwnChoiceMethod.SAFE.name();
+	public String ownChoiceMethod = OwnChoiceMethod.SAFE_GOALS.name();
 	public OwnChoiceMethod ownCM = null;
 	
 	@Parameter(name="neighbourChoiceMethod", optional=true)
