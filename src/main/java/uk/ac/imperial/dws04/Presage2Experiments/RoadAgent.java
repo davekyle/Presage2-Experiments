@@ -1561,6 +1561,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				Collections.sort(list, new ConstantWeightedMoveComparator(this.mySpeed));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
+				if (result.getYInt()==0 && // if chosen move is to stop, and next move is safe, choose next move instead
+						(list.get(list.size()-2).getValue().equals(Integer.MAX_VALUE))
+						) {
+					result = list.get(list.size()-2).getKey();
+				}
 				break;
 			}
 			case SAFE_FAST : {
