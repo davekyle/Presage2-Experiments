@@ -1502,20 +1502,20 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		// generate all possible moves for yourself, and save start/end locs for them
 		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> myMoves = generateMoves(this.getID(), true);
-		//HashMap<CellMove,Pair<RoadLocation,RoadLocation>> noCollisionMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>(myMoves);
+		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> collisionCheckMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>(myMoves);
 		
 		if (set.isEmpty()) {
 			// you're done
 		}
 		else {
-			Iterator<Entry<CellMove,Pair<RoadLocation,RoadLocation>>> it = myMoves.entrySet().iterator();
+			Iterator<Entry<CellMove,Pair<RoadLocation,RoadLocation>>> it = collisionCheckMoves.entrySet().iterator();
 			while (it.hasNext()) {
 				Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe = it.next();
 				CellMove myMove = entryMe.getKey();
 				Pair<RoadLocation,RoadLocation> myPair = entryMe.getValue();
 				for (UUID agent : set) {
 					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
-						if (myMoves.containsKey(myMove)) {
+						if (collisionCheckMoves.containsKey(myMove)) {
 							Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
 							// check all my moves against all their moves, and keep any of mine which don't cause collisions
 							boolean collision = checkForCollisions(myPair.getA(), myPair.getB(), pairThem.getA(), pairThem.getB());
@@ -1546,19 +1546,17 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		
 		CellMove move;
-		if (myMoves.isEmpty()) {
-			logger.warn("[" + getID() + "] Agent " + getName() + " could not find any moves without collisions ! Continuing at current speed since will crash either way...");
-			move = driver.constantSpeed();
+		if (collisionCheckMoves.isEmpty()) {
+			logger.warn("[" + getID() + "] Agent " + getName() + " could not find any moves that guarantee no collisions ! Passing out all moves to see which is the best.");
+			collisionCheckMoves = myMoves;
 		}
-		else {
-			// check for stopping distance (agents to front (& back if diff lane))
-			// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
-			// weight should be the shortfall between your ability to stop in time and where you need to stop
-			HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(myMoves);  
-	
-			// choose a move from the safe ones, depending on your move choice method
-			move = chooseMove(safetyWeightedMoves, ownChoiceMethod); 
-		}
+		// check for stopping distance (agents to front (& back if diff lane))
+		// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
+		// weight should be the shortfall between your ability to stop in time and where you need to stop
+		HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(collisionCheckMoves);  
+
+		// choose a move from the safe ones, depending on your move choice method
+		move = chooseMove(safetyWeightedMoves, ownChoiceMethod); 
 		return move;
 	}
 	
