@@ -1502,13 +1502,32 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		// generate all possible moves for yourself, and save start/end locs for them
 		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> myMoves = generateMoves(this.getID(), true);
-		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> noCollisionMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
+		//HashMap<CellMove,Pair<RoadLocation,RoadLocation>> noCollisionMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>(myMoves);
 		
 		if (set.isEmpty()) {
-			noCollisionMoves = myMoves;
+			// you're done
 		}
 		else {
-			for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
+			Iterator<Entry<CellMove,Pair<RoadLocation,RoadLocation>>> it = myMoves.entrySet().iterator();
+			while (it.hasNext()) {
+				Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe = it.next();
+				CellMove myMove = entryMe.getKey();
+				Pair<RoadLocation,RoadLocation> myPair = entryMe.getValue();
+				for (UUID agent : set) {
+					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
+						if (myMoves.containsKey(myMove)) {
+							Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
+							// check all my moves against all their moves, and keep any of mine which don't cause collisions
+							boolean collision = checkForCollisions(myPair.getA(), myPair.getB(), pairThem.getA(), pairThem.getB());
+							if (collision) {
+								it.remove();
+								logger.debug("[" + getID() + "] Agent " + getName() + " found a move collision : " + entryMe.getKey() + " between " + entryMe.getValue());
+							}
+						}
+					}
+				}
+			}
+			/*for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
 				Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
 				for (UUID agent : set) {
 					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
@@ -1523,11 +1542,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						}
 					}
 				}
-			}
+			}*/
 		}
 		
 		CellMove move;
-		if (noCollisionMoves.isEmpty()) {
+		if (myMoves.isEmpty()) {
 			logger.warn("[" + getID() + "] Agent " + getName() + " could not find any moves without collisions ! Continuing at current speed since will crash either way...");
 			move = driver.constantSpeed();
 		}
@@ -1535,7 +1554,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// check for stopping distance (agents to front (& back if diff lane))
 			// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
 			// weight should be the shortfall between your ability to stop in time and where you need to stop
-			HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(noCollisionMoves);  
+			HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(myMoves);  
 	
 			// choose a move from the safe ones, depending on your move choice method
 			move = chooseMove(safetyWeightedMoves, ownChoiceMethod); 
@@ -1561,7 +1580,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				Collections.sort(list, new ConstantWeightedMoveComparator(this.mySpeed));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
-				if (result.getYInt()==0 && // if chosen move is to stop, and next move is safe, choose next move instead
+				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
 						(list.get(list.size()-2).getValue().equals(Integer.MAX_VALUE))
 						) {
 					result = list.get(list.size()-2).getKey();
@@ -1801,7 +1820,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
 					// need to not insert laneChanges with no speed...
 					if (!( (move.getYInt()==0) && (move.getXInt()!=0) )) {
-						result.put(move, new Pair<RoadLocation,RoadLocation>(startLoc,endLoc));
+						Pair<RoadLocation, RoadLocation> locations = new Pair<RoadLocation,RoadLocation>(startLoc,endLoc);
+						logger.trace("[" + getID() + "] Agent " + getName() + " generated move for " + agent + ":" + move + " between " + locations);
+						result.put(move, locations);
 					}
 				}
 			}
