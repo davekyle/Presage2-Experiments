@@ -78,10 +78,14 @@ public class LaneMoveHandler extends MoveHandler {
 	@EventListener
 	public int checkForCollisions(EndOfTimeCycle e) {
 		int collisionsThisCycle = 0;
+		Set<UUID> collisions = new HashSet<UUID>();
 		for (CollisionCheck c : this.checks) {
-			collisionsThisCycle += c.checkForCollision();
+			Set<UUID> cCollisions = c.checkForCollision();
+			collisionsThisCycle += cCollisions.size();
+			collisions.addAll(cCollisions);
 		}
 		this.checks.clear();
+		// FIXME TODO only count is as a collision if collisions are all paired.
 		this.collisions += collisionsThisCycle;
 		if (this.persist != null)
 			this.persist.setProperty("collisions", e.getTime().intValue(),
@@ -225,7 +229,8 @@ public class LaneMoveHandler extends MoveHandler {
 			return agents;
 		}
 
-		public int checkForCollision() {
+		public Set<UUID> checkForCollision() {
+			Set<UUID> collided = new HashSet<UUID>();
 			int collisionsOccured = 0;
 			Set<UUID> agentsOnCurrentCell = getAreaService().getCell(
 					finishAt.getLane(), finishAt.getOffset(), 0);
@@ -233,6 +238,8 @@ public class LaneMoveHandler extends MoveHandler {
 				logger.warn("Collision Occurred: Multiple agents on one cell. Cell: "
 						+ this.finishAt + ", agents: " + agentsOnCurrentCell);
 				collisionsOccured++;
+				collided.addAll(agentsOnCurrentCell);
+				
 			}
 			for (UUID a : collisionCandidates) {
 				// FIXME ? This stops agents that have left being checked
@@ -259,6 +266,7 @@ public class LaneMoveHandler extends MoveHandler {
 							logger.warn("Collision Occured: Agent "
 									+ agentsOnCurrentCell + " went through " + a + " on cell " + finishAt);
 							collisionsOccured++;
+							collided.add(a);
 						}
 					}
 					// commenting out old code
@@ -311,7 +319,7 @@ public class LaneMoveHandler extends MoveHandler {
 					}
 				}
 			}
-			return collisionsOccured;
+			return collided;
 		}
 
 	}
