@@ -341,9 +341,19 @@ public class RoadAgentTest {
 		//b.execute();
 		incrementTime();
 		
-		// a can't slow in time so will "overtake"
-		assertLocation(a, 2, 3);
-		assertSpeed(a, 3);
+		// a can't slow in time so will "overtake" (and slow to avoid potential collision)
+		assertLocation(a, 2, 2);
+		assertSpeed(a, 2);
+		assertLocation(b, startLane, 2);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		//b.execute();
+		incrementTime();
+		
+		// a now continues at constant speed past b
+		assertLocation(a, 2, 4);
+		assertSpeed(a, 2);
 		assertLocation(b, startLane, 2);
 		assertSpeed(b, 0);
 	}
@@ -373,9 +383,22 @@ public class RoadAgentTest {
 		//c.execute();
 		incrementTime();
 		
-		// a can't slow in time and c prevents "overtaking" so will "undertake"
-		assertLocation(a, 0, 3);
-		assertSpeed(a, 3);
+		// a can't slow in time and c prevents "overtaking" so will "undertake" (and slow to avoid collision)
+		assertLocation(a, 0, 2);
+		assertSpeed(a, 2);
+		assertLocation(b, startLane, 2);
+		assertSpeed(b, 0);
+		assertLocation(c, startLane+1, 2);
+		assertSpeed(c, 0);
+		
+		a.execute();
+		//b.execute();
+		//c.execute();
+		incrementTime();
+		
+		// a passes b and c at constant speed
+		assertLocation(a, 0, 4);
+		assertSpeed(a, 2);
 		assertLocation(b, startLane, 2);
 		assertSpeed(b, 0);
 		assertLocation(c, startLane+1, 2);

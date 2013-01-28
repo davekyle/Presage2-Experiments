@@ -1521,7 +1521,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 							boolean collision = checkForCollisions(myPair.getA(), myPair.getB(), pairThem.getA(), pairThem.getB());
 							if (collision) {
 								it.remove();
-								logger.debug("[" + getID() + "] Agent " + getName() + " found a move collision : " + entryMe.getKey() + " between " + entryMe.getValue());
+								logger.trace("[" + getID() + "] Agent " + getName() + " found a move collision : " + entryMe.getKey() + " between " + entryMe.getValue());
 							}
 						}
 					}
@@ -1549,6 +1549,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		if (collisionCheckMoves.isEmpty()) {
 			logger.warn("[" + getID() + "] Agent " + getName() + " could not find any moves that guarantee no collisions ! Passing out all moves to see which is the best.");
 			collisionCheckMoves = myMoves;
+			logger.debug("[" + getID() + "] Agent " + getName() + " found (no) collisionless moves: " + collisionCheckMoves);
+		}
+		else {
+			logger.debug("[" + getID() + "] Agent " + getName() + " found collisionless moves: " + collisionCheckMoves);
 		}
 		// check for stopping distance (agents to front (& back if diff lane))
 		// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
