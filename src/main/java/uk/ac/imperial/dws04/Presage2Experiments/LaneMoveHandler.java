@@ -9,11 +9,13 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.presage2.core.Action;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentEnvironment;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
@@ -78,19 +80,64 @@ public class LaneMoveHandler extends MoveHandler {
 	@EventListener
 	public int checkForCollisions(EndOfTimeCycle e) {
 		int collisionsThisCycle = 0;
-		Set<UUID> collisions = new HashSet<UUID>();
+		HashMap<UUID, Set<UUID>> collisions = new HashMap<UUID,Set<UUID>>();
 		for (CollisionCheck c : this.checks) {
 			Set<UUID> cCollisions = c.checkForCollision();
 			collisionsThisCycle += cCollisions.size();
-			collisions.addAll(cCollisions);
+			collisions.put(c.self, cCollisions);
 		}
 		this.checks.clear();
-		// FIXME TODO only count is as a collision if collisions are all paired.
 		this.collisions += collisionsThisCycle;
-		if (this.persist != null)
+		if (this.persist != null) {
 			this.persist.setProperty("collisions", e.getTime().intValue(),
 					Integer.toString(collisionsThisCycle));
+		}
+		// Only count is as a collision if collisions are all paired.
+		Pair<UUID, UUID> collision = this.checkForMutualCollisions(collisions);
+		if (collision!=null) {
+			this.throwCollision(collision);
+		}
+		// return "collisions" this cycle as near-misses ?
 		return collisionsThisCycle;
+	}
+
+	private Pair<UUID, UUID> checkForMutualCollisions(HashMap<UUID, Set<UUID>> collisions) {
+		for (Entry<UUID, Set<UUID>> entry : collisions.entrySet()) {
+			UUID pov = entry.getKey();
+			for (UUID check : entry.getValue()) {
+				if (collisions.containsKey(check) && collisions.get(check).contains(pov)) {
+					return new Pair<UUID, UUID>(pov, check);
+				}
+			}
+		}
+		// didn't find any
+		return null;
+	}
+
+	private void throwCollision(Pair<UUID, UUID> collision) {
+		try {
+			throw new Exception("A collision between " + collision.getA() + " and " + collision.getB()  + " occurred in this cycle.");
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.err.println();
+			System.err.println();
+			System.err.println("Do you want to exit? y/n:");
+			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+			String in = null;
+			try {
+				in = br.readLine();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			if (in.equals("y")||in.equals("Y")) {
+				System.err.println("Exiting.");
+				System.exit(1);
+			}
+			else {
+				System.err.println("Continuing...");
+			}
+		}
 	}
 
 	@EventListener
@@ -295,29 +342,7 @@ public class LaneMoveHandler extends MoveHandler {
 				}
 			}
 			if (collisionsOccured>0) {
-				try {
-					throw new Exception(collisionsOccured + " collisions occurred in this cycle.");
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.err.println();
-					System.err.println();
-					System.err.println("Do you want to exit? y/n:");
-					BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-					String in = null;
-					try {
-						in = br.readLine();
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					if (in.equals("y")||in.equals("Y")) {
-						System.err.println("Exiting.");
-						System.exit(1);
-					}
-					else {
-						System.err.println("Continuing...");
-					}
-				}
+				System.err.println(collisionsOccured + " collisions occurred.");
 			}
 			return collided;
 		}
