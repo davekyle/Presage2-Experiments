@@ -62,7 +62,7 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT};
+	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
@@ -1578,14 +1578,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		if (!safetyWeightedMoves.isEmpty()) {
 			switch (ownChoiceMethod) {
 			case SAFE_CONSTANT : {
-				// sort by weighting and return the one with the highest weight
+				// sort by safety weighting and use constant speed to break deadlock
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
 				Collections.sort(list, new ConstantWeightedMoveComparator(this.mySpeed));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
-						(list.get(list.size()-2).getValue().equals(Integer.MAX_VALUE))
+						(list.get(list.size()-2).getValue()>0)
 						) {
 					result = list.get(list.size()-2).getKey();
 				}
@@ -1600,7 +1600,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				result = list.getLast().getKey();
 				break;
 			}
-			case SAFE_GOALS : {
+			case GOALS : {
 				// sort by weighting
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
@@ -1610,6 +1610,20 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				LinkedList<Pair<CellMove,Integer>> sortedList = sortBySpeedDiff(safestMoves);
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + sortedList);
 				result = sortedList.getLast().getA();
+				break;
+			}
+			case SAFE_GOALS : {
+				// sort by safety weighting and use goal speed to break deadlock
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				Collections.sort(list, new ConstantWeightedMoveComparator(this.getGoals().getSpeed()));
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
+				result = list.getLast().getKey();
+				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+						(list.get(list.size()-2).getValue().equals(Integer.MAX_VALUE))
+						) {
+					result = list.get(list.size()-2).getKey();
+				}
 				break;
 			}
 			default : {
@@ -1787,7 +1801,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @return hashmap of moves that the given agent could make in the next cycle, or emptySet if agent could not be seen. Key is CellMove, Value is pair of start/end loc
 	 */
 	private HashMap<CellMove,Pair<RoadLocation,RoadLocation>> generateMoves(UUID agent, boolean allMoves) {
-		logger.info("[" + getID() + "] Agent " + getName() + " trying to generate moves for " + agent);
+		logger.debug("[" + getID() + "] Agent " + getName() + " trying to generate moves for " + agent);
 		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> result = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
 		
 		RoadLocation startLoc = null;
