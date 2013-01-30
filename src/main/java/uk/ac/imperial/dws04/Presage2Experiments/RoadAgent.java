@@ -1471,7 +1471,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		
 		// set of agents
-		Set<UUID> set = new HashSet<UUID>();
+		Map<UUID, Boolean> set = new HashMap<UUID, Boolean>();
 		// map of agents to their set of possible moves
 		HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>> agentMoveMap = new HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>>();
 
@@ -1479,25 +1479,26 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			UUID agentFront = locationService.getAgentToFront(lane);
 			if (agentFront!=null) {
 				logger.debug("[" + getID() + "] Agent " + getName() + " saw " + agentFront + " in front in lane " + lane);
-				set.add( agentFront );
+				set.put( agentFront, true );
 			}
 			if (lane!=myLoc.getLane()) {
 				UUID agentRear = locationService.getAgentStrictlyToRear(lane);
 				if (agentRear!=null) {
 					logger.debug("[" + getID() + "] Agent " + getName() + " saw " + agentRear + " behind in lane " + lane);
-					set.add( agentRear );
+					set.put( agentRear, false );
 				}
 			}
 		}
-		for (UUID agent : set) {
-			if (locationService.getAgentLocation(agent).getOffset() >= myLoc.getOffset()) {
+		for (Entry<UUID, Boolean> agent : set.entrySet()) {
+			agentMoveMap.put(agent.getKey(), generateMoves(agent.getKey(), agent.getValue()));
+			/*if (locationService.getAgentLocation(agent.getKey()).getOffset() >= myLoc.getOffset()) {
 				// generate all possible moves for agents in front of you and save start/end location to set in map
 				agentMoveMap.put( agent, generateMoves(agent, true) );
 			}
 			else {
 				// generate possible moves IN SAME LANE for agents behind you - they won't cut you up if theyre behind you
 				agentMoveMap.put( agent, generateMoves(agent, false) );
-			}
+			}*/
 		}
 		
 		// generate all possible moves for yourself, and save start/end locs for them
@@ -1513,7 +1514,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe = it.next();
 				CellMove myMove = entryMe.getKey();
 				Pair<RoadLocation,RoadLocation> myPair = entryMe.getValue();
-				for (UUID agent : set) {
+				for (Entry<UUID, Boolean> entry : set.entrySet()) {
+					UUID agent = entry.getKey();
 					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
 						if (collisionCheckMoves.containsKey(myMove)) {
 							Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
