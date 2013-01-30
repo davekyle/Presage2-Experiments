@@ -16,10 +16,10 @@ import uk.ac.imperial.presage2.util.location.CellMove;
  */
 public class ConstantWeightedMoveComparator<V extends Comparable<? super V>> implements Comparator<Map.Entry<CellMove, V>> {
 	
-	private final Integer currentSpeed; 
+	private final Integer comparisonSpeed; 
 	
 	public ConstantWeightedMoveComparator(Integer currentSpeed) {
-		this.currentSpeed = currentSpeed;
+		this.comparisonSpeed = currentSpeed;
 	}
 
 	/** 
@@ -45,8 +45,8 @@ public class ConstantWeightedMoveComparator<V extends Comparable<? super V>> imp
 	 * Sorts by speed (closest to current better) then lane (closest to no-change better)
 	 */
 	private int compareCellMove(CellMove arg0, CellMove arg1) {
-		Integer arg0SpeedDelta = Math.abs(currentSpeed-arg0.getYInt());
-		Integer arg1SpeedDelta = Math.abs(currentSpeed-arg1.getYInt());
+		Integer arg0SpeedDelta = Math.abs(comparisonSpeed-arg0.getYInt());
+		Integer arg1SpeedDelta = Math.abs(comparisonSpeed-arg1.getYInt());
 		int compareSpeed = arg1SpeedDelta.compareTo( arg0SpeedDelta );
 		//System.out.println("Comparing curr:" + currentSpeed + ", arg0:" + arg0 + ", arg0D:" + arg0Delta + ", arg1:" + arg1 + ", arg1D:" + arg1Delta + ", compare:" + compare);
 		if (compareSpeed!=0) {
