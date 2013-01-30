@@ -1704,22 +1704,29 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 */
 	private boolean checkForCollisions(RoadLocation a_start, RoadLocation a_end, RoadLocation b_start, RoadLocation b_end) {
 		boolean result = false;
-		boolean laneChange = a_start.getLane()==a_end.getLane();
 		if (a_end.equals(b_end)) {
 			result = true;
 		}
 		else {
-			if ( (b_end.getLane() == a_end.getLane()) && !laneChange) {
-				// same lane, if he is behind us then it is a collision
-				int hisOffset = b_end.getOffset();
-				int myOffset = a_end.getOffset();
+			// start in same lane and end in same lane
+			if ( (b_start.getLane() == a_start.getLane()) && (b_end.getLane() == a_end.getLane())) {
+				// if i was behind and am now in front (or vice versa)
+				int hisEndOffset = b_end.getOffset();
+				int hisStartOffset = b_start.getOffset();
+				int myEndOffset = a_end.getOffset();
+				int myStartOffset = a_start.getOffset();
 				int areaLength = locationService.getWrapPoint();
 				boolean heWrapped = b_end.getOffset() < b_start.getOffset();
 				boolean iWrapped = a_end.getOffset() < a_start.getOffset();
-				if(!iWrapped && heWrapped) {
-					hisOffset += areaLength;
+				if (!iWrapped && heWrapped) {
+					hisEndOffset += areaLength;
 				}
-				if (hisOffset < myOffset) {
+				if (iWrapped && !heWrapped) {
+					myEndOffset += areaLength;
+				}
+				
+				if ( ( (hisStartOffset<myStartOffset) && (hisEndOffset>myEndOffset) ) ||
+					 ( (hisStartOffset>myStartOffset) && (hisEndOffset<myEndOffset) ) ) {
 					result = true;
 				}
 			}
