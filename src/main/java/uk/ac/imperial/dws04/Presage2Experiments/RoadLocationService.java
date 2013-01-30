@@ -3,6 +3,8 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -12,11 +14,15 @@ import org.apache.log4j.Logger;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
+import uk.ac.imperial.presage2.core.environment.StateTransformer;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
+import uk.ac.imperial.presage2.util.location.Cell;
 import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.LocationService;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
@@ -42,6 +48,31 @@ public class RoadLocationService extends LocationService {
 		this.serviceProvider = serviceProvider;
 	}
 	
+	/** Overriding to make insertion immediate instead of waiting until next state update
+	 * @see uk.ac.imperial.presage2.util.location.LocationService#registerParticipant(uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest)
+	 */
+	@Override
+	public void registerParticipant(final EnvironmentRegistrationRequest req) {
+		super.registerParticipant(req);
+		// do the super but also create the shared state directly
+		for (ParticipantSharedState s : req.getSharedState()) {
+			if (s.getName().equals("util.location") && s.getValue() instanceof Cell) {
+				Cell c = (Cell) s.getValue();
+				int x = (int) c.getX();
+				int y = (int) c.getY();
+				int z = (int) c.getZ();
+				String cellKey = "area.cell." + x + "." + y + "." + z;
+				Set<UUID> cell = getAreaService().getCell(x, y, z);
+				cell = (HashSet<UUID>) sharedState.getGlobal(cellKey);
+				if (cell == null)
+					cell = new HashSet<UUID>();
+				cell.add(req.getParticipantID());
+				//cell = Collections.unmodifiableSet(cell);
+				sharedState.createGlobal(cellKey, (HashSet<UUID>)cell);
+			}
+		}
+	}
+
 	/**
 	 * Perception range should be stopping distance at maxSpeed.
 	 * @param sharedState
