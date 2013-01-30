@@ -124,6 +124,14 @@ public class SpeedService extends EnvironmentService {
 		return (int) (((((n+1)*n)/2)*mD));
 	}*/
 	
+	public int getStoppingDistance(int speed) {
+		double mD = (Integer)getMaxDecel();
+		// a is what is left over if speed-nmD is not 0
+		double a = speed % mD;
+		double n = ((speed-a) / mD);
+		return (int)(((n/2)*( 2*a + ((n+1)*mD) )) + a);
+	}
+	
 	/**
 	 * @param speed
 	 * @return the distance required for the given agent to stop.

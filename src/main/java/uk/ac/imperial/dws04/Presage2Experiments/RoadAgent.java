@@ -13,8 +13,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
@@ -30,6 +32,9 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.ConstantWeightedMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SameLaneWeightedMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SpeedWeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
@@ -57,7 +62,7 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	public enum OwnChoiceMethod {SAFE, PLANNED, SAFE_GOALS};
+	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
@@ -148,7 +153,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	
 	public RoadAgent(UUID uuid, String name, RoadLocation startLoc,
 			int startSpeed, RoadAgentGoals goals) {
-		this(uuid, name, startLoc, startSpeed, goals, OwnChoiceMethod.SAFE, NeighbourChoiceMethod.WORSTCASE);
+		this(uuid, name, startLoc, startSpeed, goals, OwnChoiceMethod.SAFE_CONSTANT, NeighbourChoiceMethod.WORSTCASE);
 	}
 
 	/**
@@ -575,7 +580,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			move = createExitMove(junctionDist, neighbourChoiceMethod);
 		}
 		else {
-			move = createMove(ownChoiceMethod, neighbourChoiceMethod);
+			//move = createMove(ownChoiceMethod, neighbourChoiceMethod);
+			move = newCreateMove(ownChoiceMethod, neighbourChoiceMethod);
 		}
 		if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
 			passJunction();
@@ -1415,7 +1421,447 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 	}
 	
-	@SuppressWarnings("unused")
+	private CellMove _working_createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
+		Pair<CellMove, Integer> temp = null;
+		// This is an indirect assumption of only three lanes
+		//  - yes we only want to check in lanes we can move into, but
+		//  - we should also take into account agents not in those lanes which might move into them ahead of us.
+		ArrayList<Integer> availableLanes = new ArrayList<Integer>(3);
+		LinkedList<Pair<CellMove,Integer>> actions = new LinkedList<Pair<CellMove,Integer>>();
+		availableLanes.add(myLoc.getLane());
+		availableLanes.add(myLoc.getLane()+1);
+		availableLanes.add(myLoc.getLane()-1);
+		@SuppressWarnings("unused")
+		Level lvl = logger.getLevel();
+		//logger.setLevel(Level.TRACE);
+		logger.trace("list of lanes is: " + availableLanes);
+		//logger.setLevel(lvl);
+		
+		for (int i = 0; i <=availableLanes.size()-1; i++) {
+			if (locationService.isValidLane(availableLanes.get(i))) {
+				temp = createMoveFromNeighbours(availableLanes.get(i), neighbourChoiceMethod);
+				if (temp.getB().equals(Integer.MAX_VALUE)) {
+					logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + availableLanes.get(i) + " : " + temp); 
+				}
+				else {
+					logger.debug("[" + getID() + "] Agent " + getName() + " found an unsafe move in lane " + availableLanes.get(i) + " : " + temp);
+				}
+				actions.add(new Pair<CellMove,Integer>(new CellMove((availableLanes.get(i)-myLoc.getLane()), (int)temp.getA().getY()), temp.getB()));
+			}
+			else {
+				// skip, not a valid lane
+			}
+		}
+		return chooseFromSafeMoves(actions, ownChoiceMethod);
+	}
+	
+	private CellMove newCreateMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
+		// This is an indirect assumption of only three lanes
+		//  - yes we only want to check in lanes we can move into, but
+		//  - we should also take into account agents not in those lanes which might move into them ahead of us.
+		ArrayList<Integer> availableLanes = new ArrayList<Integer>(3);
+		availableLanes.add(myLoc.getLane());
+		availableLanes.add(myLoc.getLane()+1);
+		availableLanes.add(myLoc.getLane()-1);
+		@SuppressWarnings("unused")
+		Level lvl = logger.getLevel();
+		//logger.setLevel(Level.TRACE);
+		logger.trace("list of lanes is: " + availableLanes);
+		//logger.setLevel(lvl);		
+		
+		
+		// set of agents
+		Map<UUID, Boolean> set = new HashMap<UUID, Boolean>();
+		// map of agents to their set of possible moves
+		HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>> agentMoveMap = new HashMap<UUID,HashMap<CellMove,Pair<RoadLocation,RoadLocation>>>();
+
+		for (int lane = 0; lane<=locationService.getLanes(); lane++) {
+			UUID agentFront = locationService.getAgentToFront(lane);
+			if (agentFront!=null) {
+				logger.debug("[" + getID() + "] Agent " + getName() + " saw " + agentFront + " in front in lane " + lane);
+				set.put( agentFront, true );
+			}
+			// FIXME TODO check all agents in all lanes ? - don't think this is worth it
+			if (lane!=myLoc.getLane()) {
+				UUID agentRear = locationService.getAgentStrictlyToRear(lane);
+				if (agentRear!=null) {
+					logger.debug("[" + getID() + "] Agent " + getName() + " saw " + agentRear + " behind in lane " + lane);
+					set.put( agentRear, false );
+				}
+			}
+		}
+		for (Entry<UUID, Boolean> agent : set.entrySet()) {
+			agentMoveMap.put(agent.getKey(), generateMoves(agent.getKey(), agent.getValue()));
+			/*if (locationService.getAgentLocation(agent.getKey()).getOffset() >= myLoc.getOffset()) {
+				// generate all possible moves for agents in front of you and save start/end location to set in map
+				agentMoveMap.put( agent, generateMoves(agent, true) );
+			}
+			else {
+				// generate possible moves IN SAME LANE for agents behind you - they won't cut you up if theyre behind you
+				agentMoveMap.put( agent, generateMoves(agent, false) );
+			}*/
+		}
+		
+		// generate all possible moves for yourself, and save start/end locs for them
+		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> myMoves = generateMoves(this.getID(), true);
+		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> collisionCheckMoves = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>(myMoves);
+		
+		if (set.isEmpty()) {
+			// you're done
+		}
+		else {
+			Iterator<Entry<CellMove,Pair<RoadLocation,RoadLocation>>> it = collisionCheckMoves.entrySet().iterator();
+			while (it.hasNext()) {
+				Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe = it.next();
+				CellMove myMove = entryMe.getKey();
+				Pair<RoadLocation,RoadLocation> myPair = entryMe.getValue();
+				for (Entry<UUID, Boolean> entry : set.entrySet()) {
+					UUID agent = entry.getKey();
+					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
+						if (collisionCheckMoves.containsKey(myMove)) {
+							Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
+							// check all my moves against all their moves, and keep any of mine which don't cause collisions
+							boolean collision = checkForCollisions(myPair.getA(), myPair.getB(), pairThem.getA(), pairThem.getB());
+							if (collision) {
+								it.remove();
+								logger.trace("[" + getID() + "] Agent " + getName() + " found a move collision : " + entryMe.getKey() + " between " + entryMe.getValue());
+							}
+						}
+					}
+				}
+			}
+			/*for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
+				Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
+				for (UUID agent : set) {
+					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
+						if (!noCollisionMoves.containsKey(entryMe.getKey())) {
+							Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
+							// check all my moves against all their moves, and keep any of mine which don't cause collisions
+							boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
+							if (!collision) {
+								noCollisionMoves.put( entryMe.getKey(), entryMe.getValue() );
+								logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
+							}
+						}
+					}
+				}
+			}*/
+		}
+		
+		CellMove move;
+		if (collisionCheckMoves.isEmpty()) {
+			logger.warn("[" + getID() + "] Agent " + getName() + " could not find any moves that guarantee no collisions ! Passing out all moves to see which is the best.");
+			collisionCheckMoves = myMoves;
+			logger.debug("[" + getID() + "] Agent " + getName() + " found (no) collisionless moves: " + collisionCheckMoves);
+		}
+		else {
+			logger.debug("[" + getID() + "] Agent " + getName() + " found collisionless moves: " + collisionCheckMoves);
+		}
+		// check for stopping distance (agents to front (& back if diff lane))
+		// return a move with a safety weight - "definitely" safe moves vs moves that you can't stop in time
+		// weight should be the shortfall between your ability to stop in time and where you need to stop
+		HashMap<CellMove,Integer>safetyWeightedMoves = generateStoppingUtilities(collisionCheckMoves);  
+
+		// choose a move from the safe ones, depending on your move choice method
+		move = chooseMove(safetyWeightedMoves, ownChoiceMethod); 
+		return move;
+	}
+	
+	/**
+	 * 
+	 * @param safetyWeightedMoves map of move to weight. Weight is -ve if unsafe, otherwise bigger is better
+	 * @param ownChoiceMethod
+	 * @return preferred move from map based on ownChoiceMethod
+	 */
+	private CellMove chooseMove(HashMap<CellMove, Integer> safetyWeightedMoves, OwnChoiceMethod ownChoiceMethod) {
+		logger.debug("[" + getID() + "] Agent " + getName() + " choosing " + ownChoiceMethod + " move from moves: " + safetyWeightedMoves);
+		CellMove result = driver.constantSpeed();
+		if (!safetyWeightedMoves.isEmpty()) {
+			switch (ownChoiceMethod) {
+			case SAFE_CONSTANT : {
+				// sort by safety weighting and use constant speed to break deadlock
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				Collections.sort(list, new ConstantWeightedMoveComparator(this.mySpeed));
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
+				result = list.getLast().getKey();
+				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+						(list.get(list.size()-2).getValue()>=0)
+						) {
+					result = list.get(list.size()-2).getKey();
+				}
+				break;
+			}
+			case SAFE_FAST : {
+				// sort by weighting and return the one with the highest weight
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				Collections.sort(list, new SpeedWeightedMoveComparator());
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
+				result = list.getLast().getKey();
+				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+						(list.get(list.size()-2).getValue()>=0)
+						) {
+					result = list.get(list.size()-2).getKey();
+				}
+				break;
+			}
+			case GOALS : {
+				// sort by weighting
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				// take any that are "safe" (ie not negative weight) and discard the rest if there are any that are safe, otherwise return the least-bad
+				LinkedList<Map.Entry<CellMove,Integer>> safestMoves = getSafestMovesAndSort(list);
+				// sort by difference between moveSpeed and goalSpeed
+				LinkedList<Pair<CellMove,Integer>> sortedList = sortBySpeedDiff(safestMoves);
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + sortedList);
+				result = sortedList.getLast().getA();
+				break;
+			}
+			case SAFE_GOALS : {
+				// sort by safety weighting and use goal speed to break deadlock
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				Collections.sort(list, new ConstantWeightedMoveComparator(this.getGoals().getSpeed()));
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
+				result = list.getLast().getKey();
+				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+						(list.get(list.size()-2).getValue()>=0)
+						) {
+					result = list.get(list.size()-2).getKey();
+				}
+				break;
+			}
+			default : {
+				logger.warn("[" + getID() + "] Agent " + getName() + " does not know how to choose by the method \"" + ownChoiceMethod.toString() + "\" so is continuing at current speed");
+				break;
+			}
+			}
+		}
+		else {
+			logger.warn("[" + getID() + "] Agent " + getName() + " was not given any moves to choose from ! Continuing at current speed ...");
+		}
+		logger.debug("[" + getID() + "] Agent " + getName() + " chose to " + result);
+		return result;
+	}
+
+	/**
+	 * 
+	 * @param list - can ignore the value in the entry. Only key (move) is of interest
+	 * @return list sorted in desc order by the difference between the speed of the move and the agent's goal speed (the Pair.B) (so last entry is best)
+	 */
+	private LinkedList<Pair<CellMove,Integer>> sortBySpeedDiff(LinkedList<Entry<CellMove, Integer>> list) {
+		LinkedList<Pair<CellMove,Integer>> result = new LinkedList<Pair<CellMove,Integer>>();
+		Integer goalSpeed = this.getGoals().getSpeed();
+		// iterate the list and calculate the difference between the move's speed and the goal speed, then insert to the new list
+		for (Entry<CellMove,Integer> entry : list) {
+			CellMove move = entry.getKey();
+			result.add(new Pair<CellMove, Integer>(move, Math.abs(move.getYInt()-goalSpeed)));
+		}		
+		Collections.sort(result, new PairBDescComparator());
+		return result;
+	}
+
+	/**
+	 * If any of the values in the list entries are +ve (or 0), result will only contain those entries 
+	 * Otherwise, the result will contain only the entries with the highest value
+	 * @param list unsorted
+	 * @return list sorted in descending order with additional constraints as above
+	 */
+	private LinkedList<Entry<CellMove, Integer>> getSafestMovesAndSort(final LinkedList<Entry<CellMove, Integer>> list) {
+		LinkedList<Entry<CellMove,Integer>> result = (LinkedList<Entry<CellMove, Integer>>)list.clone();
+		Collections.sort(result, new SpeedWeightedMoveComparator());
+		Collections.reverse(result);
+		/* LIST NOW DESCENDING ORDER */
+		// if you have any +ve entries, you can remove all -ves
+		boolean havePositives = list.getFirst().getValue()>=0;
+		Integer highestSoFar = Integer.MIN_VALUE;
+		
+		// Pass 1 : remove negative values if you have any positives, and find +ve value
+		/*for (Entry<CellMove,Integer> entry : result) {
+			if (entry.getValue()>highestSoFar) {
+				highestSoFar = entry.getValue();
+			}
+			if (havePositives && entry.getValue()<0) {
+				result.remove(entry);
+			}
+		}*/
+		Iterator<Entry<CellMove,Integer>> it1 = result.iterator();
+		while (it1.hasNext()) {
+			Entry<CellMove,Integer> entry = it1.next();
+			if (entry.getValue()>highestSoFar) {
+				highestSoFar = entry.getValue();
+			}
+			if (havePositives && entry.getValue()<0) {
+				it1.remove();
+			}
+		}
+		
+		// Pass 2: if you have no positives, remove all values less than highest value (if positives, then the list is as you want it)
+		if (!havePositives) {
+			/*for (Entry<CellMove,Integer> entry : result) {
+				if (entry.getValue()<highestSoFar) {
+					result.remove(entry);
+				}
+			}*/
+			Iterator<Entry<CellMove,Integer>> it2 = result.iterator();
+			while (it2.hasNext()) {
+				Entry<CellMove,Integer> entry = it2.next();
+				if (entry.getValue()<highestSoFar) {
+					it2.remove();
+				}
+			}
+		}
+		
+		return result;
+	}
+
+	/**
+	 * 
+	 * @param a_start
+	 * @param a_end
+	 * @param b_start
+	 * @param b_end
+	 * @return true if there would be a collision between a and b, false otherwise
+	 */
+	private boolean checkForCollisions(RoadLocation a_start, RoadLocation a_end, RoadLocation b_start, RoadLocation b_end) {
+		boolean result = false;
+		if (a_end.equals(b_end)) {
+			result = true;
+		}
+		else {
+			// start in same lane and end in same lane
+			if ( (b_start.getLane() == a_start.getLane()) && (b_end.getLane() == a_end.getLane())) {
+				// if i was behind and am now in front (or vice versa)
+				int hisEndOffset = b_end.getOffset();
+				int hisStartOffset = b_start.getOffset();
+				int myEndOffset = a_end.getOffset();
+				int myStartOffset = a_start.getOffset();
+				int areaLength = locationService.getWrapPoint();
+				boolean heWrapped = b_end.getOffset() < b_start.getOffset();
+				boolean iWrapped = a_end.getOffset() < a_start.getOffset();
+				if (!iWrapped && heWrapped) {
+					hisEndOffset += areaLength;
+				}
+				if (iWrapped && !heWrapped) {
+					myEndOffset += areaLength;
+				}
+				
+				if ( ( (hisStartOffset<myStartOffset) && (hisEndOffset>myEndOffset) ) ||
+					 ( (hisStartOffset>myStartOffset) && (hisEndOffset<myEndOffset) ) ) {
+					result = true;
+				}
+			}
+		}
+		return result;	
+	}
+
+	/**
+	 * 
+	 * @param moves map of own moves to startloc/endloc pair
+	 * @return map of own moves to utilities. If the utility is negative, it's not a safe move. The larger the utility the better.
+	 */
+	private HashMap<CellMove, Integer> generateStoppingUtilities( HashMap<CellMove,Pair<RoadLocation, RoadLocation>> moves) {
+		HashMap<CellMove,Integer> result = new HashMap<CellMove,Integer>();
+		
+		
+		// for all moves in set
+		for (Entry<CellMove,Pair<RoadLocation, RoadLocation>> entry : moves.entrySet()) {
+			logger.trace("[" + getID() + "] Agent " + getName() + " processing move " + entry + " for stopping utilities.");
+			int startLane = entry.getValue().getA().getLane();
+			int endLane = entry.getValue().getB().getLane();
+			int speed = entry.getKey().getYInt();
+		// get stopping distance based on the movespeed
+			Integer moveStoppingDist = speedService.getStoppingDistance(speed);
+			Integer frontStoppingDist = getStoppingDistanceFront(endLane);
+			Integer rearStoppingDist;
+			if (endLane!=startLane) {
+				rearStoppingDist = getStoppingDistanceRear(endLane);
+			}
+			else {
+				rearStoppingDist = Integer.MIN_VALUE;
+			}
+			logger.trace("[" + getID() + "] Agent " + getName() + " got moveStop=" + moveStoppingDist + ", rearStop=" + rearStoppingDist + ", frontStop=" + frontStoppingDist);
+		// get difference between stopDist and agentToFront's stopDist
+			int frontDiff = Integer.MAX_VALUE;
+			if (frontStoppingDist!=Integer.MAX_VALUE) {
+				frontDiff = frontStoppingDist - moveStoppingDist;
+			}
+		// if moving to another lane, also get difference between stopDist and agentToRear's stopDist
+		// (if no agent behind or if same lane, rearStopDist==MinInt -> rearDiff = MaxInt
+			int rearDiff = Integer.MAX_VALUE;
+			if (rearStoppingDist!=Integer.MIN_VALUE) {
+				rearDiff = rearStoppingDist - moveStoppingDist;
+			}
+			logger.trace("[" + getID() + "] Agent " + getName() + " got rearDiff=" + rearDiff + ", frontDiff=" + frontDiff);
+			// give the smallest difference as the utility -> if it's negative, then it's not a safe move
+			result.put(entry.getKey(), Math.min(frontDiff, rearDiff));
+		}
+		return result;
+	}
+
+	/**
+	 * 
+	 * @param agent agent to check
+	 * @param allMoves true if should return all moves, false if should return only moves in same lane
+	 * @return hashmap of moves that the given agent could make in the next cycle, or emptySet if agent could not be seen. Key is CellMove, Value is pair of start/end loc
+	 */
+	private HashMap<CellMove,Pair<RoadLocation,RoadLocation>> generateMoves(UUID agent, boolean allMoves) {
+		logger.debug("[" + getID() + "] Agent " + getName() + " trying to generate moves for " + agent);
+		HashMap<CellMove,Pair<RoadLocation,RoadLocation>> result = new HashMap<CellMove,Pair<RoadLocation,RoadLocation>>();
+		
+		RoadLocation startLoc = null;
+		ArrayList<Integer> laneOffsets= new ArrayList<Integer>(1);
+		Integer startSpeed = null;
+		int maxAccel = speedService.getMaxAccel();
+		int maxDecel = speedService.getMaxDecel();
+		int maxSpeed = speedService.getMaxSpeed();
+		int wrapPoint = locationService.getWrapPoint();
+		
+		// get the current location of the agent in question
+		try {
+			startLoc = locationService.getAgentLocation(agent);
+			startSpeed = speedService.getAgentSpeed(agent);
+		} catch (CannotSeeAgent e) {
+			// return empty set
+			logger.info("[" + getID() + "] Agent " + getName() + " tried to generateMoves for " + agent + ", who they cannot see.");
+		}
+		
+		if ( (startLoc!=null) && (startSpeed!=null) ) {
+			// get the lanes to be considered, but in relative terms
+			if (allMoves) {
+				for (int i=-1;i<2;i++) {
+					if (locationService.isValidLane(startLoc.getLane() + i)) {
+						laneOffsets.add(i);
+					}
+				}
+			}
+			else {
+				laneOffsets.add(0);
+			}
+			
+			// for all lane offsets
+			for (int laneMove : laneOffsets) {
+				// for all speeds from currentSpeed-maxDecel to max(currentSpeed+maxAccel,maxSpeed)
+				int topSpeed = Math.min(startSpeed+maxAccel, maxSpeed);
+				int minSpeed = Math.max(0, startSpeed-maxDecel);
+				for (int speedMove=minSpeed; speedMove<=topSpeed; speedMove++) {
+					// add the move corresponding to the lane offset + speed
+					CellMove move = new CellMove(laneMove,speedMove);
+					RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
+					// need to not insert laneChanges with no speed...
+					if (!( (move.getYInt()==0) && (move.getXInt()!=0) )) {
+						Pair<RoadLocation, RoadLocation> locations = new Pair<RoadLocation,RoadLocation>(startLoc,endLoc);
+						logger.trace("[" + getID() + "] Agent " + getName() + " generated move for " + agent + ":" + move + " between " + locations);
+						result.put(move, locations);
+					}
+				}
+			}
+		}
+		
+		return result;
+	}
+
 	private CellMove createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
@@ -1426,6 +1872,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		availableLanes.add(myLoc.getLane());
 		availableLanes.add(myLoc.getLane()+1);
 		availableLanes.add(myLoc.getLane()-1);
+		@SuppressWarnings("unused")
 		Level lvl = logger.getLevel();
 		//logger.setLevel(Level.TRACE);
 		logger.trace("list of lanes is: " + availableLanes);
@@ -1466,10 +1913,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			return driver.decelerateToCrawl();
 		}
 		else {
+			logger.trace("[" + getID() + "] Agent " + getName() + " choosing a " + ownChoiceMethod + " action...");
 			switch (ownChoiceMethod) {
 			// Choose the first safe move you find
-			case SAFE :  {
-				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe action...");
+			case SAFE_FAST :  {
 				Collections.sort(actions, new PairBDescComparator<Integer>());
 				if (!actions.isEmpty()) {
 					result = actions.getFirst();
@@ -1494,7 +1941,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			// Choose a safe move that sets your speed as close to your goal as possible
 			case SAFE_GOALS : {
-				logger.trace("[" + getID() + "] Agent " + getName() + " choosing a safe_goals action...");
 				discardUnsafeActions(actions);
 				if (!actions.isEmpty()) {
 					logger.debug("[" + getID() + "] Agent " + getName() + " choosing from: " + actions);
@@ -1643,18 +2089,16 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		//return this.driver.randomValid();
 	}
-
+	
 	/**
 	 * 
 	 * @param lane
-	 * @return the min speed you can safely move at to avoid a car behind (or beside) in the indicated lane crashing into you. Will be negative if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values.
+	 * @return stopping distance required due to agent behind (not) you in given lane. Will be MIN Int (ie big -ve) if no agent found. 
 	 */
-	private Pair<Integer,Integer> getStoppingSpeedRear(int lane) {
-		// need to fix this for rear as well, since you need to ADD to their speed if theyre behind you (they may accel this turn, whereas for front you care if they decel)
+	private Integer getStoppingDistanceRear(int lane) {
 		Integer reqStopDistRear;
-		Integer stoppingSpeedRear;
 		// get agent to check
-		UUID targetRear = this.locationService.getAgentToRear(lane);
+		UUID targetRear = this.locationService.getAgentStrictlyToRear(lane);
 		// if there is someone there
 		if (targetRear!=null) {
 			RoadLocation targetRearLoc = (RoadLocation)locationService.getAgentLocation(targetRear);
@@ -1704,38 +2148,54 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 */
 			if (targetIsAhead && (targetStopOffset<=this.locationService.getWrapPoint())) {
 				// if target is ahead of you and they won't wrap, don't care
-				stoppingSpeedRear = -1;
-				reqStopDistRear = Integer.MAX_VALUE;
-				}
+				logger.debug("[" + getID() + "] Agent " + getName() + " saw target ahead of them when checking behind, and they won't wrap, so discounting");
+				reqStopDistRear = Integer.MIN_VALUE;
+			}
 			else {
 				targetStopOffset = MathsUtils.mod(targetStopOffset, this.locationService.getWrapPoint());
-				// you need to be able to stop on the location one infront of it (which is why plus one), so work out how far that is from you
-				// need to change order depending on whether the agent is behind you or not - 
+				// you need to be able to stop on the location one infront of it (which is why previous plus one), so work out how far that is from you
+				// gives myLoc-theirLoc -> +ve means you have to make a move, will be -ve if they dont end up in front of you
 				reqStopDistRear = locationService.getOffsetDistanceBetween(new RoadLocation(targetStopOffset, lane), myLoc);
 				logger.debug("[" + getID() + "] Agent " + getName() + " is at " + myLoc.getOffset() + " so has a reqStopDistRear of " + reqStopDistRear);
-				// what speed do you need to travel at for that ?
-				stoppingSpeedRear = speedService.getSpeedToStopInDistance(reqStopDistRear);
-				logger.debug("[" + getID() + "] Agent " + getName() + " thinks it needs to move at " + stoppingSpeedRear + " to stop in " + reqStopDistRear);
-			
 			}
+		}
+		else {
+			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone behind them");
+			reqStopDistRear = Integer.MIN_VALUE;
+		}
+		return reqStopDistRear;
+	}
+ 
+	/**
+	 * 
+	 * @param lane
+	 * @return the min speed you can safely move at to avoid a car behind (or beside) in the indicated lane crashing into you. Will be negative if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values (which is MaxInt if no agent behind)
+	 */
+	private Pair<Integer,Integer> getStoppingSpeedRear(int lane) {
+		Integer reqStopDistRear = getStoppingDistanceRear(lane);
+		Integer stoppingSpeedRear;
+		if (reqStopDistRear!=Integer.MIN_VALUE) {
+			// what speed do you need to travel at for that ?
+			stoppingSpeedRear = speedService.getSpeedToStopInDistance(reqStopDistRear);
+			logger.debug("[" + getID() + "] Agent " + getName() + " thinks it needs to move at " + stoppingSpeedRear + " to stop in " + reqStopDistRear);
 		}
 		// if there is no one there you can go at any speed you want (use negative to indicate this)
 		else {
-			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone behind them");
 			stoppingSpeedRear = -1;
+			// FIXME TODO NOTE THAT THIS SWITCHES FROM BIG -VE TO BIG +VE
 			reqStopDistRear = Integer.MAX_VALUE;
 		}
 		
 		return new Pair<Integer,Integer>(stoppingSpeedRear, reqStopDistRear);
 	}
-
+	
 	/**
+	 * 
 	 * @param lane
-	 * @return the max speed you can safely move at to avoid crashing into a car infront (or beside) in the indicated lane). Will be Int.MaxVal if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values.
+	 * @return stopping distance required due to agent ahead (or alongside) you in given lane. Will be MaxInt if no agent found.
 	 */
-	private Pair<Integer,Integer> getStoppingSpeedFront(int lane) {
+	private Integer getStoppingDistanceFront(int lane) {
 		Integer reqStopDistFront;
-		Integer stoppingSpeedFront;
 		// get agent to check
 		UUID targetFront = this.locationService.getAgentToFront(lane);
 		// if there is someone there
@@ -1747,7 +2207,23 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// add the distance between you and their current location (then minus 1 to make sure you can stop BEFORE them)
 			reqStopDistFront = targetStopDist + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront)))-1;
 			logger.debug("[" + getID() + "] Agent " + getName() + " got a reqStopDistFront of " + reqStopDistFront
-					+ " ( distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(targetFront) +")= " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront))) + ") ");
+					+ " ( " + targetStopDist + " + (distanceBetween(" + myLoc + "," + (RoadLocation)locationService.getAgentLocation(targetFront) +") = " + (locationService.getOffsetDistanceBetween(myLoc, (RoadLocation)locationService.getAgentLocation(targetFront))) + ") - 1 ) ");
+		}
+		else {
+			logger.debug("[" + getID() + "] Agent " + getName() + " didn't see anyone in front of them");
+			reqStopDistFront = Integer.MAX_VALUE;
+		}
+		return reqStopDistFront;
+	}
+
+	/**
+	 * @param lane
+	 * @return the max speed you can safely move at to avoid crashing into a car infront (or beside) in the indicated lane). Will be Int.MaxVal if no vehicle found. 2nd val in pair is reqStopDist to allow comparison between bad values.
+	 */
+	private Pair<Integer,Integer> getStoppingSpeedFront(int lane) {
+		Integer reqStopDistFront = getStoppingDistanceFront(lane);
+		Integer stoppingSpeedFront;
+		if (reqStopDistFront!=Integer.MAX_VALUE) {
 			// work out what speed you can be at to stop in time
 			stoppingSpeedFront = speedService.getSpeedToStopInDistance(reqStopDistFront);
 			logger.debug("[" + getID() + "] Agent " + getName() + " thinks they need to travel at " + stoppingSpeedFront + " to stop in " + reqStopDistFront);
@@ -1755,7 +2231,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// if there isn't anyone there, you can go at any speed you want (use Int.MaxVal to indicate this)
 		else {
 			stoppingSpeedFront = Integer.MAX_VALUE;
-			reqStopDistFront = Integer.MAX_VALUE;
 		}
 		return new Pair<Integer, Integer>(stoppingSpeedFront, reqStopDistFront);
 	}
@@ -1995,5 +2470,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// submit prospective action with nulls to be filled in from permission
 			prospectiveActions.add(new Response1B(getIPConHandle(), null, null, null, revision, ballot, issue, cluster));
 		}
+	}
+	
+	/**
+	 * Used for testing and if the environment needs it. Agents can never get agent objects, so should be safe.
+	 * @return
+	 */
+	public UUID getAuthKey() {
+		return this.authkey;
 	}
 }
