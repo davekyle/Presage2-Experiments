@@ -52,6 +52,20 @@ import com.google.inject.Singleton;
 @Singleton
 public class LaneMoveHandler extends MoveHandler {
 
+	/**
+	 * @author dws04
+	 *
+	 */
+	public class CollisionException extends Exception {
+
+		private static final long serialVersionUID = -3317539634450015228L;
+
+		public CollisionException(String string) {
+			super(string);
+		}
+
+	}
+
 	private final Logger logger = Logger.getLogger(LaneMoveHandler.class);
 	private List<CollisionCheck> checks = Collections.synchronizedList(new LinkedList<LaneMoveHandler.CollisionCheck>());
 	private int collisions = 0;
@@ -78,7 +92,7 @@ public class LaneMoveHandler extends MoveHandler {
 	}
 
 	@EventListener
-	public int checkForCollisions(EndOfTimeCycle e) {
+	public int checkForCollisions(EndOfTimeCycle e) throws CollisionException {
 		int collisionsThisCycle = 0;
 		HashMap<UUID, Set<UUID>> collisions = new HashMap<UUID,Set<UUID>>();
 		for (CollisionCheck c : this.checks) {
@@ -116,8 +130,8 @@ public class LaneMoveHandler extends MoveHandler {
 
 	private void throwCollision(Pair<UUID, UUID> collision) {
 		try {
-			throw new Exception("A collision between " + collision.getA() + " and " + collision.getB()  + " occurred in this cycle.");
-		} catch (Exception e) {
+			throw new CollisionException("A collision between " + collision.getA() + " and " + collision.getB()  + " occurred in this cycle.");
+		} catch (CollisionException e) {
 			e.printStackTrace();
 			System.err.println();
 			System.err.println();
@@ -285,7 +299,11 @@ public class LaneMoveHandler extends MoveHandler {
 				logger.warn("Collision Occurred: Multiple agents on one cell. Cell: "
 						+ this.finishAt + ", agents: " + agentsOnCurrentCell);
 				collisionsOccured++;
-				collided.addAll(agentsOnCurrentCell);
+				for (UUID a : agentsOnCurrentCell) {
+					if (!a.equals(self)) {
+						collided.add(a);
+					}
+				}
 				
 			}
 			for (UUID a : collisionCandidates) {

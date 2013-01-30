@@ -98,29 +98,28 @@ public class LaneMoveHandlerTest {
 		env = injector.getInstance(AbstractEnvironment.class);
 		handler = injector.getInstance(LaneMoveHandler.class);
 		roadEnvironmentService = injector.getInstance(RoadEnvironmentService.class);
-		
-		// Replace stdin for the exceptions.
-		String data = "n";
-		testInput = new ByteArrayInputStream( data.getBytes("UTF-8") );
-		System.setIn(testInput);
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		// put stdin back
-		System.setIn(old);
 	}
 	
 	/**
 	 * n should be 0 or null, due to excepting when collisions!=0
 	 */
-	public void assertCollisions(Integer n) {
+	public void assertCollisions(Integer n) throws Exception {
 		Integer collisions = null;
+		// Replace stdin for the exceptions.
+		String data = "n";
+		testInput = new ByteArrayInputStream( data.getBytes("UTF-8") );
+		System.setIn(testInput);
 		try {
 			collisions = handler.checkForCollisions(null);
-		} catch (Exception e) {
+		} catch (LaneMoveHandler.CollisionException e) {
 			System.out.println("Caught an exception:" + e);
 		}
+		// put stdin back
+		System.setIn(old);
 		assertEquals((Integer)n, (Integer)collisions);
 	}
 	
@@ -384,7 +383,7 @@ public class LaneMoveHandlerTest {
 		incrementTime();
 		// two collisions counted as both agents detect double occupied cell.
 		//assertEquals(2, handler.checkForCollisions(null));
-		assertCollisions(null);
+		assertCollisions(2);
 		// note their locations have still be updated.
 		a.assertLocation(1, 3);
 		b.assertLocation(1, 3);
@@ -401,7 +400,7 @@ public class LaneMoveHandlerTest {
 		b.performAction(new CellMove(0, 2));
 		incrementTime();
 		//assertEquals(2, handler.checkForCollisions(null));
-		assertCollisions(null);
+		assertCollisions(2);
 		a.assertLocation(1, 6);
 		b.assertLocation(1, 6);
 	}
@@ -447,7 +446,7 @@ public class LaneMoveHandlerTest {
 		b.performAction(new CellMove(0, 5));
 		incrementTime();
 		//assertEquals(1, handler.checkForCollisions(null));
-		assertCollisions(null);
+		assertCollisions(1);
 		a.assertLocation(1, 2);
 		b.assertLocation(1, 3);
 
