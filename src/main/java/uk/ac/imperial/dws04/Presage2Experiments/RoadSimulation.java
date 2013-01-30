@@ -97,6 +97,9 @@ public class RoadSimulation extends InjectedSimulation {
 	@Parameter(name="seed", optional=true)
 	public String seed = "123456"; 
 	
+	@Parameter(name="insertMethod", optional=true)
+	public String insertMethod = "odd";
+	
 	HashMap<UUID, String> agentNames;
 	HashMap<UUID,RoadLocation> agentLocations;
 
@@ -269,7 +272,7 @@ public class RoadSimulation extends InjectedSimulation {
 	@EventListener
 	public int makeNewAgent(EndOfTimeCycle e) {
 		logger.debug("Detected an EndOfTimeCycle event so seeing if we should insert an agent");
-		if (Random.randomInt()%2!=0) {
+		if (shouldInsertNewAgent(this.insertMethod)) {
 			Integer junctionOffset = this.getEnvironmentService().getNextInsertionJunction();
 			if (junctionOffset!=null) {
 				UUID uuid = createNextAgent(0, junctionOffset);
@@ -283,6 +286,28 @@ public class RoadSimulation extends InjectedSimulation {
 			}
 		}
 		return 0;
+	}
+
+	/**
+	 * @return
+	 */
+	private boolean shouldInsertNewAgent(String insertMethod) {
+		if (insertMethod.equalsIgnoreCase("odd")) {
+			return Random.randomInt()%2!=0;
+		}
+		else if (insertMethod.equalsIgnoreCase("every")) {
+			logger.error("INSERTING AN AGENT EVERY CYCLE ! THIS IS NOT A GOOD IDEA !");
+			return true;
+		}
+		else if (insertMethod.equalsIgnoreCase("low")) {
+			return Random.randomInt()%4==0;
+		}
+		else if (insertMethod.equalsIgnoreCase("veryLow")) {
+			return Random.randomInt()%9==0;
+		}
+		else {
+			return Random.randomInt()%2!=0;
+		}
 	}
 
 	/**

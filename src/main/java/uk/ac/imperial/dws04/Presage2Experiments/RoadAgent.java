@@ -1481,6 +1481,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				logger.debug("[" + getID() + "] Agent " + getName() + " saw " + agentFront + " in front in lane " + lane);
 				set.put( agentFront, true );
 			}
+			// FIXME TODO check all agents in all lanes ? - don't think this is worth it
 			if (lane!=myLoc.getLane()) {
 				UUID agentRear = locationService.getAgentStrictlyToRear(lane);
 				if (agentRear!=null) {
