@@ -621,7 +621,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				else {
 					return true; // you want to join the other cluster, because yours doesn't exist or doesn't have a leader
 				}
-				logger.debug(getID() + " was here.");
 				ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
 				if (leads!=null) {
 					for (IPConAgent lead : leads) {
