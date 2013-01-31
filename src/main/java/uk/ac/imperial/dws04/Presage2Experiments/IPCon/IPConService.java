@@ -130,6 +130,8 @@ public class IPConService extends EnvironmentService {
 			session.insert(new HasRole(Role.ACCEPTOR, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.LEARNER, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.PROPOSER, handle, revision, issue, cluster));
+			// need to insert the agents goal (goal variable is Entry<String<Pair<Value,Tolerance>>) as it is trivially chosen here
+			session.insert(new Chosen(revision, 0, goal.getValue().getA(), issue, cluster));
 		}
 	}
 	
