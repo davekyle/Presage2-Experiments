@@ -596,7 +596,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		submitMove(move);
 	}
-		
+	
+	/*
+	 * FIXME TODO fix this horrific program flow-of-control (so many returns !)
+	 */
 	private boolean isPreferableToCurrent(IPConRIC ric, Object value) {
 		if (value instanceof Chosen) {
 			value = ((Chosen) value).getValue();
@@ -609,16 +612,27 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// if current and other cluster are both tolerable... compare leader seniority
 			else if (isWithinTolerance(ric.getIssue(), value) && isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) {
 				// check the other leader's seniority
+				ArrayList<IPConAgent> currentLeads = getLeadersOfCurrentRIC(ric.getIssue());
+				// FIXME TODO pseudoRandomly pick one...
 				IPConAgent currentLead = null;
+				if (currentLeads!=null && !currentLeads.isEmpty()) {
+					currentLead = currentLeads.get(0);
+				}
+				else {
+					return true; // you want to join the other cluster, because yours doesn't exist or doesn't have a leader
+				}
+				logger.debug(getID() + " was here.");
 				ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
-				for (IPConAgent lead : leads) {
-					// if the leader is more senior (so you might join) 
-					if (leaderIsMoreSenior(lead, currentLead)) {
-						return true;
-						// break out of loop with return, so you only add one at most
+				if (leads!=null) {
+					for (IPConAgent lead : leads) {
+						// if the leader is more senior (so you might join) 
+						if (leaderIsMoreSenior(lead, currentLead)) {
+							return true;
+							// break out of loop with return, so you only add one at most
+						}
 					}
 				}
-				return false; // if none of them are more senior then don't join
+				return false; // if none of them are more senior (or it doesnt have any leaders) then don't join
 			}
 		} catch (InvalidClassException e) {
 			logger.debug(e);
@@ -626,6 +640,28 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		// return false if you except or something else goes wrong
 		return false;
+	}
+
+	/**
+	 * 
+	 * @param issue
+	 * @return the leaders of the ric the agent is in corresponding to issue (may be emptylist), or null if the agent is not in such a ric
+	 */
+	private ArrayList<IPConAgent> getLeadersOfCurrentRIC(String issue) {
+		IPConRIC ric = null;
+		for (IPConRIC current : ipconService.getCurrentRICs()) {
+			if (current.getIssue().equalsIgnoreCase(issue)) {
+				ric = current;
+				break;
+			}
+		}
+		if (ric!=null) {
+			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			return leaders;
+		}
+		else {
+			return null;
+		}
 	}
 
 	/**
@@ -1694,7 +1730,15 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				laneChange = 0;
 			}
 			else { 
-				Integer lane = locationService.getAgentLocation(leaders.get(0).getIPConID()).getLane();
+				Integer lane;
+				try {
+					lane = locationService.getAgentLocation(leaders.get(0).getIPConID()).getLane();
+				}
+				catch (CannotSeeAgent e) {
+					logger.info(e);
+					// can't see leader, so stay in current lane
+					lane = myLoc.getLane();
+				}
 				laneChange = lane - myLoc.getLane();
 			}
 		}
