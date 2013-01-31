@@ -597,7 +597,6 @@ public class IPConAgentTest {
 	}
 	
 	/**
-	 * FIXME TODO won't work as intended due to auto-arrogate on register
 	 * @throws Exception
 	 */
 	@Test
