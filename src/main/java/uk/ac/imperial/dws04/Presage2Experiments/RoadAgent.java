@@ -1665,8 +1665,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @return a SafeInst comparator if safe is true, an InstSafe comparator otherwise
 	 */
 	private Comparator<Map.Entry<CellMove, Integer>> getInstComparator(Boolean safe) {
-		Integer speed = (Integer)(this.institutionalFacts.get("speed").getValue());
-		if (speed==null) {
+		Chosen chosen = this.institutionalFacts.get("speed");
+		Integer speed = null;
+		if (chosen!=null) {
+			speed = (Integer)(chosen.getValue());
+		}
+		if (chosen==null || speed==null) {
 			speed = this.getGoals().getSpeed();
 		}
 		Integer laneChange;
