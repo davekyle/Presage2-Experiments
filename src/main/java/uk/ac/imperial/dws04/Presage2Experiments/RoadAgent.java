@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,6 +32,8 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.ConstantWeightedMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.InstitutionalSafeMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SafeInstitutionalMoveComparator;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SpeedWeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
@@ -59,7 +62,7 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS};
+	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS, SAFE_INST, INST_SAFE};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
@@ -326,7 +329,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			else {
 				// "null" should never be chosen as a value, so we can do this ?
-				logger.trace(getID() + " thinks there is no currently chosen value in " + ric + ", but has " + institutionalFacts.get(ric) + " in memory from a previous cycle.");
+				logger.trace(getID() + " thinks there is no currently chosen value in " + ric + ", but has " + institutionalFacts.get(ric.getIssue()) + " in memory from a previous cycle.");
 			}
 			// Check for leaders
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
@@ -1610,6 +1613,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				}
 				break;
 			}
+			case SAFE_INST : {
+				result = chooseInstitutionalMove(safetyWeightedMoves, true);
+				break;
+			}
+			case INST_SAFE : {
+				result = chooseInstitutionalMove(safetyWeightedMoves, false);
+				break;
+			}
 			default : {
 				logger.warn("[" + getID() + "] Agent " + getName() + " does not know how to choose by the method \"" + ownChoiceMethod.toString() + "\" so is continuing at current speed");
 				break;
@@ -1621,6 +1632,72 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		logger.debug("[" + getID() + "] Agent " + getName() + " chose to " + result);
 		return result;
+	}
+
+	/**
+	 * @param safetyWeightedMoves
+	 * @return
+	 */
+	private CellMove chooseInstitutionalMove(HashMap<CellMove, Integer> safetyWeightedMoves, Boolean safe) {
+		CellMove result;
+		// sort by safety weighting and use institutional speed and lane to break deadlock
+		LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+		list.addAll(safetyWeightedMoves.entrySet());
+		Comparator<Entry<CellMove, Integer>> comparator = getInstComparator(safe);
+		Collections.sort(list, comparator);
+		logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
+		result = list.getLast().getKey();
+		// don't give nudge if inst speed is 0...
+		Integer speed = (Integer)(this.institutionalFacts.get("speed").getValue());
+		if (speed==null) {
+			speed = this.getGoals().getSpeed();
+		}
+		if (speed!=0 && result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+				(list.get(list.size()-2).getValue()>=0)
+				) {
+			result = list.get(list.size()-2).getKey();
+		}
+		return result;
+	}
+
+	/**
+	 * @param safe
+	 * @return a SafeInst comparator if safe is true, an InstSafe comparator otherwise
+	 */
+	private Comparator<Map.Entry<CellMove, Integer>> getInstComparator(Boolean safe) {
+		Integer speed = (Integer)(this.institutionalFacts.get("speed").getValue());
+		if (speed==null) {
+			speed = this.getGoals().getSpeed();
+		}
+		Integer laneChange;
+		IPConRIC ric = null;
+		for (IPConRIC current : ipconService.getCurrentRICs()) {
+			if (current.getIssue().equalsIgnoreCase("speed")) {
+				ric = current;
+				break;
+			}
+		}
+		if (ric!=null) {
+			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			if (leaders.isEmpty() || leaders.contains(getIPConHandle())) {
+				// don't want to change lanes
+				laneChange = 0;
+			}
+			else { 
+				Integer lane = locationService.getAgentLocation(leaders.get(0).getIPConID()).getLane();
+				laneChange = lane - myLoc.getLane();
+			}
+		}
+		else {
+			// don't want to change lanes
+			laneChange = 0;
+		}
+		if (safe) {
+			return new SafeInstitutionalMoveComparator<Integer>(speed, laneChange);
+		}
+		else {
+			return new InstitutionalSafeMoveComparator<Integer>(speed, laneChange);
+		}
 	}
 
 	/**
