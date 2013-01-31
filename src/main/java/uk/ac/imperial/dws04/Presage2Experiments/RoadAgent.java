@@ -326,7 +326,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			else {
 				// "null" should never be chosen as a value, so we can do this ?
-				logger.trace(getID() + " thinks there is no chosen value in " + ric + ", but has " + institutionalFacts.get(ric) + " in memory.");
+				logger.trace(getID() + " thinks there is no currently chosen value in " + ric + ", but has " + institutionalFacts.get(ric) + " in memory from a previous cycle.");
 			}
 			// Check for leaders
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
@@ -334,6 +334,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			if (leaders==null) {
 				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + getImpatience(ric.getIssue()) + " cycles left).");
 				if (!ricsToArrogate.contains(ric) && isImpatient(ric.getIssue())) {
+					logger.debug(getID() + " will arrogate in " + ric);
 					ricsToArrogate.add(ric);
 				}
 				// update impatience whether or not you were impatient (will reset if you were impatient)
@@ -345,6 +346,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					leaders.remove(leaders.indexOf(getIPConHandle()));
 					for (IPConAgent leader : leaders) {
 						if (leaderIsMoreSenior(leader)) {
+							logger.debug(getID() + " is less senior than another leader (" + leader + ") in " + ric + " so will resign");
 							ricsToResign.add(ric);
 						}
 					}
@@ -377,7 +379,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					for (IPConRIC ric1 : inClusterRICs) {
 						if (!foundInCluster && ric1.getIssue().equalsIgnoreCase(issue)) {
 							foundInCluster = true;
-							logger.trace(getID() + " found RIC in current cluster (" + ric1 + ") for " + issue + " so will join it.");
+							logger.debug(getID() + " found RIC in current cluster (" + ric1 + ") for " + issue + " so will join it.");
 							ricsToJoin.add(ric1);
 							break;
 						}
@@ -393,7 +395,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					if (!institutionalFacts.isEmpty()) {
 						// pick a very-psuedo-random cluster you're already in
 						cluster = institutionalFacts.entrySet().iterator().next().getValue().getCluster();
-						logger.trace(getID() + " arrogating in existing cluster " + cluster);
+						logger.trace(getID() + " arrogating issue " + issue + " in existing cluster " + cluster);
 					}
 					else {
 						// check the clusters you're about to join/arrogate
@@ -402,12 +404,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						set.addAll(ricsToJoin);
 						if (!set.isEmpty()) {
 							cluster = set.iterator().next().getCluster();
-							logger.trace(getID() + " arrogating in to-be-joined cluster " + cluster);
+							logger.trace(getID() + " arrogating issue " + issue + " in to-be-joined cluster " + cluster);
 						}
 						else {
 							// pick a psuedo-random cluster that doesn't exist yet
 							cluster = Random.randomUUID();
-							logger.trace(getID() + " arrogating new cluster " + cluster);
+							logger.trace(getID() + " arrogating issue " + issue + " in new cluster " + cluster);
 						}
 					}
 					IPConRIC newRIC = new IPConRIC(0, issue, cluster);
@@ -1522,22 +1524,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 				}
 			}
-			/*for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
-				Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
-				for (UUID agent : set) {
-					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
-						if (!noCollisionMoves.containsKey(entryMe.getKey())) {
-							Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
-							// check all my moves against all their moves, and keep any of mine which don't cause collisions
-							boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
-							if (!collision) {
-								noCollisionMoves.put( entryMe.getKey(), entryMe.getValue() );
-								logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
-							}
-						}
-					}
-				}
-			}*/
 		}
 		
 		CellMove move;
