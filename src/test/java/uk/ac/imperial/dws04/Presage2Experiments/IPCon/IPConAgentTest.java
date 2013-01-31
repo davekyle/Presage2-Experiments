@@ -559,7 +559,7 @@ public class IPConAgentTest {
 		assertThat(rics.size(), is( 2 ) );
 		logger.info("** Auto-Arrogate new RICs for goals during registration test passed **");
 		assertThat(rics.toArray(new IPConRIC[2])[0].getCluster(), is(rics.toArray(new IPConRIC[2])[1].getCluster()) );
-		logger.info("** Aut-Arrogate new RICs in one cluster during registration test passed **");
+		logger.info("** Auto-Arrogate new RICs in one cluster during registration test passed **");
 		
 		logger.info("Finished test of registration.\n");
 		
