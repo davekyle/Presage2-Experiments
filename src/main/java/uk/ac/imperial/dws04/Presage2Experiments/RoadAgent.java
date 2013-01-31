@@ -16,12 +16,10 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
 
-import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
@@ -33,7 +31,6 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.ConstantWeightedMoveComparator;
-import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SameLaneWeightedMoveComparator;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SpeedWeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
@@ -258,8 +255,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
 		
 		/*
-		 * Retrieve (in case we want to change them...) macrogoals
-		 * FIXME TODO 
+		 * FIXME TODO Retrieve (in case we want to change them...) macrogoals
+		 *  (probably not required)
+		 * 
 		 */
 		
 		/*
@@ -613,7 +611,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				return false; // if none of them are more senior then don't join
 			}
 		} catch (InvalidClassException e) {
-			// TODO Auto-generated catch block
 			logger.debug(e);
 			return false;
 		}
@@ -626,6 +623,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param value
 	 * @return true if the RIC and its chosen value is acceptable, so you may wish to join it
 	 */
+	@Deprecated
 	private boolean checkAcceptability(IPConRIC ric, Object value) {
 		try {
 			if (value instanceof Chosen) {
@@ -886,10 +884,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 				}
 			} catch (IllegalArgumentException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IllegalAccessException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -909,10 +905,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					try {
 						pair.getA().set(result, pair.getB());
 					} catch (IllegalArgumentException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					} catch (IllegalAccessException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 				}
@@ -1035,7 +1029,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// If all the permissions are also null, then you can do anything so pick something at random :P 
 		// (You know there are permissions because we previously checked against the list of permissions being empty)
 		if (vals.size()==0) {
-			// FIXME TODO 
 			logger.trace(getID() + " is not constrained by permission on what to set the value of field " + fName + " to be in " + actToDo);
 			if (fName.equals("ballot")) {
 				// choose a valid ballot number
@@ -1044,7 +1037,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				 * Prepare1A - need to pick a ballot number that is higher than all current ballot numbers in the same RIC
 				 * Can either rely on responses to tell you to retry with a higher ballot (obligation not implemented yet)
 				 * or pull highest vote/pre_vote/open_vote for RIC and get highest ballot, then add some value
-				 *  ( TODO ballot number is unique unless an error is encountered )
+				 *  ( TODO ballot number is unique unless an error is encountered - should always be unique )
 				 */
 				Integer bal = null;
 				try {
@@ -1069,12 +1062,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						bal = pair.getB()+1;
 					}*/
 				} catch (IPConException e) {
-					// FIXME TODO technically this should guarantee uniqueness
+					// FIXME TODO technically this should guarantee uniqueness, so picking 0 breaks that requirement
 					// no valid votes, so just go with 0
 					logger.trace(getID() + " couldn't find any ballots so is picking 0 due to error: " + e);
 					bal = 0;
 				} catch (Exception e) {
-					// FIXME TODO technically this should guarantee uniqueness
+					// FIXME TODO technically this should guarantee uniqueness, so picking 0 breaks that requirement
 					// from the getFields... something went wrong...
 					logger.trace(getID() + " had a problem ( " + e + " ) getting the issue or cluster from " + obl + " so is picking a ballot of 0...");
 					bal = 0;
@@ -1196,9 +1189,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						logger.warn(getID() + " encountered too many, or unexpected, options than usual for a SyncAck (" + vals + ") so is psuedorandomly picking " + vals.get(0));
 						val = vals.get(0);
 					}
-					else {
-						// FIXME TODO other descision-making stuff here...
-						
+					else {						
 						// choose between ipcnv and the given value
 						/*
 						 * Need to work out what the issue is, which goal that corresponds to, and then
@@ -1421,6 +1412,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 	}
 	
+	@Deprecated
 	private CellMove _working_createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
@@ -1582,7 +1574,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by safety weighting and use constant speed to break deadlock
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				Collections.sort(list, new ConstantWeightedMoveComparator(this.mySpeed));
+				Collections.sort(list, new ConstantWeightedMoveComparator<Integer>(this.mySpeed));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
@@ -1596,7 +1588,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by weighting and return the one with the highest weight
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				Collections.sort(list, new SpeedWeightedMoveComparator());
+				Collections.sort(list, new SpeedWeightedMoveComparator<Integer>());
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
@@ -1622,7 +1614,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by safety weighting and use goal speed to break deadlock
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				Collections.sort(list, new ConstantWeightedMoveComparator(this.getGoals().getSpeed()));
+				Collections.sort(list, new ConstantWeightedMoveComparator<Integer>(this.getGoals().getSpeed()));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
@@ -1658,7 +1650,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			CellMove move = entry.getKey();
 			result.add(new Pair<CellMove, Integer>(move, Math.abs(move.getYInt()-goalSpeed)));
 		}		
-		Collections.sort(result, new PairBDescComparator());
+		Collections.sort(result, new PairBDescComparator<Integer>());
 		return result;
 	}
 
@@ -1669,8 +1661,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @return list sorted in descending order with additional constraints as above
 	 */
 	private LinkedList<Entry<CellMove, Integer>> getSafestMovesAndSort(final LinkedList<Entry<CellMove, Integer>> list) {
+		@SuppressWarnings("unchecked")
 		LinkedList<Entry<CellMove,Integer>> result = (LinkedList<Entry<CellMove, Integer>>)list.clone();
-		Collections.sort(result, new SpeedWeightedMoveComparator());
+		Collections.sort(result, new SpeedWeightedMoveComparator<Integer>());
 		Collections.reverse(result);
 		/* LIST NOW DESCENDING ORDER */
 		// if you have any +ve entries, you can remove all -ves
@@ -1862,6 +1855,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		return result;
 	}
 
+	@Deprecated
 	private CellMove createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
@@ -1906,6 +1900,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param ownChoiceMethod Should be OwnChoiceMethod.SAFE, OwnChoiceMethod.PLANNED
 	 * @return 
 	 */
+	@Deprecated
 	private CellMove chooseFromSafeMoves(LinkedList<Pair<CellMove, Integer>> actions, OwnChoiceMethod ownChoiceMethod) {
 		Pair<CellMove, Integer> result = null;
 		if (actions.isEmpty()) {
