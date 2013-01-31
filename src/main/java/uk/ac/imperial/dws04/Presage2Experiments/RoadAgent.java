@@ -284,7 +284,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// if youre not in the cluster and it has a chosen value
 			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getValue()!=null ) {
 				// try to get their location - if you can, then they're close enough (throwing away the result)
-				locationService.getAgentLocation(entry.getValue().getFrom().getId());
+				try {
+					locationService.getAgentLocation(entry.getValue().getFrom().getId());
+				}
+				catch (CannotSeeAgent e) {
+					// do nothing
+				}
 				int join = 0;
 				int stay = 0;
 				Collection<IPConRIC> clusterRICs = ipconService.getRICsInCluster(entry.getKey().getCluster());
@@ -598,11 +603,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		try {
 			// if other cluster is tolerable and current isnt, then switch
-			if (isWithinTolerance(ric.getIssue(), value) && !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()))) {
+			if (isWithinTolerance(ric.getIssue(), value) && !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) {
 				return true;
 			}
 			// if current and other cluster are both tolerable... compare leader seniority
-			else if (isWithinTolerance(ric.getIssue(), value) && isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()))) {
+			else if (isWithinTolerance(ric.getIssue(), value) && isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) {
 				// check the other leader's seniority
 				IPConAgent currentLead = null;
 				ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
@@ -780,6 +785,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		else if (!(value instanceof Integer)) {
 			throw new InvalidClassException("Only integer goals are supported. Value was a " + value.getClass());
+			
 		}
 		else {
 			if (!this.getGoalMap().containsKey(issue)){
