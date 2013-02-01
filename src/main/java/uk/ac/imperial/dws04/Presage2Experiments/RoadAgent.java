@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -16,24 +17,25 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
 
-import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.ClusterPing;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConActionMsg;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.ConstantWeightedMoveComparator;
-import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SameLaneWeightedMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.InstitutionalSafeMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SafeInstitutionalMoveComparator;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SpeedWeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
@@ -62,7 +64,7 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS};
+	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS, SAFE_INST, INST_SAFE};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
@@ -108,6 +110,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * Collection for RICs - should be populated every cycle with agents that ping
 	 */
 	private HashMap<IPConRIC,ClusterPing> nearbyRICs;
+	private HashMap<UUID,HashMap<String,ClusterPing>> agentRICs;
 	private LinkedList<IPConRIC> ricsToJoin;
 	private LinkedList<IPConRIC> ricsToArrogate;
 	private LinkedList<IPConRIC> ricsToResign;
@@ -138,6 +141,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		this.startImpatience = (new Long(Math.round(Random.randomDouble()*10))).intValue();
 		this.impatience = new HashMap<String,Integer>();
 		this.nearbyRICs = new HashMap<IPConRIC,ClusterPing>();
+		this.agentRICs = new HashMap<UUID,HashMap<String,ClusterPing>>();
 		ricsToJoin = new LinkedList<IPConRIC>();
 		ricsToArrogate = new LinkedList<IPConRIC>();
 		ricsToResign = new LinkedList<IPConRIC>();
@@ -232,6 +236,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	public void execute() {
 		// clear temp storage
 		this.nearbyRICs.clear();
+		this.agentRICs.clear();
 		
 		// pull in Messages from the network
 		enqueueInput(this.network.getMessages());
@@ -258,8 +263,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		final Collection<IPConRIC> currentRICs = ipconService.getCurrentRICs();
 		
 		/*
-		 * Retrieve (in case we want to change them...) macrogoals
-		 * FIXME TODO 
+		 * FIXME TODO Retrieve (in case we want to change them...) macrogoals
+		 *  (probably not required)
+		 * 
 		 */
 		
 		/*
@@ -281,9 +287,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			
 			
 			// if youre not in the cluster and it has a chosen value
-			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getValue()!=null ) {
+			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getChosen()!=null ) {
 				// try to get their location - if you can, then they're close enough (throwing away the result)
-				locationService.getAgentLocation(entry.getValue().getFrom().getId());
+				try {
+					locationService.getAgentLocation(entry.getValue().getFrom().getId());
+				}
+				catch (CannotSeeAgent e) {
+					// do nothing
+				}
 				int join = 0;
 				int stay = 0;
 				Collection<IPConRIC> clusterRICs = ipconService.getRICsInCluster(entry.getKey().getCluster());
@@ -291,7 +302,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				for (IPConRIC ricInCluster : clusterRICs) {
 				// checkAcceptability of chosen value in ric
 					logger.debug(getID() + " is considering " + ricInCluster);
-					if (isPreferableToCurrent(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()))) {
+					if (isPreferableToCurrent(ricInCluster)) {
 					//if (checkAcceptability(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()))) {
 						// if true, increment "join"
 						join++;
@@ -328,14 +339,15 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			else {
 				// "null" should never be chosen as a value, so we can do this ?
-				logger.trace(getID() + " thinks there is no chosen value in " + ric + ", but has " + institutionalFacts.get(ric) + " in memory.");
+				logger.trace(getID() + " thinks there is no currently chosen value in " + ric + ", but has " + institutionalFacts.get(ric.getIssue()) + " in memory from a previous cycle.");
 			}
 			// Check for leaders
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			// no leaders, maybe arrogate?
-			if (leaders==null) {
+			if (leaders.isEmpty()) {
 				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + getImpatience(ric.getIssue()) + " cycles left).");
 				if (!ricsToArrogate.contains(ric) && isImpatient(ric.getIssue())) {
+					logger.debug(getID() + " will arrogate in " + ric);
 					ricsToArrogate.add(ric);
 				}
 				// update impatience whether or not you were impatient (will reset if you were impatient)
@@ -347,7 +359,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					leaders.remove(leaders.indexOf(getIPConHandle()));
 					for (IPConAgent leader : leaders) {
 						if (leaderIsMoreSenior(leader)) {
+							logger.debug(getID() + " is less senior than another leader (" + leader + ") in " + ric + " so will resign");
 							ricsToResign.add(ric);
+							break; // only need to resign once
 						}
 					}
 				}
@@ -363,79 +377,73 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// - Check if a nearby cluster has issue
 		// - - Join if yes
 		// - - Arrogate if no (always want to be in a RIC)
-		for (String issue : getGoalMap().keySet()) {
+		for (String goalIssue : getGoalMap().keySet()) {
 			Boolean found = false;
 			Boolean foundInCluster = false;
+			IPConRIC issueRIC = null;
 			for (IPConRIC ric : currentRICs) {
-				if (!found && ric.getIssue().equalsIgnoreCase(issue)) {
+				if (!found && ric.getIssue().equalsIgnoreCase(goalIssue)) {
 					found = true;
-					logger.trace(getID() + " is in a RIC (" + ric + ") for " + issue + ").");
+					issueRIC = ric;
+					logger.trace(getID() + " is in a RIC (" + ric + ") for " + goalIssue + ").");
+					break;
 				}
 			}
-			if (!found) {
-				logger.trace(getID() + " could not find a RIC for " + issue + " so will check RICs in current cluster(s).");
-				for (IPConRIC ric : currentRICs) {
-					Collection<IPConRIC> inClusterRICs = ipconService.getRICsInCluster(ric.getCluster());
-					for (IPConRIC ric1 : inClusterRICs) {
-						if (!foundInCluster && ric1.getIssue().equalsIgnoreCase(issue)) {
-							foundInCluster = true;
-							logger.trace(getID() + " found RIC in current cluster (" + ric1 + ") for " + issue + " so will join it.");
-							ricsToJoin.add(ric1);
-							break;
-						}
-					}
-				}
+			if (!found || issueRIC==null) {
+				logger.trace(getID() + " could not find a RIC for " + goalIssue + " so will check RICs in current cluster(s).");
+				foundInCluster = findRICsToJoin_FromExecute(currentRICs, goalIssue, foundInCluster);
 				if (!foundInCluster) {
-					logger.trace(getID() + " could not find a RIC to join for " + issue + /*" and is impatient " +*/ " so will arrogate.");
-					// Make a RIC to arrogate
-					// I = issue
-					// C = cluster you are in, if in one
-					// R = ?
-					UUID cluster = null;
-					if (!institutionalFacts.isEmpty()) {
-						// pick a very-psuedo-random cluster you're already in
-						cluster = institutionalFacts.entrySet().iterator().next().getValue().getCluster();
-						logger.trace(getID() + " arrogating in existing cluster " + cluster);
-					}
-					else {
-						// check the clusters you're about to join/arrogate
-						HashSet<IPConRIC> set = new HashSet<IPConRIC>();
-						set.addAll(ricsToArrogate);
-						set.addAll(ricsToJoin);
-						if (!set.isEmpty()) {
-							cluster = set.iterator().next().getCluster();
-							logger.trace(getID() + " arrogating in to-be-joined cluster " + cluster);
-						}
-						else {
-							// pick a psuedo-random cluster that doesn't exist yet
-							cluster = Random.randomUUID();
-							logger.trace(getID() + " arrogating new cluster " + cluster);
-						}
-					}
-					IPConRIC newRIC = new IPConRIC(0, issue, cluster);
-					ricsToArrogate.add(newRIC);
-					resetImpatience(issue);
+					logger.trace(getID() + " could not find a RIC to join for " + goalIssue + /*" and is impatient " +*/ " so will arrogate.");
+					findRICToArrogate_FromExecute(goalIssue);
 				}
 				else {
 					// found a RIC in a cluster youre in, and joined it already
 				}
-				logger.trace(getID() + " found a RIC to join for " + issue);				
+				logger.trace(getID() + " found a RIC to join for " + goalIssue);				
 			}
 			// else do stuff for RICs youre in
 			// check for chosen values - if there is nothing chosen then do stuff with impatience and think about proposing/leaving/etc
 			// if the nearby clusters have the same (or an as-acceptable) value for your issues, then join(merge) ?
-			/*if (!foundInCluster) {
-				logger.trace(getID() + " could not find a RIC for " + issue + " so will check nearby clusters.");
-				Collection<IPConRIC> nearbyRICs = getNearbyRICs();
-				for (IPConRIC nearbyRIC : nearbyRICs) {
-					if (!foundNearby && nearbyRIC.getIssue().equalsIgnoreCase(issue)) {
-						foundNearby = true;
-						logger.trace(getID() + " found a nearby RIC (" + nearbyRIC + ") for " + issue + " so will join it.");
-						ricsToJoin.add(nearbyRIC);
+			//TODO FIXME check to see if the RICs you're in with chosen values have values that are acceptable to you
+			// if not, propose/leave ?
+			else {
+				// if youre in a RIC for the issue, check a value is chosen
+				Chosen chosen = this.getChosenFact(issueRIC.getRevision(), issueRIC.getIssue(), issueRIC.getCluster());
+				// if not, then propose if it makes sense (ie, you can and there's not another process in play)
+				if (chosen==null) {
+					// check for proposal sensibleness
+					Boolean proposalMakesSense = checkProposalSensibleness_FromExecute(issueRIC);
+					// propose if yes
+					if (proposalMakesSense) {
+						ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalIssue, issueRIC.getIssue(), issueRIC.getCluster()));
+					}
+					// else wait for something else
+				}
+				// if there is a chosen value, check it is suitable - if not, then propose if it makes sense, or leave
+				else {
+					// check for suitability of chosen value
+					Boolean suitable = false;
+					try {
+						suitable = isWithinTolerance(goalIssue, chosen.getValue());
+					} catch (InvalidClassException e) {
+						logger.debug(e);
+					}
+					// if suitable, 
+					if (suitable) {
+						// check for proposal sensibleness
+						Boolean proposalMakesSense = checkProposalSensibleness_FromExecute(issueRIC);
+						// propose if yes
+						if (proposalMakesSense) {
+							ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalIssue, issueRIC.getIssue(), issueRIC.getCluster()));
+						}
+						// else if it doesnt make sense to propose then just wait
+					}
+					// if its not suitable then leave
+					else {
+						ricsToLeave.add(issueRIC);
 					}
 				}
-			}*/
-			
+			}
 			
 		}
 		
@@ -549,7 +557,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			messageQueue.add(
 					new ClusterPing(
 							Performative.INFORM, getTime(), network.getAddress(), 
-							new Pair<RoadLocation,Pair<IPConRIC,Object>>( myLoc, new Pair<IPConRIC,Object>(ric,entry.getValue()) )
+							new Pair<RoadLocation,Pair<IPConRIC,Chosen>>( myLoc, new Pair<IPConRIC,Chosen>(ric,entry.getValue()) )
 					)
 			);
 		}
@@ -588,32 +596,129 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		submitMove(move);
 	}
-		
-	private boolean isPreferableToCurrent(IPConRIC ric, Object value) {
-		if (value instanceof Chosen) {
-			value = ((Chosen) value).getValue();
+
+	private Boolean checkProposalSensibleness_FromExecute(IPConRIC issueRIC) {
+		Collection<HasRole> roles = ipconService.getAgentRoles(getIPConHandle(), issueRIC.getRevision(), issueRIC.getIssue(), issueRIC.getCluster());
+		Boolean areProposer = false;
+		Boolean correctPhase = true;
+		// make sure you're a proposer
+		for (HasRole role : roles) {
+			if (role.getRole().equals(Role.PROPOSER)) {
+				areProposer = true;
+				break;
+			}
 		}
+		// make sure there isnt something else going on (eg, you're in a submit phase)
+		// if you have permission to respond, submit, or vote, then you shouldnt request
+		// TODO This might create 2 Requests as the agent will repeat during the next cycle (while the leader is processing it's request)
+		Collection<IPConAction> permissions = ipconService.getPermissions(getIPConHandle(), issueRIC.getRevision(), issueRIC.getIssue(), issueRIC.getCluster());
+		for (IPConAction act : permissions) {
+			if ( (act instanceof Response1B) || (act instanceof Submit2A) || (act instanceof Vote2B) ) {
+				correctPhase = false;
+				break;
+			}
+		}
+		if (areProposer && correctPhase) {
+			return true;
+		}
+		else {
+			return false;
+		}
+		
+	}
+
+	/**
+	 * @param issue
+	 */
+	private void findRICToArrogate_FromExecute(String issue) {
+		// Make a RIC to arrogate
+		// I = issue
+		// C = cluster you are in, if in one
+		// R = ?
+		UUID cluster = null;
+		if (!institutionalFacts.isEmpty()) {
+			// pick a very-psuedo-random cluster you're already in
+			cluster = institutionalFacts.entrySet().iterator().next().getValue().getCluster();
+			logger.trace(getID() + " arrogating issue " + issue + " in existing cluster " + cluster);
+		}
+		else {
+			// check the clusters you're about to join/arrogate
+			HashSet<IPConRIC> set = new HashSet<IPConRIC>();
+			set.addAll(ricsToArrogate);
+			set.addAll(ricsToJoin);
+			if (!set.isEmpty()) {
+				cluster = set.iterator().next().getCluster();
+				logger.trace(getID() + " arrogating issue " + issue + " in to-be-joined cluster " + cluster);
+			}
+			else {
+				// pick a psuedo-random cluster that doesn't exist yet
+				cluster = Random.randomUUID();
+				logger.trace(getID() + " arrogating issue " + issue + " in new cluster " + cluster);
+			}
+		}
+		IPConRIC newRIC = new IPConRIC(0, issue, cluster);
+		ricsToArrogate.add(newRIC);
+		resetImpatience(issue);
+	}
+
+	/**
+	 * @param currentRICs
+	 * @param issue
+	 * @param foundInCluster
+	 * @return
+	 */
+	private Boolean findRICsToJoin_FromExecute(final Collection<IPConRIC> currentRICs,
+			String issue, Boolean foundInCluster) {
+		for (IPConRIC ric : currentRICs) {
+			Collection<IPConRIC> inClusterRICs = ipconService.getRICsInCluster(ric.getCluster());
+			for (IPConRIC ric1 : inClusterRICs) {
+				if (!foundInCluster && ric1.getIssue().equalsIgnoreCase(issue)) {
+					foundInCluster = true;
+					logger.debug(getID() + " found RIC in current cluster (" + ric1 + ") for " + issue + " so will join it.");
+					ricsToJoin.add(ric1);
+					break;
+				}
+			}
+		}
+		return foundInCluster;
+	}
+	
+	/*
+	 * FIXME TODO fix this horrific program flow-of-control (so many returns !)
+	 */
+	private boolean isPreferableToCurrent(IPConRIC ric) {
+		Object value = ipconService.getChosen(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
 		try {
 			// if other cluster is tolerable and current isnt, then switch
-			if (isWithinTolerance(ric.getIssue(), value) && !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()))) {
+			if (isWithinTolerance(ric.getIssue(), value) && (( !institutionalFacts.containsKey(ric.getIssue()) ) || !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) ) {
 				return true;
 			}
 			// if current and other cluster are both tolerable... compare leader seniority
-			else if (isWithinTolerance(ric.getIssue(), value) && isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()))) {
+			else if (isWithinTolerance(ric.getIssue(), value) && isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) {
 				// check the other leader's seniority
+				ArrayList<IPConAgent> currentLeads = getLeadersOfCurrentRIC(ric.getIssue());
+				// FIXME TODO pseudoRandomly pick one...
 				IPConAgent currentLead = null;
+				if (currentLeads!=null && !currentLeads.isEmpty()) {
+					currentLead = currentLeads.get(0);
+				}
+				else {
+					return true; // you want to join the other cluster, because yours doesn't exist or doesn't have a leader
+				}
 				ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
-				for (IPConAgent lead : leads) {
-					// if the leader is more senior (so you might join) 
-					if (leaderIsMoreSenior(lead, currentLead)) {
-						return true;
-						// break out of loop with return, so you only add one at most
+				if (leads!=null) {
+					for (IPConAgent lead : leads) {
+						// if the leader is more senior (so you might join) 
+						if (leaderIsMoreSenior(lead, currentLead)) {
+							return true;
+							// break out of loop with return, so you only add one at most
+						}
 					}
 				}
-				return false; // if none of them are more senior then don't join
+				return false; // if none of them are more senior (or it doesnt have any leaders) then don't join
 			}
+			// else (if other cluster is not tolerable - stay where you are as after the try)
 		} catch (InvalidClassException e) {
-			// TODO Auto-generated catch block
 			logger.debug(e);
 			return false;
 		}
@@ -622,10 +727,33 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 
 	/**
+	 * 
+	 * @param issue
+	 * @return the leaders of the ric the agent is in corresponding to issue (may be emptylist), or null if the agent is not in such a ric
+	 */
+	private ArrayList<IPConAgent> getLeadersOfCurrentRIC(String issue) {
+		IPConRIC ric = null;
+		for (IPConRIC current : ipconService.getCurrentRICs()) {
+			if (current.getIssue().equalsIgnoreCase(issue)) {
+				ric = current;
+				break;
+			}
+		}
+		if (ric!=null) {
+			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			return leaders;
+		}
+		else {
+			return null;
+		}
+	}
+
+	/**
 	 * @param ric
 	 * @param value
 	 * @return true if the RIC and its chosen value is acceptable, so you may wish to join it
 	 */
+	@Deprecated
 	private boolean checkAcceptability(IPConRIC ric, Object value) {
 		try {
 			if (value instanceof Chosen) {
@@ -777,6 +905,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		else if (!(value instanceof Integer)) {
 			throw new InvalidClassException("Only integer goals are supported. Value was a " + value.getClass());
+			
 		}
 		else {
 			if (!this.getGoalMap().containsKey(issue)){
@@ -886,10 +1015,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 				}
 			} catch (IllegalArgumentException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IllegalAccessException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -909,10 +1036,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					try {
 						pair.getA().set(result, pair.getB());
 					} catch (IllegalArgumentException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					} catch (IllegalAccessException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 				}
@@ -958,14 +1083,17 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 * and make sure they're actually the same class, since we'll be reflecting
 			 */
 			if (!(perMap.containsKey(obl.getClass().getSimpleName()))) logger.trace("perMap does not contains right classname");
-			if (!(!perMap.get(obl.getClass().getSimpleName()).isEmpty())) logger.trace("perMap match is empty");
-			if (!(perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass()))) {
-				logger.trace("perMap match (" + perMap.get(obl.getClass().getSimpleName()).get(0) + ") has class " + 
-						perMap.get(obl.getClass().getSimpleName()).get(0).getClass() + ", which is not assignable from " + obl.getClass());
+			if (perMap.get(obl.getClass().getSimpleName())!=null) {
+				if (!(!perMap.get(obl.getClass().getSimpleName()).isEmpty())) logger.trace("perMap match is empty");
+				if (!(perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass()))) {
+					logger.trace("perMap match (" + perMap.get(obl.getClass().getSimpleName()).get(0) + ") has class " + 
+							perMap.get(obl.getClass().getSimpleName()).get(0).getClass() + ", which is not assignable from " + obl.getClass());
+				}
 			}
 			
 			
-			if (	(perMap.containsKey(obl.getClass().getSimpleName())) &&
+			if (	(perMap.get(obl.getClass().getSimpleName())!=null) && 
+					(perMap.containsKey(obl.getClass().getSimpleName())) &&
 					(!perMap.get(obl.getClass().getSimpleName()).isEmpty()) &&
 					(perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass())) ) {
 				
@@ -1011,11 +1139,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						
 					}
 				}
+				queue.add(actToDo);
 			}
 			else {
-				logger.warn(getID() + " is not permitted to discharge its obligation to " + obl + " (this should never happen)!");
+				logger.warn(getID() + " is not permitted to discharge its obligation to " + obl);
 			}
-			queue.add(actToDo);
 		}
 		return queue;
 	}
@@ -1035,7 +1163,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// If all the permissions are also null, then you can do anything so pick something at random :P 
 		// (You know there are permissions because we previously checked against the list of permissions being empty)
 		if (vals.size()==0) {
-			// FIXME TODO 
 			logger.trace(getID() + " is not constrained by permission on what to set the value of field " + fName + " to be in " + actToDo);
 			if (fName.equals("ballot")) {
 				// choose a valid ballot number
@@ -1044,7 +1171,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				 * Prepare1A - need to pick a ballot number that is higher than all current ballot numbers in the same RIC
 				 * Can either rely on responses to tell you to retry with a higher ballot (obligation not implemented yet)
 				 * or pull highest vote/pre_vote/open_vote for RIC and get highest ballot, then add some value
-				 *  ( TODO ballot number is unique unless an error is encountered )
+				 *  ( TODO ballot number is unique unless an error is encountered - should always be unique )
 				 */
 				Integer bal = null;
 				try {
@@ -1069,12 +1196,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						bal = pair.getB()+1;
 					}*/
 				} catch (IPConException e) {
-					// FIXME TODO technically this should guarantee uniqueness
+					// FIXME TODO technically this should guarantee uniqueness, so picking 0 breaks that requirement
 					// no valid votes, so just go with 0
 					logger.trace(getID() + " couldn't find any ballots so is picking 0 due to error: " + e);
 					bal = 0;
 				} catch (Exception e) {
-					// FIXME TODO technically this should guarantee uniqueness
+					// FIXME TODO technically this should guarantee uniqueness, so picking 0 breaks that requirement
 					// from the getFields... something went wrong...
 					logger.trace(getID() + " had a problem ( " + e + " ) getting the issue or cluster from " + obl + " so is picking a ballot of 0...");
 					bal = 0;
@@ -1196,9 +1323,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						logger.warn(getID() + " encountered too many, or unexpected, options than usual for a SyncAck (" + vals + ") so is psuedorandomly picking " + vals.get(0));
 						val = vals.get(0);
 					}
-					else {
-						// FIXME TODO other descision-making stuff here...
-						
+					else {						
 						// choose between ipcnv and the given value
 						/*
 						 * Need to work out what the issue is, which goal that corresponds to, and then
@@ -1421,6 +1546,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 	}
 	
+	@Deprecated
 	private CellMove _working_createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
@@ -1530,22 +1656,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					}
 				}
 			}
-			/*for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryMe : myMoves.entrySet()) {
-				Pair<RoadLocation,RoadLocation> myMove = entryMe.getValue();
-				for (UUID agent : set) {
-					for (Entry<CellMove,Pair<RoadLocation,RoadLocation>> entryThem : agentMoveMap.get(agent).entrySet()) {
-						if (!noCollisionMoves.containsKey(entryMe.getKey())) {
-							Pair<RoadLocation,RoadLocation> pairThem = entryThem.getValue(); 
-							// check all my moves against all their moves, and keep any of mine which don't cause collisions
-							boolean collision = checkForCollisions(myMove.getA(), myMove.getB(), pairThem.getA(), pairThem.getB());
-							if (!collision) {
-								noCollisionMoves.put( entryMe.getKey(), entryMe.getValue() );
-								logger.debug("[" + getID() + "] Agent " + getName() + " found a move with no collisions : " + entryMe.getKey() + " between " + entryMe.getValue());
-							}
-						}
-					}
-				}
-			}*/
 		}
 		
 		CellMove move;
@@ -1582,7 +1692,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by safety weighting and use constant speed to break deadlock
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				Collections.sort(list, new ConstantWeightedMoveComparator(this.mySpeed));
+				Collections.sort(list, new ConstantWeightedMoveComparator<Integer>(this.mySpeed));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
@@ -1596,7 +1706,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by weighting and return the one with the highest weight
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				Collections.sort(list, new SpeedWeightedMoveComparator());
+				Collections.sort(list, new SpeedWeightedMoveComparator<Integer>());
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
@@ -1622,7 +1732,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by safety weighting and use goal speed to break deadlock
 				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 				list.addAll(safetyWeightedMoves.entrySet());
-				Collections.sort(list, new ConstantWeightedMoveComparator(this.getGoals().getSpeed()));
+				Collections.sort(list, new ConstantWeightedMoveComparator<Integer>(this.getGoals().getSpeed()));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 				result = list.getLast().getKey();
 				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
@@ -1630,6 +1740,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						) {
 					result = list.get(list.size()-2).getKey();
 				}
+				break;
+			}
+			case SAFE_INST : {
+				result = chooseInstitutionalMove(safetyWeightedMoves, true);
+				break;
+			}
+			case INST_SAFE : {
+				result = chooseInstitutionalMove(safetyWeightedMoves, false);
 				break;
 			}
 			default : {
@@ -1646,6 +1764,84 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 
 	/**
+	 * @param safetyWeightedMoves
+	 * @return
+	 */
+	private CellMove chooseInstitutionalMove(HashMap<CellMove, Integer> safetyWeightedMoves, Boolean safe) {
+		CellMove result;
+		// sort by safety weighting and use institutional speed and lane to break deadlock
+		LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+		list.addAll(safetyWeightedMoves.entrySet());
+		Comparator<Entry<CellMove, Integer>> comparator = getInstComparator(safe);
+		Collections.sort(list, comparator);
+		logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
+		result = list.getLast().getKey();
+		// don't give nudge if inst speed is 0...
+		Integer speed = (Integer)(this.institutionalFacts.get("speed").getValue());
+		if (speed==null) {
+			speed = this.getGoals().getSpeed();
+		}
+		if (speed!=0 && result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+				(list.get(list.size()-2).getValue()>=0)
+				) {
+			result = list.get(list.size()-2).getKey();
+		}
+		return result;
+	}
+
+	/**
+	 * @param safe
+	 * @return a SafeInst comparator if safe is true, an InstSafe comparator otherwise
+	 */
+	private Comparator<Map.Entry<CellMove, Integer>> getInstComparator(Boolean safe) {
+		Chosen chosen = this.institutionalFacts.get("speed");
+		Integer speed = null;
+		if (chosen!=null) {
+			speed = (Integer)(chosen.getValue());
+		}
+		if (chosen==null || speed==null) {
+			speed = this.getGoals().getSpeed();
+		}
+		Integer laneChange;
+		IPConRIC ric = null;
+		for (IPConRIC current : ipconService.getCurrentRICs()) {
+			if (current.getIssue().equalsIgnoreCase("speed")) {
+				ric = current;
+				break;
+			}
+		}
+		if (ric!=null) {
+			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			if (leaders.isEmpty() || leaders.contains(getIPConHandle())) {
+				// don't want to change lanes
+				laneChange = 0;
+			}
+			else { 
+				Integer lane;
+				try {
+					lane = locationService.getAgentLocation(leaders.get(0).getIPConID()).getLane();
+				}
+				catch (CannotSeeAgent e) {
+					logger.info(e);
+					// can't see leader, so stay in current lane
+					lane = myLoc.getLane();
+				}
+				laneChange = lane - myLoc.getLane();
+			}
+		}
+		else {
+			// don't want to change lanes
+			laneChange = 0;
+		}
+		if (safe) {
+			return new SafeInstitutionalMoveComparator<Integer>(speed, laneChange);
+		}
+		else {
+			return new InstitutionalSafeMoveComparator<Integer>(speed, laneChange);
+		}
+	}
+
+	/**
 	 * 
 	 * @param list - can ignore the value in the entry. Only key (move) is of interest
 	 * @return list sorted in desc order by the difference between the speed of the move and the agent's goal speed (the Pair.B) (so last entry is best)
@@ -1658,7 +1854,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			CellMove move = entry.getKey();
 			result.add(new Pair<CellMove, Integer>(move, Math.abs(move.getYInt()-goalSpeed)));
 		}		
-		Collections.sort(result, new PairBDescComparator());
+		Collections.sort(result, new PairBDescComparator<Integer>());
 		return result;
 	}
 
@@ -1669,8 +1865,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @return list sorted in descending order with additional constraints as above
 	 */
 	private LinkedList<Entry<CellMove, Integer>> getSafestMovesAndSort(final LinkedList<Entry<CellMove, Integer>> list) {
+		@SuppressWarnings("unchecked")
 		LinkedList<Entry<CellMove,Integer>> result = (LinkedList<Entry<CellMove, Integer>>)list.clone();
-		Collections.sort(result, new SpeedWeightedMoveComparator());
+		Collections.sort(result, new SpeedWeightedMoveComparator<Integer>());
 		Collections.reverse(result);
 		/* LIST NOW DESCENDING ORDER */
 		// if you have any +ve entries, you can remove all -ves
@@ -1813,10 +2010,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		RoadLocation startLoc = null;
 		ArrayList<Integer> laneOffsets= new ArrayList<Integer>(1);
 		Integer startSpeed = null;
-		int maxAccel = speedService.getMaxAccel();
-		int maxDecel = speedService.getMaxDecel();
-		int maxSpeed = speedService.getMaxSpeed();
-		int wrapPoint = locationService.getWrapPoint();
 		
 		// get the current location of the agent in question
 		try {
@@ -1828,40 +2021,124 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		
 		if ( (startLoc!=null) && (startSpeed!=null) ) {
-			// get the lanes to be considered, but in relative terms
-			if (allMoves) {
-				for (int i=-1;i<2;i++) {
-					if (locationService.isValidLane(startLoc.getLane() + i)) {
-						laneOffsets.add(i);
-					}
+			if (this.ownChoiceMethod.equals(OwnChoiceMethod.INST_SAFE) && !agent.equals(getID()) && this.agentRICs.containsKey(agent) ) {
+				// get the chosen for the agent you're looking at
+				Integer chosenSpeed = null;
+				Integer chosenLaneChange = null;
+				Pair<Integer, Integer> chosenPair = getInstSpeedAndLane_ForGenerateMoves(agent, startLoc);
+				chosenSpeed = chosenPair.getA();
+				chosenLaneChange = chosenPair.getB();
+				if (chosenSpeed!=null && chosenLaneChange!=null) {
+					// if the agent is doing those already, then just return those
+					// if the agent isnt at those, then generate the moves between what theyre currently doing, and what will let them do that
+					logger.debug("[" + getID() + "] Agent " + getName() + " generating for " + agent + " and found chosenSpeed:" + chosenSpeed + " and chosenLaneChange:" + chosenLaneChange);
+				}
+				else {
+					// get the lanes to be considered, but in relative terms
+					laneOffsets = generateLanes_ForGenerateMoves(allMoves, startLoc, laneOffsets);
+					// generate the moves from those lanes
+					result = generateAllMovesInLanes_ForGenerateMoves(agent, startLoc, laneOffsets, startSpeed, result);
 				}
 			}
 			else {
-				laneOffsets.add(0);
-			}
-			
-			// for all lane offsets
-			for (int laneMove : laneOffsets) {
-				// for all speeds from currentSpeed-maxDecel to max(currentSpeed+maxAccel,maxSpeed)
-				int topSpeed = Math.min(startSpeed+maxAccel, maxSpeed);
-				int minSpeed = Math.max(0, startSpeed-maxDecel);
-				for (int speedMove=minSpeed; speedMove<=topSpeed; speedMove++) {
-					// add the move corresponding to the lane offset + speed
-					CellMove move = new CellMove(laneMove,speedMove);
-					RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
-					// need to not insert laneChanges with no speed...
-					if (!( (move.getYInt()==0) && (move.getXInt()!=0) )) {
-						Pair<RoadLocation, RoadLocation> locations = new Pair<RoadLocation,RoadLocation>(startLoc,endLoc);
-						logger.trace("[" + getID() + "] Agent " + getName() + " generated move for " + agent + ":" + move + " between " + locations);
-						result.put(move, locations);
-					}
-				}
+				// get the lanes to be considered, but in relative terms
+				laneOffsets = generateLanes_ForGenerateMoves(allMoves, startLoc, laneOffsets);
+				// generate the moves from those lanes
+				result = generateAllMovesInLanes_ForGenerateMoves(agent, startLoc, laneOffsets, startSpeed, result);
 			}
 		}
-		
 		return result;
 	}
 
+	/**
+	 * @param agent
+	 * @param startLoc
+	 */
+	private Pair<Integer,Integer> getInstSpeedAndLane_ForGenerateMoves(final UUID agent, final RoadLocation startLoc) {
+		Integer chosenSpeed = null;
+		Integer chosenLaneChange = null;
+		IPConRIC ric = null;
+		HashMap<String,ClusterPing> map = this.agentRICs.get(agent);
+		// get the speed (and lane) that agent should choose
+		if (map.containsKey("speed")) {
+			chosenSpeed = (Integer) map.get("speed").getChosen().getValue();
+			ric = map.get("speed").getRIC();
+			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			if (leaders==null || leaders.isEmpty()) {
+				// don't want to change lanes
+				chosenLaneChange = 0;
+			}
+			else { 
+				Integer leaderLane;
+				try {
+					// be a little dodgy and use the IPConID instead of the network address on the presumption theyre the same
+					leaderLane = locationService.getAgentLocation(leaders.get(0).getIPConID()).getLane();
+				}
+				catch (CannotSeeAgent e) {
+					logger.info(e);
+					// can't see leader, so stay in current lane
+					leaderLane = startLoc.getLane();
+				}
+				chosenLaneChange = leaderLane - startLoc.getLane();
+			}
+		}
+		return new Pair<Integer,Integer>(chosenSpeed, chosenLaneChange);
+	}
+
+	/**
+	 * @param agent
+	 * @param startLoc
+	 * @param laneOffsets
+	 * @param startSpeed
+	 * @param result
+	 */
+	private HashMap<CellMove, Pair<RoadLocation, RoadLocation>> generateAllMovesInLanes_ForGenerateMoves(final UUID agent,
+			final RoadLocation startLoc, final ArrayList<Integer> laneOffsets,
+			final Integer startSpeed, HashMap<CellMove, Pair<RoadLocation, RoadLocation>> result) {
+		int maxAccel = speedService.getMaxAccel();
+		int maxDecel = speedService.getMaxDecel();
+		int maxSpeed = speedService.getMaxSpeed();
+		int wrapPoint = locationService.getWrapPoint();
+		// for all lane offsets
+		for (int laneMove : laneOffsets) {
+			// for all speeds from currentSpeed-maxDecel to max(currentSpeed+maxAccel,maxSpeed)
+			int topSpeed = Math.min(startSpeed+maxAccel, maxSpeed);
+			int minSpeed = Math.max(0, startSpeed-maxDecel);
+			for (int speedMove=minSpeed; speedMove<=topSpeed; speedMove++) {
+				// add the move corresponding to the lane offset + speed
+				CellMove move = new CellMove(laneMove,speedMove);
+				RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
+				// need to not insert laneChanges with no speed...
+				if (!( (move.getYInt()==0) && (move.getXInt()!=0) )) {
+					Pair<RoadLocation, RoadLocation> locations = new Pair<RoadLocation,RoadLocation>(startLoc,endLoc);
+					logger.trace("[" + getID() + "] Agent " + getName() + " generated move for " + agent + ":" + move + " between " + locations);
+					result.put(move, locations);
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * @param allMoves
+	 * @param startLoc
+	 * @param laneOffsets
+	 */
+	private ArrayList<Integer> generateLanes_ForGenerateMoves(final boolean allMoves, final RoadLocation startLoc, ArrayList<Integer> laneOffsets) {
+		if (allMoves) {
+			for (int i=-1;i<2;i++) {
+				if (locationService.isValidLane(startLoc.getLane() + i)) {
+					laneOffsets.add(i);
+				}
+			}
+		}
+		else {
+			laneOffsets.add(0);
+		}
+		return laneOffsets;
+	}
+
+	@Deprecated
 	private CellMove createMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		Pair<CellMove, Integer> temp = null;
 		// This is an indirect assumption of only three lanes
@@ -1906,6 +2183,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param ownChoiceMethod Should be OwnChoiceMethod.SAFE, OwnChoiceMethod.PLANNED
 	 * @return 
 	 */
+	@Deprecated
 	private CellMove chooseFromSafeMoves(LinkedList<Pair<CellMove, Integer>> actions, OwnChoiceMethod ownChoiceMethod) {
 		Pair<CellMove, Integer> result = null;
 		if (actions.isEmpty()) {
@@ -2416,6 +2694,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private void process(ClusterPing arg0) {
 		logger.info(getID() + " processing ClusterPing " + arg0);
 		this.nearbyRICs.put(arg0.getRIC(), arg0);
+		UUID agent = arg0.getFrom().getId();
+		HashMap<String,ClusterPing> map = this.agentRICs.get(agent);
+		if (map==null) {
+			this.agentRICs.put(agent, new HashMap<String,ClusterPing>());
+			map = this.agentRICs.get(agent);
+		}
+		map.put(arg0.getRIC().getIssue(), arg0);
 	}
 
 	/**
