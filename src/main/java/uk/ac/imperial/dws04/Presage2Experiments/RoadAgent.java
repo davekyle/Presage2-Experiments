@@ -282,7 +282,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			
 			
 			// if youre not in the cluster and it has a chosen value
-			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getValue()!=null ) {
+			if (!currentRICs.contains(entry.getKey()) && entry.getValue().getChosen()!=null ) {
 				// try to get their location - if you can, then they're close enough (throwing away the result)
 				try {
 					locationService.getAgentLocation(entry.getValue().getFrom().getId());

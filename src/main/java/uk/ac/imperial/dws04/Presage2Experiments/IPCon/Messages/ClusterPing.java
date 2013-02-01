@@ -19,12 +19,12 @@ import uk.ac.imperial.presage2.core.network.NetworkAddress;
 public class ClusterPing extends BroadcastMessage<Pair<RoadLocation, Pair<IPConRIC, Object>>> {
 
 	/**
-	 * Broadcast message indicating the RIC an agent is in and the currently chosen value, if one exists
+	 * Broadcast message indicating the RIC an agent is in and the currently chosen fact, if one exists
 	 * @param performative
 	 * @param type
 	 * @param timestamp
 	 * @param from
-	 * @param data the location of the agent, the IPConRIC in question, and the chosen value if one exists, or null otherwise
+	 * @param data the location of the agent, the IPConRIC in question, and the chosen fact if one exists, or null otherwise
 	 */
 	public ClusterPing(Performative performative, Time timestamp,
 			NetworkAddress from, final Pair<RoadLocation, Pair<IPConRIC, Object>> data) {
@@ -46,9 +46,9 @@ public class ClusterPing extends BroadcastMessage<Pair<RoadLocation, Pair<IPConR
 	
 	/**
 	 * 
-	 * @return The currently chosen value in the RIC, or null if nothing is chosen
+	 * @return The currently chosen fact in the RIC, or null if nothing is chosen
 	 */
-	public Object getValue() {
+	public Object getChosen() {
 		return getData().getB().getB();
 	}
 
