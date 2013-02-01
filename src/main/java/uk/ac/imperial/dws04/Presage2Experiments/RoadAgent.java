@@ -344,7 +344,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// Check for leaders
 			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
 			// no leaders, maybe arrogate?
-			if (leaders==null) {
+			if (leaders.isEmpty()) {
 				logger.trace(getID() + " is in RIC " + ric + " which has no leader(s), so is becoming impatient to arrogate (" + getImpatience(ric.getIssue()) + " cycles left).");
 				if (!ricsToArrogate.contains(ric) && isImpatient(ric.getIssue())) {
 					logger.debug(getID() + " will arrogate in " + ric);

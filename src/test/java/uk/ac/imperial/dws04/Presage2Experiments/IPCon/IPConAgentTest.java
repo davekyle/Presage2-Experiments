@@ -685,7 +685,7 @@ public class IPConAgentTest {
 		// increment time to insert the resignation
 		incrementTime();
 		assertThat(globalIPConService.getCurrentRICs(a1.getIPConHandle()).size(), is( 2 ) );
-		logger.info("Succesful setup.");
+		logger.info("Successful setup.");
 		
 		for (int i = 1; i<=10; i++) {
 			//logger.trace("Execution number " + i);
