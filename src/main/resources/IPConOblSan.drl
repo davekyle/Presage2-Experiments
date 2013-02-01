@@ -291,7 +291,8 @@ rule "Generic joint obligation retraction"
 		retract( $obl );
 end	 
 
-query "getObligations" (IPConAgent $agent)HasRole( agent==$agent, $role : role)
+query "getObligations" (IPConAgent $agent)
+	HasRole( agent==$agent, $role : role)
 	$obligation : Obligation( ( (agent==$agent) || (agent==null && agentNeutral==true && role==$role) ), $action : action )
 end
 
