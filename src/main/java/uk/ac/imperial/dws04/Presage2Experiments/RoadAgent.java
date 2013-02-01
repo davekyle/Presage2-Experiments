@@ -108,7 +108,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * Collection for RICs - should be populated every cycle with agents that ping
 	 */
 	private HashMap<IPConRIC,ClusterPing> nearbyRICs;
-	private HashMap<UUID,ClusterPing> agentRICs;
+	private HashMap<UUID,HashMap<String,ClusterPing>> agentRICs;
 	private LinkedList<IPConRIC> ricsToJoin;
 	private LinkedList<IPConRIC> ricsToArrogate;
 	private LinkedList<IPConRIC> ricsToResign;
@@ -139,6 +139,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		this.startImpatience = (new Long(Math.round(Random.randomDouble()*10))).intValue();
 		this.impatience = new HashMap<String,Integer>();
 		this.nearbyRICs = new HashMap<IPConRIC,ClusterPing>();
+		this.agentRICs = new HashMap<UUID,HashMap<String,ClusterPing>>();
 		ricsToJoin = new LinkedList<IPConRIC>();
 		ricsToArrogate = new LinkedList<IPConRIC>();
 		ricsToResign = new LinkedList<IPConRIC>();
@@ -1936,20 +1937,67 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		
 		if ( (startLoc!=null) && (startSpeed!=null) ) {
 			if (this.ownChoiceMethod.equals(OwnChoiceMethod.INST_SAFE) && !agent.equals(getID()) && this.agentRICs.containsKey(agent) ) {
-				// get the cluster for the agent you're looking at
-				// get the speed (and lane? - if not, then move this block down a bit) that agent should choose
-				// if the agent is doing those already, then just return those
-				// if the agent isnt at those, then generate the moves between what theyre currently doing, and what will let them do that
+				// get the chosen for the agent you're looking at
+				Integer chosenSpeed = null;
+				Integer chosenLaneChange = null;
+				Pair<Integer, Integer> chosenPair = getInstSpeedAndLane_ForGenerateMoves(agent, startLoc);
+				chosenSpeed = chosenPair.getA();
+				chosenLaneChange = chosenPair.getB();
+				if (chosenSpeed!=null && chosenLaneChange!=null) {
+					// if the agent is doing those already, then just return those
+					// if the agent isnt at those, then generate the moves between what theyre currently doing, and what will let them do that
+					logger.debug("[" + getID() + "] Agent " + getName() + " generating for " + agent + " and found chosenSpeed:" + chosenSpeed + " and chosenLaneChange:" + chosenLaneChange);
+				}
+				else {
+					// get the lanes to be considered, but in relative terms
+					laneOffsets = generateLanes_ForGenerateMoves(allMoves, startLoc, laneOffsets);
+					// generate the moves from those lanes
+					result = generateAllMovesInLanes_ForGenerateMoves(agent, startLoc, laneOffsets, startSpeed, result);
+				}
 			}
 			else {
 				// get the lanes to be considered, but in relative terms
-				generateLanes_ForGenerateMoves(allMoves, startLoc, laneOffsets);
+				laneOffsets = generateLanes_ForGenerateMoves(allMoves, startLoc, laneOffsets);
 				// generate the moves from those lanes
-				generateAllMovesInLanes_ForGenerateMoves(agent, startLoc, laneOffsets, startSpeed, result);
+				result = generateAllMovesInLanes_ForGenerateMoves(agent, startLoc, laneOffsets, startSpeed, result);
 			}
 		}
-		
 		return result;
+	}
+
+	/**
+	 * @param agent
+	 * @param startLoc
+	 */
+	private Pair<Integer,Integer> getInstSpeedAndLane_ForGenerateMoves(final UUID agent, final RoadLocation startLoc) {
+		Integer chosenSpeed = null;
+		Integer chosenLaneChange = null;
+		IPConRIC ric = null;
+		HashMap<String,ClusterPing> map = this.agentRICs.get(agent);
+		// get the speed (and lane) that agent should choose
+		if (map.containsKey("speed")) {
+			chosenSpeed = (Integer) map.get("speed").getChosen().getValue();
+			ric = map.get("speed").getRIC();
+			ArrayList<IPConAgent> leaders = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+			if (leaders==null || leaders.isEmpty()) {
+				// don't want to change lanes
+				chosenLaneChange = 0;
+			}
+			else { 
+				Integer leaderLane;
+				try {
+					// be a little dodgy and use the IPConID instead of the network address on the presumption theyre the same
+					leaderLane = locationService.getAgentLocation(leaders.get(0).getIPConID()).getLane();
+				}
+				catch (CannotSeeAgent e) {
+					logger.info(e);
+					// can't see leader, so stay in current lane
+					leaderLane = startLoc.getLane();
+				}
+				chosenLaneChange = leaderLane - startLoc.getLane();
+			}
+		}
+		return new Pair<Integer,Integer>(chosenSpeed, chosenLaneChange);
 	}
 
 	/**
@@ -1959,9 +2007,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param startSpeed
 	 * @param result
 	 */
-	private void generateAllMovesInLanes_ForGenerateMoves(UUID agent,
-			RoadLocation startLoc, ArrayList<Integer> laneOffsets,
-			Integer startSpeed,	HashMap<CellMove, Pair<RoadLocation, RoadLocation>> result) {
+	private HashMap<CellMove, Pair<RoadLocation, RoadLocation>> generateAllMovesInLanes_ForGenerateMoves(final UUID agent,
+			final RoadLocation startLoc, final ArrayList<Integer> laneOffsets,
+			final Integer startSpeed, HashMap<CellMove, Pair<RoadLocation, RoadLocation>> result) {
 		int maxAccel = speedService.getMaxAccel();
 		int maxDecel = speedService.getMaxDecel();
 		int maxSpeed = speedService.getMaxSpeed();
@@ -1983,6 +2031,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				}
 			}
 		}
+		return result;
 	}
 
 	/**
@@ -1990,7 +2039,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param startLoc
 	 * @param laneOffsets
 	 */
-	private void generateLanes_ForGenerateMoves(boolean allMoves, RoadLocation startLoc, ArrayList<Integer> laneOffsets) {
+	private ArrayList<Integer> generateLanes_ForGenerateMoves(final boolean allMoves, final RoadLocation startLoc, ArrayList<Integer> laneOffsets) {
 		if (allMoves) {
 			for (int i=-1;i<2;i++) {
 				if (locationService.isValidLane(startLoc.getLane() + i)) {
@@ -2001,6 +2050,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		else {
 			laneOffsets.add(0);
 		}
+		return laneOffsets;
 	}
 
 	@Deprecated
@@ -2559,7 +2609,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private void process(ClusterPing arg0) {
 		logger.info(getID() + " processing ClusterPing " + arg0);
 		this.nearbyRICs.put(arg0.getRIC(), arg0);
-		this.agentRICs.put(arg0.getFrom().getId(), arg0);
+		UUID agent = arg0.getFrom().getId();
+		HashMap<String,ClusterPing> map = this.agentRICs.get(agent);
+		if (map==null) {
+			this.agentRICs.put(agent, new HashMap<String,ClusterPing>());
+			map = this.agentRICs.get(agent);
+		}
+		map.put(arg0.getRIC().getIssue(), arg0);
 	}
 
 	/**
