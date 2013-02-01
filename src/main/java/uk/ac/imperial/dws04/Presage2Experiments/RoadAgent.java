@@ -435,17 +435,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// else do stuff for RICs youre in
 			// check for chosen values - if there is nothing chosen then do stuff with impatience and think about proposing/leaving/etc
 			// if the nearby clusters have the same (or an as-acceptable) value for your issues, then join(merge) ?
-			/*if (!foundInCluster) {
-				logger.trace(getID() + " could not find a RIC for " + issue + " so will check nearby clusters.");
-				Collection<IPConRIC> nearbyRICs = getNearbyRICs();
-				for (IPConRIC nearbyRIC : nearbyRICs) {
-					if (!foundNearby && nearbyRIC.getIssue().equalsIgnoreCase(issue)) {
-						foundNearby = true;
-						logger.trace(getID() + " found a nearby RIC (" + nearbyRIC + ") for " + issue + " so will join it.");
-						ricsToJoin.add(nearbyRIC);
-					}
-				}
-			}*/
+			//TODO FIXME check to see if the RICs you're in with chosen values have values that are acceptable to you
+			// if not, propose/leave ?
 			
 			
 		}

@@ -131,6 +131,7 @@ public class IPConService extends EnvironmentService {
 			session.insert(new HasRole(Role.LEARNER, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.PROPOSER, handle, revision, issue, cluster));
 			// need to insert the agents goal (goal variable is Entry<String<Pair<Value,Tolerance>>) as it is trivially chosen here
+			// TODO FIXME doing it this way breaks things because there are no voted/reportedVote so the "safe" values are wrong !
 			session.insert(new Chosen(revision, 0, goal.getValue().getA(), issue, cluster));
 		}
 	}

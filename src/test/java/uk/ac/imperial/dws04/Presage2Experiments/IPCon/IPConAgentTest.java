@@ -996,7 +996,7 @@ public class IPConAgentTest {
 		for (IPConRIC a1RIC : a1RICs) {
 			assertThat( a2RICs, hasItem(a1RIC) );
 		}
-		
+		// a2 is inserted to the cluster artificially after a value has been chosen, so doesn't have a say about it.
 		assertThat(globalIPConService.getChosen(hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()), nullValue());
 		assertThat(globalIPConService.getFactQueryResults("Voted", hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).size(), is(1));
 		logger.info("** Successfully did not achieve consensus **");
