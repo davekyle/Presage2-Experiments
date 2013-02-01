@@ -125,8 +125,8 @@ public class IPConService extends EnvironmentService {
 		for (Entry<String, Pair<Integer, Integer>> goal : goals.entrySet()) {
 			Integer revision = 0;
 			String issue = goal.getKey();
-			Integer ballot = 0;
-			Object value = goal.getValue().getA();
+			//Integer ballot = 0;
+			//Object value = goal.getValue().getA();
 			session.insert(new IPConRIC(revision, issue, cluster));
 			session.insert(new HasRole(Role.LEADER, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.ACCEPTOR, handle, revision, issue, cluster));
@@ -134,7 +134,7 @@ public class IPConService extends EnvironmentService {
 			session.insert(new HasRole(Role.PROPOSER, handle, revision, issue, cluster));
 			// need to insert the agents goal (goal variable is Entry<String<Pair<Value,Tolerance>>) as it is trivially chosen here
 			// TODO FIXME doing it this way breaks things because there are no voted/reportedVote so the "safe" values are wrong !
-			session.insert(new Chosen(revision, ballot, value, issue, cluster));
+			// session.insert(new Chosen(revision, ballot, value, issue, cluster));
 		}
 	}
 	
