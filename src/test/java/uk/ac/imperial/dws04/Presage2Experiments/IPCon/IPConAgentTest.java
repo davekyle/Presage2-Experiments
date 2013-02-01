@@ -612,8 +612,8 @@ public class IPConAgentTest {
 		assertThat(rics.size(), is( 2 ) );
 		
 		// insert random chosen fact (or try to...) into both of A1's RICs
-		// don't need this because agents have it autoinserted on registration
-		/*for (IPConRIC ric : rics) {
+		// don't need this if agents have it autoChosen on registration
+		for (IPConRIC ric : rics) {
 			Integer revision = ric.getRevision();
 			String issue = ric.getIssue();
 			UUID cluster = ric.getCluster();
@@ -621,7 +621,7 @@ public class IPConAgentTest {
 			Object value = 1;
 			session.insert(new Chosen(revision, ballot, value, issue, cluster));
 			logger.debug("Session inserting chosen(" + revision + "," + ballot + "," + value + "," + issue + "," + cluster + ")");
-		}*/
+		}
 		
 		incrementTime();
 		
@@ -685,7 +685,7 @@ public class IPConAgentTest {
 		// increment time to insert the resignation
 		incrementTime();
 		assertThat(globalIPConService.getCurrentRICs(a1.getIPConHandle()).size(), is( 2 ) );
-		logger.info("Succesful setup.");
+		logger.info("Successful setup.");
 		
 		for (int i = 1; i<=10; i++) {
 			//logger.trace("Execution number " + i);
