@@ -380,6 +380,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		for (String goalIssue : getGoalMap().keySet()) {
 			Boolean found = false;
 			Boolean foundInCluster = false;
+			Object goalValue = getGoalMap().get(goalIssue);
 			IPConRIC issueRIC = null;
 			for (IPConRIC ric : currentRICs) {
 				if (!found && ric.getIssue().equalsIgnoreCase(goalIssue)) {
@@ -415,7 +416,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					Boolean proposalMakesSense = checkProposalSensibleness_FromExecute(issueRIC);
 					// propose if yes
 					if (proposalMakesSense) {
-						ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalIssue, issueRIC.getIssue(), issueRIC.getCluster()));
+						ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalValue, issueRIC.getIssue(), issueRIC.getCluster()));
 					}
 					// else wait for something else
 				}
@@ -428,20 +429,24 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					} catch (InvalidClassException e) {
 						logger.debug(e);
 					}
-					// if suitable, 
-					if (suitable) {
+					// if not suitable, 
+					if (!suitable) {
 						// check for proposal sensibleness
 						Boolean proposalMakesSense = checkProposalSensibleness_FromExecute(issueRIC);
 						// propose if yes
 						if (proposalMakesSense) {
-							ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalIssue, issueRIC.getIssue(), issueRIC.getCluster()));
+							ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalValue, issueRIC.getIssue(), issueRIC.getCluster()));
+						}
+						else {
+							// FIXME TODO randomly choose to be sulky and leave the cluster
+							if (Random.randomInt()%9==0) {
+								ricsToLeave.add(issueRIC);
+							}
 						}
 						// else if it doesnt make sense to propose then just wait
 					}
-					// if its not suitable then leave
-					else {
-						ricsToLeave.add(issueRIC);
-					}
+					// if suitable then yay
+					
 				}
 			}
 			
