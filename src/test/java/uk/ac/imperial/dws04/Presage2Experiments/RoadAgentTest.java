@@ -312,8 +312,16 @@ public class RoadAgentTest {
 		//b.execute();
 		incrementTime();
 		
-		// decelerates to stop as quick as possible
-		assertLocation(a,startLane, 3);
+		assertLocation(a,startLane, 4);
+		assertSpeed(a, 1);
+		assertLocation(b, startLane, 5);
+		assertSpeed(b, 0);
+		
+		a.execute();
+		//b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 4);
 		assertSpeed(a, 0);
 		assertLocation(b, startLane, 5);
 		assertSpeed(b, 0);
@@ -446,11 +454,19 @@ public class RoadAgentTest {
 		//b.execute();
 		incrementTime();
 		
-		assertLocation(a,startLane, 8);
-		assertSpeed(a, 0);
+		assertLocation(a,startLane, 9);
+		assertSpeed(a, 1);
 		assertLocation(b, startLane, 0);
 		assertSpeed(b, 0);
 		
+		a.execute();
+		//b.execute();
+		incrementTime();
+		
+		assertLocation(a,startLane, 9);
+		assertSpeed(a, 0);
+		assertLocation(b, startLane, 0);
+		assertSpeed(b, 0);
 	}
 	
 	@Test

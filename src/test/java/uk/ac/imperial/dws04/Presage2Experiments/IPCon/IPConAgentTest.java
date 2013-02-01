@@ -559,7 +559,7 @@ public class IPConAgentTest {
 		assertThat(rics.size(), is( 2 ) );
 		logger.info("** Auto-Arrogate new RICs for goals during registration test passed **");
 		assertThat(rics.toArray(new IPConRIC[2])[0].getCluster(), is(rics.toArray(new IPConRIC[2])[1].getCluster()) );
-		logger.info("** Aut-Arrogate new RICs in one cluster during registration test passed **");
+		logger.info("** Auto-Arrogate new RICs in one cluster during registration test passed **");
 		
 		logger.info("Finished test of registration.\n");
 		
@@ -597,7 +597,6 @@ public class IPConAgentTest {
 	}
 	
 	/**
-	 * FIXME TODO won't work as intended due to auto-arrogate on register
 	 * @throws Exception
 	 */
 	@Test
@@ -613,6 +612,7 @@ public class IPConAgentTest {
 		assertThat(rics.size(), is( 2 ) );
 		
 		// insert random chosen fact (or try to...) into both of A1's RICs
+		// don't need this if agents have it autoChosen on registration
 		for (IPConRIC ric : rics) {
 			Integer revision = ric.getRevision();
 			String issue = ric.getIssue();
@@ -620,6 +620,7 @@ public class IPConAgentTest {
 			Integer ballot = 0;
 			Object value = 1;
 			session.insert(new Chosen(revision, ballot, value, issue, cluster));
+			logger.debug("Session inserting chosen(" + revision + "," + ballot + "," + value + "," + issue + "," + cluster + ")");
 		}
 		
 		incrementTime();
@@ -684,7 +685,7 @@ public class IPConAgentTest {
 		// increment time to insert the resignation
 		incrementTime();
 		assertThat(globalIPConService.getCurrentRICs(a1.getIPConHandle()).size(), is( 2 ) );
-		logger.info("Succesful setup.");
+		logger.info("Successful setup.");
 		
 		for (int i = 1; i<=10; i++) {
 			//logger.trace("Execution number " + i);
@@ -991,7 +992,11 @@ public class IPConAgentTest {
 			incrementTime();
 		}
 		
-		
+		// check theyre both still in the same clusters..
+		for (IPConRIC a1RIC : a1RICs) {
+			assertThat( a2RICs, hasItem(a1RIC) );
+		}
+		// a2 is inserted to the cluster artificially after a value has been chosen, so doesn't have a say about it.
 		assertThat(globalIPConService.getChosen(hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()), nullValue());
 		assertThat(globalIPConService.getFactQueryResults("Voted", hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).size(), is(1));
 		logger.info("** Successfully did not achieve consensus **");

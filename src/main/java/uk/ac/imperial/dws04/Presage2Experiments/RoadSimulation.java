@@ -51,6 +51,7 @@ import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
+import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
 /**
  * run with uk.ac.imperial.dws04.Presage2Experiments.RoadSimulation finishTime=100 length=50 lanes=3 initialAgents=2 maxSpeed=3 maxAccel=1 maxDecel=1 junctionCount=0 seed=123456 ownChoiceMethod=SAFE_CONSTANT neighbourChoiceMethod=WORSTCASE insertMethod=low
@@ -211,7 +212,9 @@ public class RoadSimulation extends InjectedSimulation {
 			// don't want speeds to be 0
 			int startSpeed = Random.randomInt(maxSpeed)+1;
 			RoadAgentGoals goals = createNewAgentGoals();
-			s.addParticipant(new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM()));
+			RoadAgent agent = new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM());
+			s.addParticipant(agent);
+			agent.initialiseTime(getCurrentSimulationTime());
 			agentLocations.put(uuid, startLoc);
 			agentNames.put(uuid, name);
 			logger.debug("Now tracking " + agentNames.size() + " agents.");
@@ -324,6 +327,7 @@ public class RoadSimulation extends InjectedSimulation {
 		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM());
 		this.scenario.addParticipant(p);
 		p.initialise();
+		((AbstractParticipant) p).initialiseTime(getCurrentSimulationTime());
 		logger.info("Inserting " + name + " [" + uuid + "] at " + startLoc);
 		agentNames.put(uuid, name);
 		logger.debug("Now tracking " + agentNames.size() + " agents.");
