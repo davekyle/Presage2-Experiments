@@ -1083,14 +1083,17 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			 * and make sure they're actually the same class, since we'll be reflecting
 			 */
 			if (!(perMap.containsKey(obl.getClass().getSimpleName()))) logger.trace("perMap does not contains right classname");
-			if (!(!perMap.get(obl.getClass().getSimpleName()).isEmpty())) logger.trace("perMap match is empty");
-			if (!(perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass()))) {
-				logger.trace("perMap match (" + perMap.get(obl.getClass().getSimpleName()).get(0) + ") has class " + 
-						perMap.get(obl.getClass().getSimpleName()).get(0).getClass() + ", which is not assignable from " + obl.getClass());
+			if (perMap.get(obl.getClass().getSimpleName())!=null) {
+				if (!(!perMap.get(obl.getClass().getSimpleName()).isEmpty())) logger.trace("perMap match is empty");
+				if (!(perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass()))) {
+					logger.trace("perMap match (" + perMap.get(obl.getClass().getSimpleName()).get(0) + ") has class " + 
+							perMap.get(obl.getClass().getSimpleName()).get(0).getClass() + ", which is not assignable from " + obl.getClass());
+				}
 			}
 			
 			
-			if (	(perMap.containsKey(obl.getClass().getSimpleName())) &&
+			if (	(perMap.get(obl.getClass().getSimpleName())!=null) && 
+					(perMap.containsKey(obl.getClass().getSimpleName())) &&
 					(!perMap.get(obl.getClass().getSimpleName()).isEmpty()) &&
 					(perMap.get(obl.getClass().getSimpleName()).get(0).getClass().isAssignableFrom(obl.getClass())) ) {
 				
@@ -1136,11 +1139,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						
 					}
 				}
+				queue.add(actToDo);
 			}
 			else {
-				logger.warn(getID() + " is not permitted to discharge its obligation to " + obl + " (this should never happen)!");
+				logger.warn(getID() + " is not permitted to discharge its obligation to " + obl);
 			}
-			queue.add(actToDo);
 		}
 		return queue;
 	}
