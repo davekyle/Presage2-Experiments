@@ -49,7 +49,7 @@ public class ClusterPing extends BroadcastMessage<Pair<RoadLocation, Pair<IPConR
 	 * 
 	 * @return The currently chosen fact in the RIC, or null if nothing is chosen
 	 */
-	public Object getChosen() {
+	public Chosen getChosen() {
 		return getData().getB().getB();
 	}
 
