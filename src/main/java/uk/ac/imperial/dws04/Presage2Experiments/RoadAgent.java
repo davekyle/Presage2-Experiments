@@ -1777,14 +1777,17 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
 		result = list.getLast().getKey();
 		// don't give nudge if inst speed is 0...
-		Integer speed = (Integer)(this.institutionalFacts.get("speed").getValue());
-		if (speed==null) {
-			speed = this.getGoals().getSpeed();
-		}
-		if (speed!=0 && result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
-				(list.get(list.size()-2).getValue()>=0)
-				) {
-			result = list.get(list.size()-2).getKey();
+		Chosen instChosen = this.institutionalFacts.get("speed");
+		if (instChosen!=null) {
+			Integer speed = (Integer)(instChosen.getValue());
+			if (speed==null) {
+				speed = this.getGoals().getSpeed();
+			}
+			if (speed!=0 && result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead (unless your inst chosen speed is 0)
+					(list.get(list.size()-2).getValue()>=0)
+					) {
+				result = list.get(list.size()-2).getKey();
+			}
 		}
 		return result;
 	}
