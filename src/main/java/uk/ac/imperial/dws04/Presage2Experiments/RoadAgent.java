@@ -359,6 +359,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						if (leaderIsMoreSenior(leader)) {
 							logger.debug(getID() + " is less senior than another leader (" + leader + ") in " + ric + " so will resign");
 							ricsToResign.add(ric);
+							break; // only need to resign once
 						}
 					}
 				}
@@ -385,47 +386,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			if (!found) {
 				logger.trace(getID() + " could not find a RIC for " + issue + " so will check RICs in current cluster(s).");
-				for (IPConRIC ric : currentRICs) {
-					Collection<IPConRIC> inClusterRICs = ipconService.getRICsInCluster(ric.getCluster());
-					for (IPConRIC ric1 : inClusterRICs) {
-						if (!foundInCluster && ric1.getIssue().equalsIgnoreCase(issue)) {
-							foundInCluster = true;
-							logger.debug(getID() + " found RIC in current cluster (" + ric1 + ") for " + issue + " so will join it.");
-							ricsToJoin.add(ric1);
-							break;
-						}
-					}
-				}
+				foundInCluster = findRICsToJoin_FromExecute(currentRICs, issue, foundInCluster);
 				if (!foundInCluster) {
 					logger.trace(getID() + " could not find a RIC to join for " + issue + /*" and is impatient " +*/ " so will arrogate.");
-					// Make a RIC to arrogate
-					// I = issue
-					// C = cluster you are in, if in one
-					// R = ?
-					UUID cluster = null;
-					if (!institutionalFacts.isEmpty()) {
-						// pick a very-psuedo-random cluster you're already in
-						cluster = institutionalFacts.entrySet().iterator().next().getValue().getCluster();
-						logger.trace(getID() + " arrogating issue " + issue + " in existing cluster " + cluster);
-					}
-					else {
-						// check the clusters you're about to join/arrogate
-						HashSet<IPConRIC> set = new HashSet<IPConRIC>();
-						set.addAll(ricsToArrogate);
-						set.addAll(ricsToJoin);
-						if (!set.isEmpty()) {
-							cluster = set.iterator().next().getCluster();
-							logger.trace(getID() + " arrogating issue " + issue + " in to-be-joined cluster " + cluster);
-						}
-						else {
-							// pick a psuedo-random cluster that doesn't exist yet
-							cluster = Random.randomUUID();
-							logger.trace(getID() + " arrogating issue " + issue + " in new cluster " + cluster);
-						}
-					}
-					IPConRIC newRIC = new IPConRIC(0, issue, cluster);
-					ricsToArrogate.add(newRIC);
-					resetImpatience(issue);
+					findRICToArrogate_FromExecute(issue);
 				}
 				else {
 					// found a RIC in a cluster youre in, and joined it already
@@ -589,6 +553,62 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			passJunction();
 		}
 		submitMove(move);
+	}
+
+	/**
+	 * @param issue
+	 */
+	private void findRICToArrogate_FromExecute(String issue) {
+		// Make a RIC to arrogate
+		// I = issue
+		// C = cluster you are in, if in one
+		// R = ?
+		UUID cluster = null;
+		if (!institutionalFacts.isEmpty()) {
+			// pick a very-psuedo-random cluster you're already in
+			cluster = institutionalFacts.entrySet().iterator().next().getValue().getCluster();
+			logger.trace(getID() + " arrogating issue " + issue + " in existing cluster " + cluster);
+		}
+		else {
+			// check the clusters you're about to join/arrogate
+			HashSet<IPConRIC> set = new HashSet<IPConRIC>();
+			set.addAll(ricsToArrogate);
+			set.addAll(ricsToJoin);
+			if (!set.isEmpty()) {
+				cluster = set.iterator().next().getCluster();
+				logger.trace(getID() + " arrogating issue " + issue + " in to-be-joined cluster " + cluster);
+			}
+			else {
+				// pick a psuedo-random cluster that doesn't exist yet
+				cluster = Random.randomUUID();
+				logger.trace(getID() + " arrogating issue " + issue + " in new cluster " + cluster);
+			}
+		}
+		IPConRIC newRIC = new IPConRIC(0, issue, cluster);
+		ricsToArrogate.add(newRIC);
+		resetImpatience(issue);
+	}
+
+	/**
+	 * @param currentRICs
+	 * @param issue
+	 * @param foundInCluster
+	 * @return
+	 */
+	private Boolean findRICsToJoin_FromExecute(final Collection<IPConRIC> currentRICs,
+			String issue, Boolean foundInCluster) {
+		for (IPConRIC ric : currentRICs) {
+			Collection<IPConRIC> inClusterRICs = ipconService.getRICsInCluster(ric.getCluster());
+			for (IPConRIC ric1 : inClusterRICs) {
+				if (!foundInCluster && ric1.getIssue().equalsIgnoreCase(issue)) {
+					foundInCluster = true;
+					logger.debug(getID() + " found RIC in current cluster (" + ric1 + ") for " + issue + " so will join it.");
+					ricsToJoin.add(ric1);
+					break;
+				}
+			}
+		}
+		return foundInCluster;
 	}
 	
 	/*
