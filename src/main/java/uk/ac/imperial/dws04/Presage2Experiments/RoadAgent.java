@@ -25,10 +25,12 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConException;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.ClusterPing;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConActionMsg;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.ConstantWeightedMoveComparator;
@@ -300,7 +302,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				for (IPConRIC ricInCluster : clusterRICs) {
 				// checkAcceptability of chosen value in ric
 					logger.debug(getID() + " is considering " + ricInCluster);
-					if (isPreferableToCurrent(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()))) {
+					if (isPreferableToCurrent(ricInCluster)) {
 					//if (checkAcceptability(ricInCluster, ipconService.getChosen(ricInCluster.getRevision(), ricInCluster.getIssue(), ricInCluster.getCluster()))) {
 						// if true, increment "join"
 						join++;
@@ -375,33 +377,73 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// - Check if a nearby cluster has issue
 		// - - Join if yes
 		// - - Arrogate if no (always want to be in a RIC)
-		for (String issue : getGoalMap().keySet()) {
+		for (String goalIssue : getGoalMap().keySet()) {
 			Boolean found = false;
 			Boolean foundInCluster = false;
+			IPConRIC issueRIC = null;
 			for (IPConRIC ric : currentRICs) {
-				if (!found && ric.getIssue().equalsIgnoreCase(issue)) {
+				if (!found && ric.getIssue().equalsIgnoreCase(goalIssue)) {
 					found = true;
-					logger.trace(getID() + " is in a RIC (" + ric + ") for " + issue + ").");
+					issueRIC = ric;
+					logger.trace(getID() + " is in a RIC (" + ric + ") for " + goalIssue + ").");
+					break;
 				}
 			}
-			if (!found) {
-				logger.trace(getID() + " could not find a RIC for " + issue + " so will check RICs in current cluster(s).");
-				foundInCluster = findRICsToJoin_FromExecute(currentRICs, issue, foundInCluster);
+			if (!found || issueRIC==null) {
+				logger.trace(getID() + " could not find a RIC for " + goalIssue + " so will check RICs in current cluster(s).");
+				foundInCluster = findRICsToJoin_FromExecute(currentRICs, goalIssue, foundInCluster);
 				if (!foundInCluster) {
-					logger.trace(getID() + " could not find a RIC to join for " + issue + /*" and is impatient " +*/ " so will arrogate.");
-					findRICToArrogate_FromExecute(issue);
+					logger.trace(getID() + " could not find a RIC to join for " + goalIssue + /*" and is impatient " +*/ " so will arrogate.");
+					findRICToArrogate_FromExecute(goalIssue);
 				}
 				else {
 					// found a RIC in a cluster youre in, and joined it already
 				}
-				logger.trace(getID() + " found a RIC to join for " + issue);				
+				logger.trace(getID() + " found a RIC to join for " + goalIssue);				
 			}
 			// else do stuff for RICs youre in
 			// check for chosen values - if there is nothing chosen then do stuff with impatience and think about proposing/leaving/etc
 			// if the nearby clusters have the same (or an as-acceptable) value for your issues, then join(merge) ?
 			//TODO FIXME check to see if the RICs you're in with chosen values have values that are acceptable to you
 			// if not, propose/leave ?
-			
+			else {
+				// if youre in a RIC for the issue, check a value is chosen
+				Chosen chosen = this.getChosenFact(issueRIC.getRevision(), issueRIC.getIssue(), issueRIC.getCluster());
+				// if not, then propose if it makes sense (ie, you can and there's not another process in play)
+				if (chosen==null) {
+					// check for proposal sensibleness
+					Boolean proposalMakesSense = checkProposalSensibleness_FromExecute(issueRIC);
+					// propose if yes
+					if (proposalMakesSense) {
+						ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalIssue, issueRIC.getIssue(), issueRIC.getCluster()));
+					}
+					// else wait for something else
+				}
+				// if there is a chosen value, check it is suitable - if not, then propose if it makes sense, or leave
+				else {
+					// check for suitability of chosen value
+					Boolean suitable = false;
+					try {
+						suitable = isWithinTolerance(goalIssue, chosen.getValue());
+					} catch (InvalidClassException e) {
+						logger.debug(e);
+					}
+					// if suitable, 
+					if (suitable) {
+						// check for proposal sensibleness
+						Boolean proposalMakesSense = checkProposalSensibleness_FromExecute(issueRIC);
+						// propose if yes
+						if (proposalMakesSense) {
+							ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalIssue, issueRIC.getIssue(), issueRIC.getCluster()));
+						}
+						// else if it doesnt make sense to propose then just wait
+					}
+					// if its not suitable then leave
+					else {
+						ricsToLeave.add(issueRIC);
+					}
+				}
+			}
 			
 		}
 		
@@ -555,6 +597,36 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		submitMove(move);
 	}
 
+	private Boolean checkProposalSensibleness_FromExecute(IPConRIC issueRIC) {
+		Collection<HasRole> roles = ipconService.getAgentRoles(getIPConHandle(), issueRIC.getRevision(), issueRIC.getIssue(), issueRIC.getCluster());
+		Boolean areProposer = false;
+		Boolean correctPhase = true;
+		// make sure you're a proposer
+		for (HasRole role : roles) {
+			if (role.getRole().equals(Role.PROPOSER)) {
+				areProposer = true;
+				break;
+			}
+		}
+		// make sure there isnt something else going on (eg, you're in a submit phase)
+		// if you have permission to respond, submit, or vote, then you shouldnt request
+		// TODO This might create 2 Requests as the agent will repeat during the next cycle (while the leader is processing it's request)
+		Collection<IPConAction> permissions = ipconService.getPermissions(getIPConHandle(), issueRIC.getRevision(), issueRIC.getIssue(), issueRIC.getCluster());
+		for (IPConAction act : permissions) {
+			if ( (act instanceof Response1B) || (act instanceof Submit2A) || (act instanceof Vote2B) ) {
+				correctPhase = false;
+				break;
+			}
+		}
+		if (areProposer && correctPhase) {
+			return true;
+		}
+		else {
+			return false;
+		}
+		
+	}
+
 	/**
 	 * @param issue
 	 */
@@ -614,10 +686,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	/*
 	 * FIXME TODO fix this horrific program flow-of-control (so many returns !)
 	 */
-	private boolean isPreferableToCurrent(IPConRIC ric, Object value) {
-		if (value instanceof Chosen) {
-			value = ((Chosen) value).getValue();
-		}
+	private boolean isPreferableToCurrent(IPConRIC ric) {
+		Object value = ipconService.getChosen(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
 		try {
 			// if other cluster is tolerable and current isnt, then switch
 			if (isWithinTolerance(ric.getIssue(), value) && (( !institutionalFacts.containsKey(ric.getIssue()) ) || !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) ) {
