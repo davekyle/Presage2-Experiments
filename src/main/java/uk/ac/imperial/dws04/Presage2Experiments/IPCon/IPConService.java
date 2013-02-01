@@ -246,12 +246,11 @@ public class IPConService extends EnvironmentService {
 			}
 			if (leaders.size()==0) {
 				logger.trace("Got zero facts for getRICLeader(" + revision + "," + issue + "," + cluster  + ") : " + leaders);
-				return null;
 			}
 			else {
 				logger.trace("Got the following for getRICLeader(" + revision + "," + issue + "," + cluster  + ") : " + leaders);
-				return leaders;
 			}
+			return leaders;
 		}
 	}
 	
