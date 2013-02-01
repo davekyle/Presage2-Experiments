@@ -612,14 +612,16 @@ public class IPConAgentTest {
 		assertThat(rics.size(), is( 2 ) );
 		
 		// insert random chosen fact (or try to...) into both of A1's RICs
-		for (IPConRIC ric : rics) {
+		// don't need this because agents have it autoinserted on registration
+		/*for (IPConRIC ric : rics) {
 			Integer revision = ric.getRevision();
 			String issue = ric.getIssue();
 			UUID cluster = ric.getCluster();
 			Integer ballot = 0;
 			Object value = 1;
 			session.insert(new Chosen(revision, ballot, value, issue, cluster));
-		}
+			logger.debug("Session inserting chosen(" + revision + "," + ballot + "," + value + "," + issue + "," + cluster + ")");
+		}*/
 		
 		incrementTime();
 		
@@ -990,6 +992,10 @@ public class IPConAgentTest {
 			incrementTime();
 		}
 		
+		// check theyre both still in the same clusters..
+		for (IPConRIC a1RIC : a1RICs) {
+			assertThat( a2RICs, hasItem(a1RIC) );
+		}
 		
 		assertThat(globalIPConService.getChosen(hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()), nullValue());
 		assertThat(globalIPConService.getFactQueryResults("Voted", hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).size(), is(1));
