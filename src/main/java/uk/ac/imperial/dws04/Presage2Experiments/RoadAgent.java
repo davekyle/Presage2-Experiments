@@ -557,7 +557,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			messageQueue.add(
 					new ClusterPing(
 							Performative.INFORM, getTime(), network.getAddress(), 
-							new Pair<RoadLocation,Pair<IPConRIC,Object>>( myLoc, new Pair<IPConRIC,Object>(ric,entry.getValue()) )
+							new Pair<RoadLocation,Pair<IPConRIC,Chosen>>( myLoc, new Pair<IPConRIC,Chosen>(ric,entry.getValue()) )
 					)
 			);
 		}
