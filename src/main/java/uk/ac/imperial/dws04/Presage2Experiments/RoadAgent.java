@@ -108,6 +108,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * Collection for RICs - should be populated every cycle with agents that ping
 	 */
 	private HashMap<IPConRIC,ClusterPing> nearbyRICs;
+	private HashMap<UUID,ClusterPing> agentRICs;
 	private LinkedList<IPConRIC> ricsToJoin;
 	private LinkedList<IPConRIC> ricsToArrogate;
 	private LinkedList<IPConRIC> ricsToResign;
@@ -232,6 +233,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	public void execute() {
 		// clear temp storage
 		this.nearbyRICs.clear();
+		this.agentRICs.clear();
 		
 		// pull in Messages from the network
 		enqueueInput(this.network.getMessages());
@@ -1922,10 +1924,6 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		RoadLocation startLoc = null;
 		ArrayList<Integer> laneOffsets= new ArrayList<Integer>(1);
 		Integer startSpeed = null;
-		int maxAccel = speedService.getMaxAccel();
-		int maxDecel = speedService.getMaxDecel();
-		int maxSpeed = speedService.getMaxSpeed();
-		int wrapPoint = locationService.getWrapPoint();
 		
 		// get the current location of the agent in question
 		try {
@@ -1937,38 +1935,72 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		
 		if ( (startLoc!=null) && (startSpeed!=null) ) {
-			// get the lanes to be considered, but in relative terms
-			if (allMoves) {
-				for (int i=-1;i<2;i++) {
-					if (locationService.isValidLane(startLoc.getLane() + i)) {
-						laneOffsets.add(i);
-					}
-				}
+			if (this.ownChoiceMethod.equals(OwnChoiceMethod.INST_SAFE) && !agent.equals(getID()) && this.agentRICs.containsKey(agent) ) {
+				// get the cluster for the agent you're looking at
+				// get the speed (and lane? - if not, then move this block down a bit) that agent should choose
+				// if the agent is doing those already, then just return those
+				// if the agent isnt at those, then generate the moves between what theyre currently doing, and what will let them do that
 			}
 			else {
-				laneOffsets.add(0);
-			}
-			
-			// for all lane offsets
-			for (int laneMove : laneOffsets) {
-				// for all speeds from currentSpeed-maxDecel to max(currentSpeed+maxAccel,maxSpeed)
-				int topSpeed = Math.min(startSpeed+maxAccel, maxSpeed);
-				int minSpeed = Math.max(0, startSpeed-maxDecel);
-				for (int speedMove=minSpeed; speedMove<=topSpeed; speedMove++) {
-					// add the move corresponding to the lane offset + speed
-					CellMove move = new CellMove(laneMove,speedMove);
-					RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
-					// need to not insert laneChanges with no speed...
-					if (!( (move.getYInt()==0) && (move.getXInt()!=0) )) {
-						Pair<RoadLocation, RoadLocation> locations = new Pair<RoadLocation,RoadLocation>(startLoc,endLoc);
-						logger.trace("[" + getID() + "] Agent " + getName() + " generated move for " + agent + ":" + move + " between " + locations);
-						result.put(move, locations);
-					}
-				}
+				// get the lanes to be considered, but in relative terms
+				generateLanes_ForGenerateMoves(allMoves, startLoc, laneOffsets);
+				// generate the moves from those lanes
+				generateAllMovesInLanes_ForGenerateMoves(agent, startLoc, laneOffsets, startSpeed, result);
 			}
 		}
 		
 		return result;
+	}
+
+	/**
+	 * @param agent
+	 * @param startLoc
+	 * @param laneOffsets
+	 * @param startSpeed
+	 * @param result
+	 */
+	private void generateAllMovesInLanes_ForGenerateMoves(UUID agent,
+			RoadLocation startLoc, ArrayList<Integer> laneOffsets,
+			Integer startSpeed,	HashMap<CellMove, Pair<RoadLocation, RoadLocation>> result) {
+		int maxAccel = speedService.getMaxAccel();
+		int maxDecel = speedService.getMaxDecel();
+		int maxSpeed = speedService.getMaxSpeed();
+		int wrapPoint = locationService.getWrapPoint();
+		// for all lane offsets
+		for (int laneMove : laneOffsets) {
+			// for all speeds from currentSpeed-maxDecel to max(currentSpeed+maxAccel,maxSpeed)
+			int topSpeed = Math.min(startSpeed+maxAccel, maxSpeed);
+			int minSpeed = Math.max(0, startSpeed-maxDecel);
+			for (int speedMove=minSpeed; speedMove<=topSpeed; speedMove++) {
+				// add the move corresponding to the lane offset + speed
+				CellMove move = new CellMove(laneMove,speedMove);
+				RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneMove,MathsUtils.mod(startLoc.getOffset()+speedMove, wrapPoint) ); 
+				// need to not insert laneChanges with no speed...
+				if (!( (move.getYInt()==0) && (move.getXInt()!=0) )) {
+					Pair<RoadLocation, RoadLocation> locations = new Pair<RoadLocation,RoadLocation>(startLoc,endLoc);
+					logger.trace("[" + getID() + "] Agent " + getName() + " generated move for " + agent + ":" + move + " between " + locations);
+					result.put(move, locations);
+				}
+			}
+		}
+	}
+
+	/**
+	 * @param allMoves
+	 * @param startLoc
+	 * @param laneOffsets
+	 */
+	private void generateLanes_ForGenerateMoves(boolean allMoves, RoadLocation startLoc, ArrayList<Integer> laneOffsets) {
+		if (allMoves) {
+			for (int i=-1;i<2;i++) {
+				if (locationService.isValidLane(startLoc.getLane() + i)) {
+					laneOffsets.add(i);
+				}
+			}
+		}
+		else {
+			laneOffsets.add(0);
+		}
 	}
 
 	@Deprecated
@@ -2527,6 +2559,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	private void process(ClusterPing arg0) {
 		logger.info(getID() + " processing ClusterPing " + arg0);
 		this.nearbyRICs.put(arg0.getRIC(), arg0);
+		this.agentRICs.put(arg0.getFrom().getId(), arg0);
 	}
 
 	/**
