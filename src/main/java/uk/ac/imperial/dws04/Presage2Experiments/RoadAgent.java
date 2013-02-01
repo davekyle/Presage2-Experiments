@@ -627,6 +627,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				}
 				return false; // if none of them are more senior (or it doesnt have any leaders) then don't join
 			}
+			// else (if other cluster is not tolerable - stay where you are as after the try)
 		} catch (InvalidClassException e) {
 			logger.debug(e);
 			return false;
