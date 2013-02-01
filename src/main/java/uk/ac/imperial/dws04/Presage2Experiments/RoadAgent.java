@@ -380,7 +380,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		for (String goalIssue : getGoalMap().keySet()) {
 			Boolean found = false;
 			Boolean foundInCluster = false;
-			Object goalValue = getGoalMap().get(goalIssue);
+			Object goalValue = getGoalMap().get(goalIssue).getA();
 			IPConRIC issueRIC = null;
 			for (IPConRIC ric : currentRICs) {
 				if (!found && ric.getIssue().equalsIgnoreCase(goalIssue)) {
@@ -1015,7 +1015,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				else {
 					// if the field is not null, check it is actually permitted
 					if (! ( f.get(result).equals(f.get(permission) ) ) ) {
-						logger.warn(getID() + " wanted to use " + f.get(result) + " for " + f.getName() + " which is not permitted! (should never happen)");
+						logger.warn(getID() + " wanted to use " + f.get(result) + " for " + f.getName() + " which is not permitted! (should never happen). Permitted action was: " + permission);
 						return null;
 					}
 				}
@@ -1134,7 +1134,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 								logger.error(getID() + " had a problem extracting the fields of an action (this should never happen !)" + act + "...");
 								e.printStackTrace();
 							}
-							if (fActVal!=null) {
+							if (fActVal!=null && !vals.contains(fActVal)) {
 								vals.add(fActVal);
 							}
 						}
@@ -1405,7 +1405,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				
 				(fName.equals("role")) ) {
 					logger.warn(getID() + " encountered a multivalue \"" + fName + "\" field (" + vals + "), which should never happen! Obligation was " + obl);
-					logger.trace(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
+					logger.warn(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
 					try {
 						f.set(actToDo, vals.get(0));
 					} catch (Exception e) {
@@ -1414,7 +1414,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			else {
 				logger.warn(getID() + " encountered the unrecognised field \"" + fName + "\" in " + obl);
-				logger.trace(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
+				logger.warn(getID() + " pesudorandomly picked the value of field " + fName + " to be " + vals.get(0) + " in " + actToDo);
 				try {
 					f.set(actToDo, vals.get(0));
 				} catch (Exception e) {
