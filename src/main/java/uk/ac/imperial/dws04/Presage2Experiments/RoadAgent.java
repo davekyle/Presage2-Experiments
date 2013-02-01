@@ -600,7 +600,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		try {
 			// if other cluster is tolerable and current isnt, then switch
-			if (isWithinTolerance(ric.getIssue(), value) && !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) {
+			if (isWithinTolerance(ric.getIssue(), value) && (( !institutionalFacts.containsKey(ric.getIssue()) ) || !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) ) {
 				return true;
 			}
 			// if current and other cluster are both tolerable... compare leader seniority
