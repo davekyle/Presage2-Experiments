@@ -818,10 +818,10 @@ public class IPConAgentTest {
 		a2RVotes = globalIPConService.getFactQueryResults("ReportedVote", null, null, null);
 		Collection<Voted> a2Voteds = new HashSet<Voted>();
 		Collection<ReportedVote> a2RVoteds = new HashSet<ReportedVote>();
-		for (IPConFact fact : a2Voteds) {
+		for (IPConFact fact : a2Votes) {
 			if (((Voted)fact).getAgent().equals(a2.getIPConHandle())) a2Voteds.add(((Voted)fact));
 		}
-		for (IPConFact fact : a2RVoteds) {
+		for (IPConFact fact : a2RVotes) {
 			if (((ReportedVote)fact).getAgent().equals(a2.getIPConHandle())) a2RVoteds.add((ReportedVote)fact);
 		}
 		assertThat(a2Voteds.size(), is(2));
