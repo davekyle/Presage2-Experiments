@@ -692,40 +692,43 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * FIXME TODO fix this horrific program flow-of-control (so many returns !)
 	 */
 	private boolean isPreferableToCurrent(IPConRIC ric) {
-		Object value = ipconService.getChosen(ric.getRevision(), ric.getIssue(), ric.getCluster()).getValue();
-		try {
-			// if other cluster is tolerable and current isnt, then switch
-			if (isWithinTolerance(ric.getIssue(), value) && (( !institutionalFacts.containsKey(ric.getIssue()) ) || !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) ) {
-				return true;
-			}
-			// if current and other cluster are both tolerable... compare leader seniority
-			else if (isWithinTolerance(ric.getIssue(), value) && isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) {
-				// check the other leader's seniority
-				ArrayList<IPConAgent> currentLeads = getLeadersOfCurrentRIC(ric.getIssue());
-				// FIXME TODO pseudoRandomly pick one...
-				IPConAgent currentLead = null;
-				if (currentLeads!=null && !currentLeads.isEmpty()) {
-					currentLead = currentLeads.get(0);
+		Chosen chosen = ipconService.getChosen(ric.getRevision(), ric.getIssue(), ric.getCluster());
+		if (chosen!=null) {
+			Object value = chosen.getValue();
+			try {
+				// if other cluster is tolerable and current isnt, then switch
+				if (isWithinTolerance(ric.getIssue(), value) && (( !institutionalFacts.containsKey(ric.getIssue()) ) || !isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) ) {
+					return true;
 				}
-				else {
-					return true; // you want to join the other cluster, because yours doesn't exist or doesn't have a leader
-				}
-				ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
-				if (leads!=null) {
-					for (IPConAgent lead : leads) {
-						// if the leader is more senior (so you might join) 
-						if (leaderIsMoreSenior(lead, currentLead)) {
-							return true;
-							// break out of loop with return, so you only add one at most
+				// if current and other cluster are both tolerable... compare leader seniority
+				else if (isWithinTolerance(ric.getIssue(), value) && isWithinTolerance(ric.getIssue(), institutionalFacts.get(ric.getIssue()).getValue())) {
+					// check the other leader's seniority
+					ArrayList<IPConAgent> currentLeads = getLeadersOfCurrentRIC(ric.getIssue());
+					// FIXME TODO pseudoRandomly pick one...
+					IPConAgent currentLead = null;
+					if (currentLeads!=null && !currentLeads.isEmpty()) {
+						currentLead = currentLeads.get(0);
+					}
+					else {
+						return true; // you want to join the other cluster, because yours doesn't exist or doesn't have a leader
+					}
+					ArrayList<IPConAgent> leads = ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster());
+					if (leads!=null) {
+						for (IPConAgent lead : leads) {
+							// if the leader is more senior (so you might join) 
+							if (leaderIsMoreSenior(lead, currentLead)) {
+								return true;
+								// break out of loop with return, so you only add one at most
+							}
 						}
 					}
+					return false; // if none of them are more senior (or it doesnt have any leaders) then don't join
 				}
-				return false; // if none of them are more senior (or it doesnt have any leaders) then don't join
+				// else (if other cluster is not tolerable - stay where you are as after the try)
+			} catch (InvalidClassException e) {
+				logger.debug(e);
+				return false;
 			}
-			// else (if other cluster is not tolerable - stay where you are as after the try)
-		} catch (InvalidClassException e) {
-			logger.debug(e);
-			return false;
 		}
 		// return false if you except or something else goes wrong
 		return false;
@@ -1017,6 +1020,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					if (! ( f.get(result).equals(f.get(permission) ) ) ) {
 						logger.warn(getID() + " wanted to use " + f.get(result) + " for " + f.getName() + " which is not permitted! (should never happen). Permitted action was: " + permission);
 						return null;
+					}
+					else {
+						logger.debug(getID() + " got " + f.get(result) + " for " + f.getName() + " which is permitted! Permitted action was: " + permission);
 					}
 				}
 			} catch (IllegalArgumentException e) {
@@ -2698,7 +2704,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 		}
 		else {
-			logger.info("[" + getID() + "] Agent " + getName() + " not processing input: " + arg0.toString());
+			logger.debug("[" + getID() + "] Agent " + getName() + " not processing input: " + arg0.toString());
 		}
 	}
 
@@ -2707,13 +2713,41 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * If it is, it should make the joining agent an acceptor (kicking off the sync process)
 	 * @param joinAsLearner
 	 */
-	private void process(JoinAsLearner joinAsLearner) {
-		// TODO Auto-generated method stub
-		
+	private void process(JoinAsLearner arg0) {
+		logger.debug(getID() + " processing " + arg0);
+		IPConRIC ric = new IPConRIC(arg0.getRevision(), arg0.getIssue(), arg0.getCluster());
+		if ( !(ipconService.getCurrentRICs().contains(ric)) || !(ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster()).contains(getIPConHandle())) ) {
+			logger.debug(getID() + " is not in " + ric + " and/or is not the leader");
+		}
+		else {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			// doublecheck you have permission
+			Collection<IPConAction> addRolePers = ipconService.getPermissions(getIPConHandle(), revision, issue, cluster);
+			IPConAction addRoleAct = new AddRole(getIPConHandle(), arg0.getAgent(), Role.ACCEPTOR, revision, issue, cluster);
+			if (addRolePers.contains(addRoleAct)) {
+				logger.info(getID() + " will try to " + addRoleAct);
+				ipconActions.add(addRoleAct);
+				// randomly also make them proposer
+				if (Random.randomInt()%9==0) {
+					IPConAction addRolePropAct = new AddRole(getIPConHandle(), arg0.getAgent(), Role.PROPOSER, revision, issue, cluster);
+					if (addRolePers.contains(addRolePropAct)) {
+						logger.info(getID() + " will also try to " + addRolePropAct);
+					}
+					else {
+						logger.warn(getID() + " had permission to " + addRoleAct + " but not to " + addRolePropAct);
+					}
+				}
+			}
+			else {
+				logger.debug(getID() + " thought it was the leader in " + ric + " but does not have permission to " + addRoleAct);
+			}
+		}
 	}
 
 	private void process(ClusterPing arg0) {
-		logger.info(getID() + " processing ClusterPing " + arg0);
+		logger.debug(getID() + " processing ClusterPing " + arg0);
 		this.nearbyRICs.put(arg0.getRIC(), arg0);
 		UUID agent = arg0.getFrom().getId();
 		HashMap<String,ClusterPing> map = this.agentRICs.get(agent);
@@ -2732,10 +2766,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param arg0
 	 */
 	private void process(Submit2A arg0) {
-		logger.info(getID() + " processing " + arg0);
+		logger.debug(getID() + " processing " + arg0);
 		IPConRIC ric = new IPConRIC(arg0.getRevision(), arg0.getIssue(), arg0.getCluster());
 		if (!ipconService.getCurrentRICs().contains(ric)) {
-			logger.info(getID() + " is not in " + ric);
+			logger.debug(getID() + " is not in " + ric);
 		}
 		else {
 			Integer revision = ric.getRevision();
@@ -2764,10 +2798,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 	
 	private void process(Prepare1A arg0) {
-		logger.info(getID() + " processing " + arg0);
+		logger.debug(getID() + " processing " + arg0);
 		IPConRIC ric = new IPConRIC(arg0.getRevision(), arg0.getIssue(), arg0.getCluster());
 		if (!ipconService.getCurrentRICs().contains(ric)) {
-			logger.info(getID() + " is not in " + ric);
+			logger.debug(getID() + " is not in " + ric);
 		}
 		else {
 			Integer revision = ric.getRevision();
