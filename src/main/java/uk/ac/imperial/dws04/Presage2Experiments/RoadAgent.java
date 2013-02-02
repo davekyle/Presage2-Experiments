@@ -1324,50 +1324,60 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					// choose a valid response
 					/*
 					 * Only possible in a Syncack - two options of IPCNV.val or the value proposed:
+					 * *NOTE* actually will get permissions for all SyncAcks ! Should only be the ones
+					 * in clusters you have permissions for though, so don't have to mess about too much.
 					 * 
 					 */
 	
 					if (!obl.getClass().isAssignableFrom(SyncAck.class)) {
 						throw new IPConException("Obligation was not to SyncAck. Class was: " + obl.getClass().getSimpleName());
 					}
-					if ((vals.size()!=2) || (!vals.contains(IPCNV.val())) ){
+					/*if ((vals.size()!=2) || (!vals.contains(IPCNV.val())) ){
 						logger.warn(getID() + " encountered too many, or unexpected, options than usual for a SyncAck (" + vals + ") so is psuedorandomly picking " + vals.get(0));
 						val = vals.get(0);
-					}
+					}*/
 					else {						
-						// choose between ipcnv and the given value
+						// choose between ipcnv and the given values
 						/*
 						 * Need to work out what the issue is, which goal that corresponds to, and then
 						 * decide whether the given value is close enough to your goal to be acceptable.
 						 * If not (or if you can't work out which goal it matched), then reply IPCNV.val().... 
+						 * 
+						 * note that every time you do this you'll get all the possible values and issues,
+						 * so iterate to find the right one...
 						 */
 						String issue = (String)obl.getClass().getField("issue").get(obl);
 						
-						// vals is only 2 values and contains IPCNV
-						//remove the IPCNV so you can get the proposed val
+						//remove the IPCNV so you can get the proposed vals
 						vals.remove(IPCNV.val());
 						
-						if (vals.get(0).getClass().isAssignableFrom(Integer.class)) {
-							if (
-								(	(issue.equalsIgnoreCase("speed")) && 
-									(Math.abs( (Integer)vals.get(0) - this.goals.getSpeed()  ) <= this.goals.getSpeedTolerance() )
-								) &&
-								(	(issue.equalsIgnoreCase("spacing")) && 
-									(Math.abs( (Integer)vals.get(0) - this.goals.getSpacing()  ) <= this.goals.getSpacingTolerance() )
-								)
-								) {
-									logger.trace(getID() + " chose the current value " + vals.get(0) + " for the issue " + issue);
-									val = vals.get(0);
+						for (Object currVal : vals) {
+							if (currVal.getClass().isAssignableFrom(Integer.class)) {
+								if (
+									(	(issue.equalsIgnoreCase("speed")) && 
+										(Math.abs( (Integer)currVal - this.goals.getSpeed()  ) <= this.goals.getSpeedTolerance() )
+									) ||
+									(	(issue.equalsIgnoreCase("spacing")) && 
+										(Math.abs( (Integer)currVal - this.goals.getSpacing()  ) <= this.goals.getSpacingTolerance() )
+									)
+									) {
+										logger.trace(getID() + " chose the current value " + currVal + " for the issue " + issue);
+										val = currVal;
+										break;
+								}
 							}
 							else {
-								logger.trace(getID() + " did not like the current value " + vals.get(0) + " for the issue " + issue);
-								val = IPCNV.val();
+								//vals.remove(IPCNV.val());
+								logger.warn(getID() + " doesn't have a goal for the issue (" + issue + ") or the types didn't match so is happy with the current value " + vals.get(0));
+								val = vals.get(0);
 							}
 						}
+						if (val!=null) {
+							logger.trace(getID() + " found a value it liked (" + val + ") for the issue " + issue);
+						}
 						else {
-							//vals.remove(IPCNV.val());
-							logger.warn(getID() + " doesn't have a goal for the issue (" + issue + ") or the types didn't match so is happy with the current value " + vals.get(0));
-							val = vals.get(0);
+							logger.trace(getID() + " did not like any of the values (" + vals + ") for the issue " + issue);
+							val = IPCNV.val();
 						}
 					}
 				} catch (IPConException e) {
