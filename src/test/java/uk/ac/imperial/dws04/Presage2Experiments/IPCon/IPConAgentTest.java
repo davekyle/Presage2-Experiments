@@ -600,37 +600,64 @@ public class IPConAgentTest {
 	 * @throws Exception
 	 */
 	@Test
-	public void testSingleAgent() throws Exception {
+	public void testSingleAgents() throws Exception {
 		logger.info("\nBeginning test of single agent creating own chosen values...");		
 		// Make an agent, execute(), check there are 2 RICs (spacing and speed)
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(1, 50, 10));
+		TestAgent a2 = createAgent("a2", new RoadLocation(0,0), 1, new RoadAgentGoals(10, 50, 1));
 
 		a1.execute();
+		a2.execute();
 		incrementTime();
 
-		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
-		assertThat(rics.size(), is( 2 ) );
+		Collection<IPConRIC> a1Rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(a1Rics.size(), is( 2 ) );
+		Collection<IPConRIC> a2Rics = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		assertThat(a2Rics.size(), is( 2 ) );
 		
 		// execute some more and check that a1 chooses values in both clusters
 		for (int i = 1; i<=10; i++) {
 			a1.execute();
+			a2.execute();
 			incrementTime();
 		}
 		
-		rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
-		assertThat(rics.size(), is( 2 ) );
-		for (IPConRIC ric : rics) {
+		a1Rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(a1Rics.size(), is( 2 ) );
+		a2Rics = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		assertThat(a2Rics.size(), is( 2 ) );
+		
+		
+		for (IPConRIC ric : a1Rics) {
 			Integer revision = ric.getRevision();
 			String issue = ric.getIssue();
 			UUID cluster = ric.getCluster();
 			Chosen chosen = globalIPConService.getChosen(revision, issue, cluster);
 			assertThat(chosen, is( notNullValue() ));
-			// check that the correct value is chosen
+			// check that the correct value is chosen and they don't interfere with each other
 			if (chosen.getIssue().equalsIgnoreCase("spacing")) {
 				assertThat((Integer)chosen.getValue(), is(10));
 			}
 			else if (chosen.getIssue().equalsIgnoreCase("speed")) {
 				assertThat((Integer)chosen.getValue(), is(1));
+			}
+			else {
+				fail("Issue was neither speed nor spacing ! (Was: " + chosen.getIssue() + ")");
+			}
+		}
+		
+		for (IPConRIC ric : a2Rics) {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			Chosen chosen = globalIPConService.getChosen(revision, issue, cluster);
+			assertThat(chosen, is( notNullValue() ));
+			// check that the correct value is chosen and they don't interfere with each other
+			if (chosen.getIssue().equalsIgnoreCase("spacing")) {
+				assertThat((Integer)chosen.getValue(), is(1));
+			}
+			else if (chosen.getIssue().equalsIgnoreCase("speed")) {
+				assertThat((Integer)chosen.getValue(), is(10));
 			}
 			else {
 				fail("Issue was neither speed nor spacing ! (Was: " + chosen.getIssue() + ")");
