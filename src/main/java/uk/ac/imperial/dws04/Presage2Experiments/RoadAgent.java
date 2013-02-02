@@ -2740,6 +2740,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			if (isWithinTolerance==null || isWithinTolerance) {
 				// vote yes
+				logger.info(getID() + " will try to Vote for " + value + " in " + ric);
 				prospectiveActions.add(new Vote2B(getIPConHandle(), revision, ballot, value, issue, cluster));
 			}
 			else {
@@ -2761,6 +2762,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			UUID cluster = ric.getCluster();
 			Integer ballot = arg0.getBallot();
 			// submit prospective action with nulls to be filled in from permission
+			logger.info(getID() + " will try to send a Response1B in " + ric);
 			prospectiveActions.add(new Response1B(getIPConHandle(), null, null, null, revision, ballot, issue, cluster));
 		}
 	}
