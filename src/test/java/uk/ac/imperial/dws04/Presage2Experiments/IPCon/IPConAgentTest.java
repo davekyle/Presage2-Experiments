@@ -600,6 +600,50 @@ public class IPConAgentTest {
 	 * @throws Exception
 	 */
 	@Test
+	public void testSingleAgent() throws Exception {
+		logger.info("\nBeginning test of single agent creating own chosen values...");		
+		// Make an agent, execute(), check there are 2 RICs (spacing and speed)
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(1, 50, 10));
+
+		a1.execute();
+		incrementTime();
+
+		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(rics.size(), is( 2 ) );
+		
+		// execute some more and check that a1 chooses values in both clusters
+		for (int i = 1; i<=10; i++) {
+			a1.execute();
+			incrementTime();
+		}
+		
+		rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(rics.size(), is( 2 ) );
+		for (IPConRIC ric : rics) {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			Chosen chosen = globalIPConService.getChosen(revision, issue, cluster);
+			assertThat(chosen, is( notNullValue() ));
+			// check that the correct value is chosen
+			if (chosen.getIssue().equalsIgnoreCase("spacing")) {
+				assertThat((Integer)chosen.getValue(), is(10));
+			}
+			else if (chosen.getIssue().equalsIgnoreCase("speed")) {
+				assertThat((Integer)chosen.getValue(), is(1));
+			}
+			else {
+				fail("Issue was neither speed nor spacing ! (Was: " + chosen.getIssue() + ")");
+			}
+		}
+		
+		logger.info("Finished single agent test\n");
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
 	public void testClusterMerge() throws Exception {
 		logger.info("\nBeginning test of joining nearby clusters...");		
 		// Make an agent, execute(), check there are 2 RICs (spacing and speed)
