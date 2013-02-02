@@ -6,7 +6,6 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.*;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,6 +51,9 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.ReportedVote;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Sync;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Voted;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.Time;
@@ -604,7 +606,7 @@ public class IPConAgentTest {
 		logger.info("\nBeginning test of single agent creating own chosen values...");		
 		// Make an agent, execute(), check there are 2 RICs (spacing and speed)
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(1, 50, 10));
-		TestAgent a2 = createAgent("a2", new RoadLocation(0,0), 1, new RoadAgentGoals(10, 50, 1));
+		TestAgent a2 = createAgent("a2", new RoadLocation(1,0), 1, new RoadAgentGoals(10, 50, 1));
 
 		a1.execute();
 		a2.execute();
@@ -616,7 +618,7 @@ public class IPConAgentTest {
 		assertThat(a2Rics.size(), is( 2 ) );
 		
 		// execute some more and check that a1 chooses values in both clusters
-		for (int i = 1; i<=10; i++) {
+		for (int i = 1; i<=5; i++) {
 			a1.execute();
 			a2.execute();
 			incrementTime();
@@ -665,6 +667,188 @@ public class IPConAgentTest {
 		}
 		
 		logger.info("Finished single agent test\n");
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testSync() throws Exception {
+		logger.info("\nBeginning test of sync process...");		
+		// Make an agent, execute(), check there are 2 RICs (spacing and speed)
+		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(1,1, 50, 10,1));
+
+		a1.execute();
+		incrementTime();
+
+		Collection<IPConRIC> a1Rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(a1Rics.size(), is( 2 ) );
+		
+		// execute some more and check that a1 chooses values in both clusters
+		for (int i = 1; i<=5; i++) {
+			a1.execute();
+			incrementTime();
+		}
+		
+		a1Rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(a1Rics.size(), is( 2 ) );
+		
+		for (IPConRIC ric : a1Rics) {
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			Chosen chosen = globalIPConService.getChosen(revision, issue, cluster);
+			assertThat(chosen, is( notNullValue() ));
+			// check that the correct value is chosen and they don't interfere with each other
+			if (chosen.getIssue().equalsIgnoreCase("spacing")) {
+				assertThat((Integer)chosen.getValue(), is(10));
+			}
+			else if (chosen.getIssue().equalsIgnoreCase("speed")) {
+				assertThat((Integer)chosen.getValue(), is(1));
+			}
+			else {
+				fail("Issue was neither speed nor spacing ! (Was: " + chosen.getIssue() + ")");
+			}
+		}
+		logger.info("** Successful setup **");
+		
+		// make new agents, one who will join and one who will not
+		TestAgent a2 = createAgent("a2", new RoadLocation(1,0), 1, new RoadAgentGoals(2,1, 50, 10,1));
+		TestAgent a3 = createAgent("a3", new RoadLocation(2,0), 1, new RoadAgentGoals(20,1, 50, 20,1));
+		
+		a1.execute();
+		a2.execute();
+		a3.execute();
+		incrementTime();
+		
+		a1.execute();
+		a2.execute();
+		a3.execute();
+		incrementTime();
+		
+		// a2 should now have joined a1's cluster as a learner
+		// a3 should not
+		
+		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		assertThat(a1RICs.size(), is( 2 ) );
+		assertThat(a1RICs.toArray(new IPConRIC[2])[0].getCluster(), is(a1RICs.toArray(new IPConRIC[2])[1].getCluster()) );
+		logger.info("** A1 is in 2 RICs in 1 cluster **");
+		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		assertThat(a2RICs.size(), is( 2 ) );
+		Collection<IPConRIC> a3RICs = globalIPConService.getCurrentRICs(a3.getIPConHandle());
+		assertThat(a3RICs.size(), is( 2 ) );
+		
+		logger.info("A1 (" + a1RICs + "), A2 (" + a2RICs + "), and A3 (" + a3RICs + ") both in 2 RICs.");
+
+		// A1 and A2 are both in the same two clusters - A2 left it's clusters and merged with A1
+		for (IPConRIC a1RIC : a1RICs) {
+			assertThat( a2RICs, hasItem(a1RIC) );
+			assertThat( a3RICs, not(hasItem(a1RIC)));
+		}
+		logger.info("** A1 and A2 both in same RICs. A3 not in the same RICs. **");
+		
+		Collection<HasRole> a2Roles = globalIPConService.getAgentRoles(a2.getIPConHandle(), null, null, null);
+		for (HasRole hasRole : a2Roles) {
+			assertThat(hasRole.getRole(), is(Role.LEARNER));
+		}
+		logger.info("** A2 is a LEARNER in all clusters **");
+		
+		// a1 should send an AddRole to make a2 an acceptor
+		// this will init a Sync for a2 in both clusters in the NEXT cycle
+		a1.execute();
+		a2.execute();
+		a3.execute();
+		incrementTime();
+		
+		for (IPConRIC ric : a2RICs) {
+			Collection<HasRole> hasRoles = globalIPConService.getAgentRoles(a2.getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster());
+			assertThat(hasRoles.size(), is(2) );
+			int learner = 0;
+			int acceptor = 0;
+			for (HasRole hasRole : hasRoles) {
+				if (hasRole.getRole().equals(Role.LEARNER)) learner++;
+				if (hasRole.getRole().equals(Role.ACCEPTOR)) acceptor++;
+			}
+			assertThat(learner, is(1));
+			assertThat(acceptor, is(1));
+		}
+		logger.info("** A2 is both an acceptor and learner in all clusters **");
+		
+		// a2 should now be syncing
+		a1.execute();
+		a2.execute();
+		a3.execute();
+		incrementTime();
+		
+		Collection<IPConFact> syncs = globalIPConService.getFactQueryResults("Sync", null, null, null);
+		assertThat(syncs.size(), is(2));
+		for (IPConFact fact : syncs) {
+			Sync sync = (Sync)fact;
+			assertThat(sync.getAgent(), is( a2.getIPConHandle() ));
+			if (sync.getIssue().equalsIgnoreCase("speed")) {
+				assertThat((Integer)sync.getValue(), is(1));
+			}
+			else if (sync.getIssue().equalsIgnoreCase("spacing")) {
+				assertThat((Integer)sync.getValue(), is(10));
+			}
+			else {
+				fail("Found a sync to issue: " + sync.getIssue());
+			}
+		}
+		
+		// check that a2 has not voted in any of the RICs
+		Collection<IPConFact> a2Votes = globalIPConService.getFactQueryResults("Voted", null, null, null);
+		Collection<IPConFact> a2RVotes = globalIPConService.getFactQueryResults("ReportedVote", null, null, null);
+		for (IPConFact fact : a2Votes) {
+			if (((Voted)fact).getAgent().equals(a2.getIPConHandle())) fail("A2 voted: " + (Voted)fact);
+		}
+		for (IPConFact fact : a2RVotes) {
+			if (((ReportedVote)fact).getAgent().equals(a2.getIPConHandle())) fail("A2 has an rVote: " + (ReportedVote)fact);
+		}
+		
+		
+		// a2 should respond with a syncAck yes
+		a1.execute();
+		a2.execute();
+		a3.execute();
+		incrementTime();
+		
+		// check that a2 synced yes, init'ing vote and rVote
+		a2Votes = globalIPConService.getFactQueryResults("Voted", null, null, null);
+		a2RVotes = globalIPConService.getFactQueryResults("ReportedVote", null, null, null);
+		Collection<Voted> a2Voteds = new HashSet<Voted>();
+		Collection<ReportedVote> a2RVoteds = new HashSet<ReportedVote>();
+		for (IPConFact fact : a2Voteds) {
+			if (((Voted)fact).getAgent().equals(a2.getIPConHandle())) a2Voteds.add(((Voted)fact));
+		}
+		for (IPConFact fact : a2RVoteds) {
+			if (((ReportedVote)fact).getAgent().equals(a2.getIPConHandle())) a2RVoteds.add((ReportedVote)fact);
+		}
+		assertThat(a2Voteds.size(), is(2));
+		for (Voted voted : a2Voteds) {
+			if (voted.getIssue().equalsIgnoreCase("speed")) {
+				assertThat((Integer)voted.getValue(), is(1));
+			}
+			else if (voted.getIssue().equalsIgnoreCase("spacing")) {
+				assertThat((Integer)voted.getValue(), is(10));
+			}
+			else {
+				fail("A2 voted on unknown issue " + voted.getIssue());
+			}
+		}
+		assertThat(a2RVoteds.size(), is(2));
+		for (ReportedVote voted : a2RVoteds) {
+			if (voted.getIssue().equalsIgnoreCase("speed")) {
+				assertThat((Integer)voted.getVoteValue(), is(1));
+			}
+			else if (voted.getIssue().equalsIgnoreCase("spacing")) {
+				assertThat((Integer)voted.getVoteValue(), is(10));
+			}
+			else {
+				fail("A2 voted on unknown issue " + voted.getIssue());
+			}
+		}
+		
 	}
 	
 	/**
