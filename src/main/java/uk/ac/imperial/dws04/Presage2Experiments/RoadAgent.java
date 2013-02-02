@@ -2693,10 +2693,23 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			else if ( ((IPConActionMsg)arg0).getType().equalsIgnoreCase("IPConActionMsg[Prepare1A]") ) {
 				process((Prepare1A)(((IPConActionMsg) arg0).getData()));
 			}
+			else if ( ((IPConActionMsg)arg0).getType().equalsIgnoreCase("IPConActionMsg[JoinAsLearner]") ) {
+				process((JoinAsLearner)(((IPConActionMsg) arg0).getData()));
+			}
 		}
 		else {
 			logger.info("[" + getID() + "] Agent " + getName() + " not processing input: " + arg0.toString());
 		}
+	}
+
+	/**
+	 * When an agent recieves a join as learner msgs, it should check to see if it a leader in that cluster.
+	 * If it is, it should make the joining agent an acceptor (kicking off the sync process)
+	 * @param joinAsLearner
+	 */
+	private void process(JoinAsLearner joinAsLearner) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	private void process(ClusterPing arg0) {
