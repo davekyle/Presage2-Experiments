@@ -1018,7 +1018,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				else {
 					// if the field is not null, check it is actually permitted
 					if (! ( f.get(result).equals(f.get(permission) ) ) ) {
-						logger.warn(getID() + " wanted to use " + f.get(result) + " for " + f.getName() + " which is not permitted! (should never happen). Permitted action was: " + permission);
+						logger.debug(getID() + " wanted to use " + f.get(result) + " for " + f.getName() + " which is not permitted! (should never happen). Permitted action was: " + permission);
 						return null;
 					}
 					else {
