@@ -836,6 +836,8 @@ public class IPConAgentTest {
 				fail("A2 voted on unknown issue " + voted.getIssue());
 			}
 		}
+		logger.info("** A2 successfully synced in both clusters **");
+		
 		assertThat(a2RVoteds.size(), is(2));
 		for (ReportedVote voted : a2RVoteds) {
 			if (voted.getIssue().equalsIgnoreCase("speed")) {
@@ -849,6 +851,8 @@ public class IPConAgentTest {
 			}
 		}
 		
+		
+		logger.info("Finished sync test\n");
 	}
 	
 	/**
