@@ -1174,6 +1174,17 @@ public class IPConAgentTest {
 	public void testVotingNo() {
 		logger.info("\nBeginning test of voting no...");
 		
+		
+		// FIXME TODO
+		/*
+		 * This isn't working because a2 is inserted artificially after a value has been chosen,
+		 * and then an artificial request is also inserted...
+		 * 
+		 * Need to revise an issue and then track that the two agents cannot agree on the value
+		 * for that RIC
+		 * 
+		 */
+		
 		// Make agents
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(2,1,50,5,2));
 		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(2,5,50,5,2));
