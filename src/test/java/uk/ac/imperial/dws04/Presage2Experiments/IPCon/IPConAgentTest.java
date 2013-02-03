@@ -21,6 +21,7 @@ import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.rule.QueryResults;
 import org.drools.runtime.rule.QueryResultsRow;
 import org.drools.runtime.rule.Variable;
+import org.hamcrest.core.IsNull;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.After;
@@ -44,6 +45,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.LeaveCluster;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ResignLeadership;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Revise;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.TimeStampedAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
@@ -1187,7 +1189,7 @@ public class IPConAgentTest {
 		
 		// Make agents
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(2,1,50,5,2));
-		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(2,5,50,5,2));
+		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(5,1,50,5,2));
 		
 		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
 		logger.info("A1 is in RICS : " + a1RICs);
@@ -1231,6 +1233,8 @@ public class IPConAgentTest {
 		}
 		TestAgent leader = null; 
 		IPConAgent ipconLeader = hasRoles.get(0).getAgent();
+		Integer revision = hasRoles.get(0).getRevision();
+		UUID cluster = hasRoles.get(0).getCluster();
 		if (ipconLeader.equals(a1.getIPConHandle())) {
 			leader = a1;
 		}
@@ -1238,22 +1242,35 @@ public class IPConAgentTest {
 			leader = a2;
 		}
 		
-		// The agents do not agree
-		Integer value = 4;
+		session.insert(new Revise(ipconLeader, revision, "speed", cluster));
 		
-		// Need to make the leader a proposer...
-		AddRole addProp = new AddRole(ipconLeader, ipconLeader, Role.PROPOSER, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
-		// and both agents acceptors...
-		AddRole addAcc1 = new AddRole(ipconLeader, a1.getIPConHandle(), Role.ACCEPTOR, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
-		AddRole addAcc2 = new AddRole(ipconLeader, a2.getIPConHandle(), Role.ACCEPTOR, hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
-		Request0A req = new Request0A(ipconLeader, hasRoles.get(0).getRevision(), value, hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster());
-		ArrayList<IPConAction> acts = new ArrayList<IPConAction>();
-		acts.add(addProp); acts.add(addAcc1); acts.add(addAcc2); acts.add(req);
-		
-		for (IPConAction act : acts) {
-			leader.getNetwork().sendMessage(new IPConActionMsg(Performative.INFORM, time, leader.getNetwork().getAddress(), act));
+		// wait some more
+		for (int i = 1; i<=2; i++) {
+			a1.execute();
+			a2.execute();
+			incrementTime();
 		}
-		logger.info(leader + " sent msgs " + acts);
+		
+		a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in RICS : " + a1RICs);
+		assertThat(a1RICs.size(), is( 3 ) );
+		a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		logger.info("A2 is in RICS : " + a2RICs);
+		assertThat(a2RICs.size(), is( 3 ) );
+		
+		// check theyre both still in the same clusters..
+		for (IPConRIC a1RIC : a1RICs) {
+			assertThat( a2RICs, hasItem(a1RIC) );
+		}
+
+		assertThat(globalIPConService.getFactQueryResults("Voted", revision+1, "speed", cluster).size(), is(0));
+		assertThat(globalIPConService.getChosen(revision+1, "speed", cluster), nullValue());
+		Collection<HasRole> a1Roles = globalIPConService.getAgentRoles(a1.getIPConHandle(), revision+1, "speed", cluster);
+		Collection<HasRole> a2Roles = globalIPConService.getAgentRoles(a2.getIPConHandle(), revision+1, "speed", cluster);
+		assertThat(a1Roles.size(), is(4)); // lead, acc, prop, learn
+		assertThat(a2Roles.size(), is(1)); // acc
+		
+		logger.info("Both agents successfully revised into new roles");
 		
 		// wait some more
 		for (int i = 1; i<=10; i++) {
@@ -1262,13 +1279,23 @@ public class IPConAgentTest {
 			incrementTime();
 		}
 		
+		// a1 should now have done the voting and no value will be chosen
+		assertThat(globalIPConService.getFactQueryResults("Voted", revision+1, "speed", cluster).size(), is(1));
+		assertThat(globalIPConService.getChosen(revision+1, "speed", cluster), nullValue());
+		 
+		//both agents still in same clusters
+		a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		logger.info("A1 is in RICS : " + a1RICs);
+		assertThat(a1RICs.size(), is( 3 ) );
+		a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		logger.info("A2 is in RICS : " + a2RICs);
+		assertThat(a2RICs.size(), is( 3 ) );
+		
 		// check theyre both still in the same clusters..
 		for (IPConRIC a1RIC : a1RICs) {
 			assertThat( a2RICs, hasItem(a1RIC) );
 		}
-		// a2 is inserted to the cluster artificially after a value has been chosen, so doesn't have a say about it.
-		assertThat(globalIPConService.getChosen(hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()), nullValue());
-		assertThat(globalIPConService.getFactQueryResults("Voted", hasRoles.get(0).getRevision(), hasRoles.get(0).getIssue(), hasRoles.get(0).getCluster()).size(), is(1));
+		
 		logger.info("** Successfully did not achieve consensus **");
 		
 		logger.info("Finished test of voting no\n");
