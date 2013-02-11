@@ -64,7 +64,12 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS, SAFE_INST, INST_SAFE};
+	public enum OwnChoiceMethod {
+		SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS, SAFE_INST, INST_SAFE;
+		public boolean isInstChoice() {
+			return (this.equals(INST_SAFE) || this.equals(SAFE_INST));
+		}
+	};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
@@ -603,6 +608,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// Check to see if you want to turn off, then if you can end up at the junction in the next timecycle, do so
 		if (	(fsm.getState().equals("MOVE_TO_EXIT")) && (junctionDist!=null) ) {
 			//move = driver.turnOff();
+			resignAndLeaveAll();
 			move = createExitMove(junctionDist, neighbourChoiceMethod);
 		}
 		else {
@@ -613,6 +619,31 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			passJunction();
 		}
 		submitMove(move);
+	}
+
+	/**
+	 * Agent should resign and leave all clusters before leaving.
+	 * Should send the msgs in here, since normal msg processing is already finished.
+	 * FIXME Potential issue of joining/arrogating/whatever in the same cycle before this is processed...
+	 */
+	private void resignAndLeaveAll() {
+		logger.info(getID() + " leaving all clusters");
+		Collection<IPConRIC> currentRICs = ipconService.getAllRICs(getIPConHandle());
+		LinkedList<IPConAction> acts = new LinkedList<IPConAction>();
+		LinkedList<IPConActionMsg> msgs = new LinkedList<IPConActionMsg>();
+		for (IPConRIC ric : currentRICs) {
+			if (ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster()).contains(getIPConHandle())) {
+				acts.add(new ResignLeadership(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster()));
+			}
+			acts.add(new LeaveCluster(getIPConHandle(), ric.getCluster()));
+		}
+		for (IPConAction act : acts) {
+			msgs.add(generateIPConActionMsg(act));
+		}
+		while (!msgs.isEmpty()) {
+			logger.debug(getID() + " sending msg " + msgs.getFirst());
+			this.network.sendMessage(msgs.getFirst());
+		}
 	}
 
 	private Boolean checkProposalSensibleness_FromExecute(IPConRIC issueRIC) {
@@ -1471,6 +1502,86 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * Create a safe move with the intention of heading towards the exit
 	 * @return
 	 */
+	@Deprecated
+	private CellMove _old_createExitMove(int nextJunctionDist, NeighbourChoiceMethod neighbourChoiceMethod) {
+		CellMove result = null;
+		if (myLoc.getLane()==0) {
+			if (	(nextJunctionDist>= Math.max((mySpeed-speedService.getMaxDecel()), 1)) &&
+					(nextJunctionDist<= Math.min((mySpeed+speedService.getMaxAccel()), speedService.getMaxSpeed())) ) {
+				result = driver.turnOff();
+				logger.debug("[" + getID() + "] Agent " + getName() + " turning off in " + nextJunctionDist);
+			}
+			else {
+				// FIXME TODO
+				// try to make it so you can end a cycle on the right cell
+				// find a safe move in this lane; this gives you the max safe speed you can move at
+				Pair<CellMove, Integer> maxSpeedMove = createMoveFromNeighbours(myLoc.getLane(), neighbourChoiceMethod);
+				int maxSpeed = maxSpeedMove.getA().getYInt();
+				if (maxSpeedMove.getB().equals(Integer.MAX_VALUE)) {
+					// get a safe move to the exit in the lane
+					result = driver.moveIntoLaneAtSpeed(myLoc.getLane(), safeMoveSpeedToExit(nextJunctionDist, maxSpeed, myLoc.getLane()));
+				}
+				else {
+					logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()) + " to turn towards the exit, so checking the next lane.");
+					Pair<CellMove, Integer> maxSpeedMove2 = createMoveFromNeighbours(myLoc.getLane()+1, neighbourChoiceMethod);
+					int maxSpeed2 = maxSpeedMove2.getA().getYInt();
+					if ( (maxSpeedMove2.getB().equals(Integer.MAX_VALUE)) || (maxSpeedMove2.getB()>maxSpeedMove.getB())) {
+						// if you can change lanes right, do so.
+						logger.debug("[" + getID() + "] Agent " + getName() + " found a safe(r) move in lane " + (myLoc.getLane()+1) + " so is moving out in hope.");
+						result = driver.moveIntoLaneAtSpeed(myLoc.getLane()+1, safeMoveSpeedToExit(nextJunctionDist, maxSpeed2, myLoc.getLane()+1));
+					}
+					else {
+						// if not, slow down
+						logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()+1) + ", so is staying in lane with move " + maxSpeedMove.getA());
+						result = maxSpeedMove.getA();
+					}
+				}
+			}
+		}
+		else {
+			// you're not in lane0 (check validity anyway)
+			if (locationService.isValidLane(myLoc.getLane()-1)) {
+				Pair<CellMove, Integer> maxSpeedMove = createMoveFromNeighbours(myLoc.getLane()-1, neighbourChoiceMethod);
+				int maxSpeed = maxSpeedMove.getA().getYInt();
+				if (maxSpeedMove.getB().equals(Integer.MAX_VALUE)) {
+					// if you can change lanes left, do so.
+					logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + (myLoc.getLane()-1) + " so is moving towards the exit.");
+					result = driver.moveIntoLaneAtSpeed(myLoc.getLane()-1, safeMoveSpeedToExit(nextJunctionDist, maxSpeed, myLoc.getLane()-1));
+				}
+				else {
+					// if not, work out speed for current lane
+					logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()-1) + " to turn towards the exit, so is checking the current lane.");
+					Pair<CellMove, Integer> maxSpeedMove2 = createMoveFromNeighbours(myLoc.getLane(), neighbourChoiceMethod);
+					int maxSpeed2 = maxSpeedMove2.getA().getYInt();
+					if (maxSpeedMove2.getB().equals(Integer.MAX_VALUE)) {
+						// if you canstay in current lane, do so.
+						logger.debug("[" + getID() + "] Agent " + getName() + " found a safe move in lane " + (myLoc.getLane()) + " so is moving to the exit.");
+						result = driver.moveIntoLaneAtSpeed(myLoc.getLane(), safeMoveSpeedToExit(nextJunctionDist, maxSpeed2, myLoc.getLane()));
+					}
+					else {
+						// if not, slow down
+						logger.debug("[" + getID() + "] Agent " + getName() + " couldn't find a safe move in lane " + (myLoc.getLane()) + ", so is slowing down in hope.");
+						result = driver.decelerateMax();
+					}
+				}
+			}
+			else {
+				// skip, not a valid lane - this should never happen !
+				logger.warn("[" + getID() + "] Agent " + getName() + " tried to check invalid lane " + (myLoc.getLane()-1) + " for a safe move");
+				result = null;
+			}
+		}
+		if (result==null){
+			logger.warn("Shouldn't get here.");
+			result = driver.decelerateMax();
+		}
+		return result;
+	}
+	
+	/**
+	 * Create a safe move with the intention of heading towards the exit
+	 * @return
+	 */
 	private CellMove createExitMove(int nextJunctionDist, NeighbourChoiceMethod neighbourChoiceMethod) {
 		CellMove result = null;
 		if (myLoc.getLane()==0) {
@@ -2058,7 +2169,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		
 		if ( (startLoc!=null) && (startSpeed!=null) ) {
-			if (this.ownChoiceMethod.equals(OwnChoiceMethod.INST_SAFE) && !agent.equals(getID()) && this.agentRICs.containsKey(agent) ) {
+			if (this.ownChoiceMethod.isInstChoice() && !agent.equals(getID()) && this.agentRICs.containsKey(agent) ) {
 				// get the chosen for the agent you're looking at
 				Integer chosenSpeed = null;
 				Integer chosenLaneChange = null;
