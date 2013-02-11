@@ -94,7 +94,7 @@ public class ParticipantSpeedService extends SpeedService {
 	 * Gets the speed of the agent. FIXME: checking this way is a bit of a hack
 	 */
 	@Override
-	public int getAgentSpeed(UUID participantID) {
+	public int getAgentSpeed(UUID participantID) throws CannotSeeAgent {
 		// if (this.rangeProvider == null) {
 		// return super.getAgentSpeed(participantID);
 		// } else {

@@ -125,11 +125,16 @@ public class IPConService extends EnvironmentService {
 		for (Entry<String, Pair<Integer, Integer>> goal : goals.entrySet()) {
 			Integer revision = 0;
 			String issue = goal.getKey();
+			//Integer ballot = 0;
+			//Object value = goal.getValue().getA();
 			session.insert(new IPConRIC(revision, issue, cluster));
 			session.insert(new HasRole(Role.LEADER, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.ACCEPTOR, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.LEARNER, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.PROPOSER, handle, revision, issue, cluster));
+			// need to insert the agents goal (goal variable is Entry<String<Pair<Value,Tolerance>>) as it is trivially chosen here
+			// TODO FIXME doing it this way breaks things because there are no voted/reportedVote so the "safe" values are wrong !
+			// session.insert(new Chosen(revision, ballot, value, issue, cluster));
 		}
 	}
 	
@@ -241,12 +246,11 @@ public class IPConService extends EnvironmentService {
 			}
 			if (leaders.size()==0) {
 				logger.trace("Got zero facts for getRICLeader(" + revision + "," + issue + "," + cluster  + ") : " + leaders);
-				return null;
 			}
 			else {
 				logger.trace("Got the following for getRICLeader(" + revision + "," + issue + "," + cluster  + ") : " + leaders);
-				return leaders;
 			}
+			return leaders;
 		}
 	}
 	
@@ -474,11 +478,18 @@ public class IPConService extends EnvironmentService {
 	 */
 	public Collection<IPConRIC> getCurrentRICs(IPConAgent handle) {
 		Collection<IPConRIC> result = new HashSet<IPConRIC>();
+		QueryResults coll = session.getQueryResults("getCurrentRICs", new Object[]{handle});
+		for (QueryResultsRow row : coll) {
+			result.add((IPConRIC)row.get("$ric"));
+		}
+		return result;
+	}
+	
+	public Collection<IPConRIC> getAllRICs(IPConAgent handle) {
+		Collection<IPConRIC> result = new HashSet<IPConRIC>();
 		Collection<HasRole> coll = getAgentRoles(handle, null, null, null);
 		for (HasRole fact : coll) {
-			//if ( (fact instanceof HasRole) && ((HasRole)fact).getAgent().equals(handle) ) {
-				result.add( fact.getRIC() );
-			//}
+			result.add( fact.getRIC() );
 		}
 		return result;
 	}
@@ -540,6 +551,13 @@ public class IPConService extends EnvironmentService {
 		else
 			throw new IPConException("No votes found");
 		
+	}
+
+	/**
+	 * @return the timeHandle
+	 */
+	public FactHandle getTimeHandle() {
+		return timeHandle;
 	}
 	
 }

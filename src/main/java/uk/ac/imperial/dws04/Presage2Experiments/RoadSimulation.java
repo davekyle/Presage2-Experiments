@@ -51,10 +51,11 @@ import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
+import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
 /**
- * run with uk.ac.imperial.dws04.Presage2Experiments.Presage2Experiments.RoadSimulation finishTime=10 length=10 lanes=4 initialAgents=2 maxSpeed=3 maxAccel=1 maxDecel=1 junctionCount=0
- * CLI add -classname uk.ac.imperial.dws04.Presage2Experiments.Presage2Experiments.RoadSimulation -finish 10 -name RoadSim  -P length=10 -P lanes=4 -P initialAgents=2 -P maxSpeed=3 -P maxAccel=1 -P maxDecel=1 -P junctionCount=0
+ * run with uk.ac.imperial.dws04.Presage2Experiments.RoadSimulation finishTime=100 length=50 lanes=3 initialAgents=2 maxSpeed=3 maxAccel=1 maxDecel=1 junctionCount=0 seed=123456 ownChoiceMethod=SAFE_CONSTANT neighbourChoiceMethod=WORSTCASE insertMethod=low
+ * CLI add -classname uk.ac.imperial.dws04.Presage2Experiments.RoadSimulation -finish 10 -name RoadSim  -P length=10 -P lanes=4 -P initialAgents=2 -P maxSpeed=3 -P maxAccel=1 -P maxDecel=1 -P junctionCount=0
  * 
  * @author dws04
  *
@@ -87,7 +88,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public int junctionCount;
 	
 	@Parameter(name="ownChoiceMethod", optional=true)
-	public String ownChoiceMethod = OwnChoiceMethod.SAFE.name();
+	public String ownChoiceMethod = OwnChoiceMethod.SAFE_CONSTANT.name();
 	public OwnChoiceMethod ownCM = null;
 	
 	@Parameter(name="neighbourChoiceMethod", optional=true)
@@ -95,7 +96,10 @@ public class RoadSimulation extends InjectedSimulation {
 	public NeighbourChoiceMethod neighbourCM = null;
 	
 	@Parameter(name="seed", optional=true)
-	public String seed = null; 
+	public String seed = "123456"; 
+	
+	@Parameter(name="insertMethod", optional=true)
+	public String insertMethod = "odd";
 	
 	HashMap<UUID, String> agentNames;
 	HashMap<UUID,RoadLocation> agentLocations;
@@ -208,7 +212,9 @@ public class RoadSimulation extends InjectedSimulation {
 			// don't want speeds to be 0
 			int startSpeed = Random.randomInt(maxSpeed)+1;
 			RoadAgentGoals goals = createNewAgentGoals();
-			s.addParticipant(new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM()));
+			RoadAgent agent = new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM());
+			s.addParticipant(agent);
+			agent.initialiseTime(getCurrentSimulationTime());
 			agentLocations.put(uuid, startLoc);
 			agentNames.put(uuid, name);
 			logger.debug("Now tracking " + agentNames.size() + " agents.");
@@ -269,7 +275,7 @@ public class RoadSimulation extends InjectedSimulation {
 	@EventListener
 	public int makeNewAgent(EndOfTimeCycle e) {
 		logger.debug("Detected an EndOfTimeCycle event so seeing if we should insert an agent");
-		if (Random.randomInt()%2!=0) {
+		if (shouldInsertNewAgent(this.insertMethod)) {
 			Integer junctionOffset = this.getEnvironmentService().getNextInsertionJunction();
 			if (junctionOffset!=null) {
 				UUID uuid = createNextAgent(0, junctionOffset);
@@ -286,6 +292,28 @@ public class RoadSimulation extends InjectedSimulation {
 	}
 
 	/**
+	 * @return
+	 */
+	private boolean shouldInsertNewAgent(String insertMethod) {
+		if (insertMethod.equalsIgnoreCase("odd")) {
+			return Random.randomInt()%2!=0;
+		}
+		else if (insertMethod.equalsIgnoreCase("every")) {
+			logger.error("INSERTING AN AGENT EVERY CYCLE ! THIS IS NOT A GOOD IDEA !");
+			return true;
+		}
+		else if (insertMethod.equalsIgnoreCase("low")) {
+			return Random.randomInt()%4==0;
+		}
+		else if (insertMethod.equalsIgnoreCase("veryLow")) {
+			return Random.randomInt()%9==0;
+		}
+		else {
+			return Random.randomInt()%2!=0;
+		}
+	}
+
+	/**
 	 * Creates the next (in naming) agent at the location specified with speed 0 and random goals
 	 * @param lane
 	 * @param startOffset
@@ -299,6 +327,7 @@ public class RoadSimulation extends InjectedSimulation {
 		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM());
 		this.scenario.addParticipant(p);
 		p.initialise();
+		((AbstractParticipant) p).initialiseTime(getCurrentSimulationTime());
 		logger.info("Inserting " + name + " [" + uuid + "] at " + startLoc);
 		agentNames.put(uuid, name);
 		logger.debug("Now tracking " + agentNames.size() + " agents.");
@@ -313,7 +342,7 @@ public class RoadSimulation extends InjectedSimulation {
 	@EventListener
 	public void updateAgentLocations(EndOfTimeCycle e) {
 		for (UUID a : getMembersService().getParticipants()) {
-			this.agentLocations.remove(a);
+			//this.agentLocations.remove(a);
 			logger.trace("Updating location of agent " + a + " from " + this.agentLocations.get(a) + " to " + (RoadLocation) getLocationService().getAgentLocation(a));
 			this.agentLocations.put(a, (RoadLocation) getLocationService().getAgentLocation(a));
 		}
@@ -371,7 +400,7 @@ public class RoadSimulation extends InjectedSimulation {
 			}
 			// if you don't find it, return SAFE;
 			logger.trace("Couldn't find ocm=" + ownChoiceMethod + " so using SAFE");
-			this.ownCM = OwnChoiceMethod.SAFE;
+			this.ownCM = OwnChoiceMethod.SAFE_FAST;
 			return this.ownCM;
 		}
 	}
