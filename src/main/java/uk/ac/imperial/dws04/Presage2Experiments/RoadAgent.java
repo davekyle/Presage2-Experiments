@@ -405,7 +405,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// else do stuff for RICs youre in
 			// check for chosen values - if there is nothing chosen then do stuff with impatience and think about proposing/leaving/etc
 			// if the nearby clusters have the same (or an as-acceptable) value for your issues, then join(merge) ?
-			//TODO FIXME check to see if the RICs you're in with chosen values have values that are acceptable to you
+			// check to see if the RICs you're in with chosen values have values that are acceptable to you
 			// if not, propose/leave ?
 			else {
 				// if youre in a RIC for the issue, check a value is chosen
