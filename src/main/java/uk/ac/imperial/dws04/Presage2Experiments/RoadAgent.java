@@ -1592,6 +1592,15 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			else {
 				// FIXME TODO
+				// if you can't go past the junction this cycle (njd > Math.min(mySpeed+getMaxAccel(), maxSpeed)) then 
+				// choose lowest speed such that you won't crash and will be in lane0 (maybe choose to change up if there are no even tenuously safe moves in lane0)
+				// if you can go past a junction this cycle, then you're done :
+				// if (nextJunctionDistance <= Math.min(mySpeed+speedService.getMaxAccel(), speedService.getMaxSpeed() ) {
+				// anySpeedYouCanGenerate = the smallest move between speed+/-max{Ac|De}cel that is larger than njd
+				// return new CellMove(-1, anySpeedYouCanGenerate);
+				
+				
+				
 				// try to make it so you can end a cycle on the right cell
 				// find a safe move in this lane; this gives you the max safe speed you can move at
 				Pair<CellMove, Integer> maxSpeedMove = createMoveFromNeighbours(myLoc.getLane(), neighbourChoiceMethod);
@@ -1619,6 +1628,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		else {
 			// you're not in lane0 (check validity anyway)
+			// FIXME TODO then you should move towards lane0 using safe moves that are as slow as possible
+			
 			if (locationService.isValidLane(myLoc.getLane()-1)) {
 				Pair<CellMove, Integer> maxSpeedMove = createMoveFromNeighbours(myLoc.getLane()-1, neighbourChoiceMethod);
 				int maxSpeed = maxSpeedMove.getA().getYInt();
