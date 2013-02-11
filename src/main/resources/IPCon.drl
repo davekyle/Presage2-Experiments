@@ -570,6 +570,12 @@ query "getHighestBallotRV" ( String $issue, UUID $cluster )
 	not ReportedVote( ballot>$rvBal, revision>=$rvRev, issue==$issue, cluster==$cluster )
 end
 
+// get RICs for an agent, ignoring out of date revisions
+query "getCurrentRICs" ( IPConAgent $agent )
+	HasRole( agent==$agent, $revision : revision, $issue : issue, $cluster : cluster )
+	not HasRole( agent==$agent, revision>$revision, issue==$issue, cluster==$cluster )
+	$ric : IPConRIC( revision==$revision, issue==$issue, cluster==$cluster )
+end
 
 
 
