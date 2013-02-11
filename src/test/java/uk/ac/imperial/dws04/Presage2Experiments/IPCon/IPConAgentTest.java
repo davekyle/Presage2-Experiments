@@ -362,7 +362,7 @@ public class IPConAgentTest {
 		 * A1 sends instantiated prepare message.
 		 * A2 and A3 not obligated to respond, but should respond with IPCNV.
 		 */
-		session.insert(a1Obl1.get(0));
+		insert(a1Obl1.get(0));
 		incrementTime();
 		Collection<IPConAction> obl2 = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
 		logger.info("Agents not obligated :" + obl2);
@@ -384,7 +384,7 @@ public class IPConAgentTest {
 		 * A1 should be obligated to submit the proposed value.
 		 */
 		for (IPConAction act : per2) {
-			session.insert(act);
+			insert(act);
 		}
 		incrementTime();
 		Collection<IPConAction> obl3 = globalIPConService.getActionQueryResultsForRIC("getObligations", "Submit2A", a1.getIPConHandle(), revision, issue, cluster);
@@ -404,7 +404,7 @@ public class IPConAgentTest {
 		 * Insert A1's instantiated submit action.
 		 * A1-3 not obligated to vote, but permitted to.
 		 */
-		session.insert(a1Obl3.get(0));
+		insert(a1Obl3.get(0));
 		incrementTime();
 		Collection<IPConAction> per3 = globalIPConService.getActionQueryResultsForRIC("getPermissions", "Vote2B", null, revision, issue, cluster);
 		logger.info("Agents permitted to :" + per3);
@@ -416,7 +416,7 @@ public class IPConAgentTest {
 		 * VALUE should be chosen.
 		 */
 		for (IPConAction act : per3) {
-			session.insert(act);
+			insert(act);
 		}
 		incrementTime();
 		Collection<IPConAction> obl4 = globalIPConService.getActionQueryResultsForRIC("getObligations", null, null, revision, issue, cluster);
@@ -453,7 +453,7 @@ public class IPConAgentTest {
 		 * A4 should be obligated to reply (multiple choice).
 		 * A1-3 should not be obligated.
 		 */
-		session.insert(a1Obl5.get(0));
+		insert(a1Obl5.get(0));
 		incrementTime();
 		Collection<IPConAction> obl6 = globalIPConService.getActionQueryResultsForRIC("getObligations", "SyncAck", a4.getIPConHandle(), revision, issue, cluster);
 		logger.info("A4 obligated to :" + obl6);
@@ -880,7 +880,7 @@ public class IPConAgentTest {
 			UUID cluster = ric.getCluster();
 			Integer ballot = 0;
 			Object value = 1;
-			session.insert(new Chosen(revision, ballot, value, issue, cluster));
+			insert(new Chosen(revision, ballot, value, issue, cluster));
 			logger.debug("Session inserting chosen(" + revision + "," + ballot + "," + value + "," + issue + "," + cluster + ")");
 		}
 		
@@ -1231,7 +1231,8 @@ public class IPConAgentTest {
 			leader = a2;
 		}
 		
-		session.insert(new Revise(ipconLeader, revision, "speed", cluster));
+		Revise revise = new Revise(ipconLeader, revision, "speed", cluster);
+		leader.getNetwork().sendMessage(new IPConActionMsg(Performative.INFORM, time, leader.getNetwork().getAddress(), revise));
 		
 		// wait some more
 		for (int i = 1; i<=2; i++) {
