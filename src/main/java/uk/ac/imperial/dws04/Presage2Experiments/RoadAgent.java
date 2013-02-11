@@ -279,7 +279,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// check for vehicles infront/behind you with matching issues and compatible values
 		// look in nearbyRICs - possible to get location of those vehicles ? clusterpings are range-less...
 		for (Entry<IPConRIC,ClusterPing> entry : this.nearbyRICs.entrySet()) {
-			
+			logger.trace(getID() + " is checking " + entry);
 			
 			// FIXME TODO should remove duplicates around here somewhere
 			
@@ -378,6 +378,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// - - Join if yes
 		// - - Arrogate if no (always want to be in a RIC)
 		for (String goalIssue : getGoalMap().keySet()) {
+			logger.trace(getID() + " is thinking about their goal \'" + goalIssue + "\'");
 			Boolean found = false;
 			Boolean foundInCluster = false;
 			Object goalValue = getGoalMap().get(goalIssue).getA();
@@ -408,6 +409,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			// check to see if the RICs you're in with chosen values have values that are acceptable to you
 			// if not, propose/leave ?
 			else {
+				logger.trace(getID() + " is in a RIC for " + goalIssue + " - " + issueRIC + ", so is checking the chosen value");
 				// if youre in a RIC for the issue, check a value is chosen
 				Chosen chosen = this.getChosenFact(issueRIC.getRevision(), issueRIC.getIssue(), issueRIC.getCluster());
 				// if not, then propose if it makes sense (ie, you can and there's not another process in play)
@@ -416,9 +418,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					Boolean proposalMakesSense = checkProposalSensibleness_FromExecute(issueRIC);
 					// propose if yes
 					if (proposalMakesSense) {
+						logger.debug(getID() + " could not find a chosen value in " + issueRIC + " so is proposing their goalValue");
 						ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalValue, issueRIC.getIssue(), issueRIC.getCluster()));
 					}
 					// else wait for something else
+					else { 
+						logger.trace(getID() + " could not find a chosen value in " + issueRIC + " but cannot do anything, so is waiting");
+					}
 				}
 				// if there is a chosen value, check it is suitable - if not, then propose if it makes sense, or leave
 				else {
@@ -435,18 +441,25 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						Boolean proposalMakesSense = checkProposalSensibleness_FromExecute(issueRIC);
 						// propose if yes
 						if (proposalMakesSense) {
+							logger.debug(getID() + " did not like the chosen value in " + issueRIC + " so is proposing their goalValue");
 							ipconActions.add(new Request0A(getIPConHandle(), issueRIC.getRevision(), goalValue, issueRIC.getIssue(), issueRIC.getCluster()));
 						}
+						// else if it doesnt make sense to propose then just wait
 						else {
 							// FIXME TODO randomly choose to be sulky and leave the cluster
 							if (Random.randomInt()%9==0) {
+								logger.debug(getID() + " did not like the chosen value in " + issueRIC + " and cannot propose so is being sulky and leaving");
 								ricsToLeave.add(issueRIC);
 							}
+							else {
+								logger.debug(getID() + " did not like the chosen value in " + issueRIC + " and cannot propose but is putting up with it");
+							}
 						}
-						// else if it doesnt make sense to propose then just wait
 					}
 					// if suitable then yay
-					
+					else {
+						logger.trace(getID() + " is happy with the chosen value (" + chosen.getValue() + ") in " + issueRIC);
+					}
 				}
 			}
 			
