@@ -2275,12 +2275,12 @@ public class IPConDrlsTest {
 	
 	private void checkNoPowPerObl(IPConAgent[] list) {
 		for (IPConAgent ag : list) {
-			assertActionCount("getPowers", null, ag, null, null, null, 2); // can always arrogate, join (and leave if you have a role)
 			assertActionCount("getPowers", "ArrogateLeadership", ag, null, null, null, 1);
 			assertActionCount("getPowers", "JoinAsLearner", ag, null, null, null, 1);
-			assertActionCount("getPermissions", null, ag, null, null, null, 2);
+			assertActionCount("getPowers", null, ag, null, null, null, 2); // can always arrogate, join (and leave if you have a role)
 			assertActionCount("getPermissions", "ArrogateLeadership", ag, null, null, null, 1);
 			assertActionCount("getPermissions", "JoinAsLearner", ag, null, null, null, 1);
+			assertActionCount("getPermissions", null, ag, null, null, null, 2);
 			assertActionCount("getObligations", null, ag, null, null, null, 0);
 		}
 	
