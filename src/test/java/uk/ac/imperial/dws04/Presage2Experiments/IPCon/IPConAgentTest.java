@@ -321,7 +321,7 @@ public class IPConAgentTest {
 		incrementTime();
 		
 		// get a valid RIC
-		IPConRIC a1RIC = globalIPConService.getCurrentRICs(a1.getIPConHandle()).iterator().next();
+		IPConRIC a1RIC = globalIPConService.getAllRICs(a1.getIPConHandle()).iterator().next();
 		final Integer revision = a1RIC.getRevision();
 		final String issue = a1RIC.getIssue();
 		final UUID cluster = a1RIC.getCluster();
@@ -492,7 +492,7 @@ public class IPConAgentTest {
 		incrementTime();
 		
 		// get a valid RIC
-		IPConRIC a1RIC = globalIPConService.getCurrentRICs(a1.getIPConHandle()).iterator().next();
+		IPConRIC a1RIC = globalIPConService.getAllRICs(a1.getIPConHandle()).iterator().next();
 		final Integer revision = a1RIC.getRevision();
 		final String issue = a1RIC.getIssue();
 		final UUID cluster = a1RIC.getCluster();
@@ -558,7 +558,7 @@ public class IPConAgentTest {
 		logger.info("A1 is : " + a1);
 		a1.execute();
 		incrementTime();
-		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> rics = globalIPConService.getAllRICs(a1.getIPConHandle());
 		logger.info("A1 is in " + rics);
 		assertThat(rics.size(), is( 2 ) );
 		logger.info("** Auto-Arrogate new RICs for goals during registration test passed **");
@@ -579,7 +579,7 @@ public class IPConAgentTest {
 		}
 		
 		incrementTime();
-		Collection<IPConRIC> noRICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> noRICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		logger.info("A1 is in " + noRICs);
 		assertThat(noRICs.size(), is(0));
 		logger.info("Agent left all RICs.");
@@ -587,7 +587,7 @@ public class IPConAgentTest {
 		a1.execute();
 		incrementTime();
 		
-		Collection<IPConRIC> newRICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> newRICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		logger.info("A1 is in " + newRICs);
 		assertThat(newRICs.size(), is( 2 ) );
 		logger.info("** Arrogate new clusters for goals test passed **");
@@ -614,9 +614,9 @@ public class IPConAgentTest {
 		a2.execute();
 		incrementTime();
 
-		Collection<IPConRIC> a1Rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> a1Rics = globalIPConService.getAllRICs(a1.getIPConHandle());
 		assertThat(a1Rics.size(), is( 2 ) );
-		Collection<IPConRIC> a2Rics = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		Collection<IPConRIC> a2Rics = globalIPConService.getAllRICs(a2.getIPConHandle());
 		assertThat(a2Rics.size(), is( 2 ) );
 		
 		// execute some more and check that a1 chooses values in both clusters
@@ -626,9 +626,9 @@ public class IPConAgentTest {
 			incrementTime();
 		}
 		
-		a1Rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		a1Rics = globalIPConService.getAllRICs(a1.getIPConHandle());
 		assertThat(a1Rics.size(), is( 2 ) );
-		a2Rics = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		a2Rics = globalIPConService.getAllRICs(a2.getIPConHandle());
 		assertThat(a2Rics.size(), is( 2 ) );
 		
 		
@@ -683,7 +683,7 @@ public class IPConAgentTest {
 		a1.execute();
 		incrementTime();
 
-		Collection<IPConRIC> a1Rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> a1Rics = globalIPConService.getAllRICs(a1.getIPConHandle());
 		assertThat(a1Rics.size(), is( 2 ) );
 		
 		// execute some more and check that a1 chooses values in both clusters
@@ -692,7 +692,7 @@ public class IPConAgentTest {
 			incrementTime();
 		}
 		
-		a1Rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		a1Rics = globalIPConService.getAllRICs(a1.getIPConHandle());
 		assertThat(a1Rics.size(), is( 2 ) );
 		
 		for (IPConRIC ric : a1Rics) {
@@ -731,13 +731,13 @@ public class IPConAgentTest {
 		// a2 should now have joined a1's cluster as a learner
 		// a3 should not
 		
-		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> a1RICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		assertThat(a1RICs.size(), is( 2 ) );
 		assertThat(a1RICs.toArray(new IPConRIC[2])[0].getCluster(), is(a1RICs.toArray(new IPConRIC[2])[1].getCluster()) );
 		logger.info("** A1 is in 2 RICs in 1 cluster **");
-		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		Collection<IPConRIC> a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		assertThat(a2RICs.size(), is( 2 ) );
-		Collection<IPConRIC> a3RICs = globalIPConService.getCurrentRICs(a3.getIPConHandle());
+		Collection<IPConRIC> a3RICs = globalIPConService.getAllRICs(a3.getIPConHandle());
 		assertThat(a3RICs.size(), is( 2 ) );
 		
 		logger.info("A1 (" + a1RICs + "), A2 (" + a2RICs + "), and A3 (" + a3RICs + ") both in 2 RICs.");
@@ -869,7 +869,7 @@ public class IPConAgentTest {
 		a1.execute();
 		incrementTime();
 
-		Collection<IPConRIC> rics = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> rics = globalIPConService.getAllRICs(a1.getIPConHandle());
 		assertThat(rics.size(), is( 2 ) );
 		
 		// insert random chosen fact (or try to...) into both of A1's RICs
@@ -913,11 +913,11 @@ public class IPConAgentTest {
 			assertThat(globalIPConService.getChosen(revision, issue, cluster), is( notNullValue() ));
 		}
 		
-		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> a1RICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		assertThat(a1RICs.size(), is( 2 ) );
 		assertThat(a1RICs.toArray(new IPConRIC[2])[0].getCluster(), is(a1RICs.toArray(new IPConRIC[2])[1].getCluster()) );
 		logger.info("** A1 is in 2 RICs in 1 cluster **");
-		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		Collection<IPConRIC> a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		assertThat(a2RICs.size(), is( 2 ) );
 		
 		logger.info("A1 (" + a1RICs + ") and A2 (" + a2RICs + ") both in 2 RICs.");
@@ -938,14 +938,14 @@ public class IPConAgentTest {
 		
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1);
 		// get a valid RIC
-		IPConRIC a1RIC = globalIPConService.getCurrentRICs(a1.getIPConHandle()).iterator().next();
+		IPConRIC a1RIC = globalIPConService.getAllRICs(a1.getIPConHandle()).iterator().next();
 		final Integer revision = a1RIC.getRevision();
 		final String issue = a1RIC.getIssue();
 		final UUID cluster = a1RIC.getCluster();
 		insert(new ResignLeadership(a1.getIPConHandle(), revision, issue, cluster));
 		// increment time to insert the resignation
 		incrementTime();
-		assertThat(globalIPConService.getCurrentRICs(a1.getIPConHandle()).size(), is( 2 ) );
+		assertThat(globalIPConService.getAllRICs(a1.getIPConHandle()).size(), is( 2 ) );
 		logger.info("Successful setup.");
 		
 		for (int i = 1; i<=10; i++) {
@@ -953,7 +953,7 @@ public class IPConAgentTest {
 			a1.execute();
 			incrementTime();
 		}
-		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> a1RICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		assertThat(a1RICs.size(), is( 2 ) );
 		logger.info("A1 is still in 2 RICs.");
 		
@@ -983,12 +983,12 @@ public class IPConAgentTest {
 		addRoles(a1.getIPConHandle(), new Role[]{Role.LEADER}, revision2, issue2, cluster);
 		addRoles(a2.getIPConHandle(), new Role[]{Role.ACCEPTOR}, revision2, issue2, cluster);
 
-		assertThat(globalIPConService.getCurrentRICs(a1.getIPConHandle()).size(), is( 2 ) );
+		assertThat(globalIPConService.getAllRICs(a1.getIPConHandle()).size(), is( 2 ) );
 		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).size(), is(1));
 		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).iterator().next(), is(a1.getIPConHandle()));
 		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).size(), is(1));
 		assertThat(globalIPConService.getRICLeader(revision2, issue2, cluster).iterator().next(), is(a1.getIPConHandle()));
-		assertThat(globalIPConService.getCurrentRICs(a2.getIPConHandle()).size(), is( 1 ) );
+		assertThat(globalIPConService.getAllRICs(a2.getIPConHandle()).size(), is( 1 ) );
 		logger.info("Succesful setup.");
 		
 		// execute and check that a1 and a2 are both in (the same) 2 RICs
@@ -1000,10 +1000,10 @@ public class IPConAgentTest {
 			outputObjects();
 		}
 		
-		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> a1RICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		logger.info("A1 is in RICS : " + a1RICs);
 		assertThat(a1RICs.size(), is( 2 ) );
-		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		Collection<IPConRIC> a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		logger.info("A2 is in RICS : " + a2RICs);
 		assertThat(a2RICs.size(), is( 2 ) );
 		assertThat(globalIPConService.getRICLeader(revision1, issue1, cluster).size(), is(1));
@@ -1028,7 +1028,7 @@ public class IPConAgentTest {
 
 		final Integer revision = 1;
 		final String issue = "ISSUE";
-		final UUID cluster = globalIPConService.getCurrentRICs(a1.getIPConHandle()).iterator().next().getCluster();
+		final UUID cluster = globalIPConService.getAllRICs(a1.getIPConHandle()).iterator().next().getCluster();
 		
 		// make the agents have the goals for the new issue
 		a1.getGoalMap().put(issue, new Pair<Integer,Integer>(1,1));
@@ -1092,21 +1092,21 @@ public class IPConAgentTest {
 		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(2,5,50,5,2));
 		
 		
-		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> a1RICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		logger.info("A1 is in RICS : " + a1RICs);
 		assertThat(a1RICs.size(), is( 2 ) );
 		
-		insert(new LeaveCluster(a2.getIPConHandle(), globalIPConService.getCurrentRICs(a2.getIPConHandle()).iterator().next().getCluster()));
+		insert(new LeaveCluster(a2.getIPConHandle(), globalIPConService.getAllRICs(a2.getIPConHandle()).iterator().next().getCluster()));
 		// increment but don't execute, so we can get rid of their clusters
 		incrementTime();
-		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		Collection<IPConRIC> a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		logger.info("A2 is in RICS : " + a2RICs);
 		assertThat(a2RICs.size(), is( 0 ) );
 		
 		for (IPConRIC a1RIC : a1RICs) {
 			insert(new HasRole(Role.ACCEPTOR, a2.getIPConHandle(), a1RIC.getRevision(), a1RIC.getIssue(), a1RIC.getCluster()));
 		}
-		a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		logger.info("A2 is in RICS : " + a2RICs);
 		assertThat(a2RICs.size(), is( 2 ) );
 		
@@ -1180,21 +1180,21 @@ public class IPConAgentTest {
 		TestAgent a1 = createAgent("a1", new RoadLocation(0,0), 1, new RoadAgentGoals(2,1,50,5,2));
 		TestAgent a2 = createAgent("a2", new RoadLocation(2, 0), 1, new RoadAgentGoals(5,1,50,5,2));
 		
-		Collection<IPConRIC> a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		Collection<IPConRIC> a1RICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		logger.info("A1 is in RICS : " + a1RICs);
 		assertThat(a1RICs.size(), is( 2 ) );
 		
-		insert(new LeaveCluster(a2.getIPConHandle(), globalIPConService.getCurrentRICs(a2.getIPConHandle()).iterator().next().getCluster()));
+		insert(new LeaveCluster(a2.getIPConHandle(), globalIPConService.getAllRICs(a2.getIPConHandle()).iterator().next().getCluster()));
 		// increment but don't execute, so we can get rid of their clusters
 		incrementTime();
-		Collection<IPConRIC> a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		Collection<IPConRIC> a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		logger.info("A2 is in RICS : " + a2RICs);
 		assertThat(a2RICs.size(), is( 0 ) );
 		
 		for (IPConRIC a1RIC : a1RICs) {
 			insert(new HasRole(Role.ACCEPTOR, a2.getIPConHandle(), a1RIC.getRevision(), a1RIC.getIssue(), a1RIC.getCluster()));
 		}
-		a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		logger.info("A2 is in RICS : " + a2RICs);
 		assertThat(a2RICs.size(), is( 2 ) );
 		
@@ -1241,10 +1241,10 @@ public class IPConAgentTest {
 			incrementTime();
 		}
 		
-		a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		a1RICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		logger.info("A1 is in RICS : " + a1RICs);
 		assertThat(a1RICs.size(), is( 3 ) );
-		a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		logger.info("A2 is in RICS : " + a2RICs);
 		assertThat(a2RICs.size(), is( 3 ) );
 		
@@ -1260,6 +1260,20 @@ public class IPConAgentTest {
 		assertThat(a1Roles.size(), is(4)); // lead, acc, prop, learn
 		assertThat(a2Roles.size(), is(1)); // acc
 		
+		HashSet<IPConRIC> a1QueryRICs = new HashSet<IPConRIC>();
+		QueryResults q1Facts = session.getQueryResults("getCurrentRICs", new Object[]{a1.getIPConHandle()});
+		for (QueryResultsRow row : q1Facts) {
+			a1QueryRICs.add((IPConRIC)row.get("$ric"));
+		}
+		HashSet<IPConRIC> a2QueryRICs = new HashSet<IPConRIC>();
+		QueryResults q2Facts = session.getQueryResults("getCurrentRICs", new Object[]{a2.getIPConHandle()});
+		for (QueryResultsRow row : q2Facts) {
+			a2QueryRICs.add((IPConRIC)row.get("$ric"));
+		}
+		logger.info("a1 currentRICs : " + a1QueryRICs);
+		logger.info("a2 currentRICs : " + a2QueryRICs);
+		
+		
 		logger.info("Both agents successfully revised into new roles");
 		
 		// wait some more
@@ -1274,10 +1288,10 @@ public class IPConAgentTest {
 		assertThat(globalIPConService.getChosen(revision+1, "speed", cluster), nullValue());
 		 
 		//both agents still in same clusters
-		a1RICs = globalIPConService.getCurrentRICs(a1.getIPConHandle());
+		a1RICs = globalIPConService.getAllRICs(a1.getIPConHandle());
 		logger.info("A1 is in RICS : " + a1RICs);
 		assertThat(a1RICs.size(), is( 3 ) );
-		a2RICs = globalIPConService.getCurrentRICs(a2.getIPConHandle());
+		a2RICs = globalIPConService.getAllRICs(a2.getIPConHandle());
 		logger.info("A2 is in RICS : " + a2RICs);
 		assertThat(a2RICs.size(), is( 3 ) );
 		
