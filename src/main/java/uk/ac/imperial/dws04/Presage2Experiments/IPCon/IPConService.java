@@ -478,11 +478,18 @@ public class IPConService extends EnvironmentService {
 	 */
 	public Collection<IPConRIC> getCurrentRICs(IPConAgent handle) {
 		Collection<IPConRIC> result = new HashSet<IPConRIC>();
+		QueryResults coll = session.getQueryResults("getCurrentRICs", new Object[]{handle});
+		for (QueryResultsRow row : coll) {
+			result.add((IPConRIC)row.get("$ric"));
+		}
+		return result;
+	}
+	
+	public Collection<IPConRIC> getAllRICs(IPConAgent handle) {
+		Collection<IPConRIC> result = new HashSet<IPConRIC>();
 		Collection<HasRole> coll = getAgentRoles(handle, null, null, null);
 		for (HasRole fact : coll) {
-			//if ( (fact instanceof HasRole) && ((HasRole)fact).getAgent().equals(handle) ) {
-				result.add( fact.getRIC() );
-			//}
+			result.add( fact.getRIC() );
 		}
 		return result;
 	}
@@ -544,6 +551,13 @@ public class IPConService extends EnvironmentService {
 		else
 			throw new IPConException("No votes found");
 		
+	}
+
+	/**
+	 * @return the timeHandle
+	 */
+	public FactHandle getTimeHandle() {
+		return timeHandle;
 	}
 	
 }

@@ -23,11 +23,11 @@ public class Revise extends IPConAction {
 	 * @param issue
 	 * @param cluster
 	 */
-	public Revise(IPConAgent agent, Integer revision, String issue,
+	public Revise(IPConAgent agent, Integer oldRevision, String issue,
 			UUID cluster) {
 		super();
 		this.agent = agent;
-		this.revision = revision;
+		this.revision = oldRevision;
 		this.issue = issue;
 		this.cluster = cluster;
 	}
