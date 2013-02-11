@@ -545,5 +545,12 @@ public class IPConService extends EnvironmentService {
 			throw new IPConException("No votes found");
 		
 	}
+
+	/**
+	 * @return the timeHandle
+	 */
+	public FactHandle getTimeHandle() {
+		return timeHandle;
+	}
 	
 }
