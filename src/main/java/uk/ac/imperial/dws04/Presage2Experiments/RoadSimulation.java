@@ -336,7 +336,7 @@ public class RoadSimulation extends InjectedSimulation {
 	}
 	
 	private RoadAgentGoals createNewAgentGoals() {
-		return new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0);
+		return new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(4)+1, Random.randomInt(length), Random.randomInt(3), Random.randomInt(2)+1);
 	}
 	
 	@EventListener
