@@ -105,6 +105,10 @@ public class IPConAgent extends IPConFact {
 		return this.name;
 	}
 	
+	/**
+	 * 
+	 * @return (usually) this is the UUID/NetworkAddress of the agent
+	 */
 	public UUID getIPConID() {
 		return this.uuid;
 	}
