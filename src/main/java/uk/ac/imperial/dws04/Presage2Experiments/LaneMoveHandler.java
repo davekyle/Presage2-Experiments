@@ -18,6 +18,7 @@ import org.apache.log4j.Logger;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.presage2.core.Action;
+import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentEnvironment;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
@@ -110,7 +111,7 @@ public class LaneMoveHandler extends MoveHandler {
 		// Only count is as a collision if collisions are all paired.
 		Pair<UUID, UUID> collision = this.checkForMutualCollisions(collisions);
 		if (collision!=null) {
-			this.throwCollision(collision);
+			this.throwCollision(collision, e.getTime());
 		}
 		// return "collisions" this cycle as near-misses ?
 		return collisionsThisCycle;
@@ -129,12 +130,12 @@ public class LaneMoveHandler extends MoveHandler {
 		return null;
 	}
 
-	private void throwCollision(Pair<UUID, UUID> collision) {
+	private void throwCollision(Pair<UUID, UUID> collision, Time time) {
 		try {
 			throw new CollisionException("A collision between " + collision.getA() + " and " + collision.getB()  + " occurred in this cycle.");
 		} catch (CollisionException e) {
 			e.printStackTrace();
-			System.err.println();
+/*			System.err.println();
 			System.err.println();
 			System.err.println("Do you want to exit? y/n:");
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -151,7 +152,8 @@ public class LaneMoveHandler extends MoveHandler {
 			}
 			else {
 				System.err.println("Continuing...");
-			}
+			}*/
+			this.eventBus.publish(new FinishEarlyEvent(time));
 		}
 	}
 
