@@ -1675,7 +1675,7 @@ public class IPConDrlsTest {
 		session.insert(new Open_Vote(revision, ballot1, v1, issue, cluster));
 		
 
-		outputObjects();
+		//outputObjects();
 		
 		incrementTime();
 		
@@ -1707,6 +1707,8 @@ public class IPConDrlsTest {
 		insertAction(new LeaveCluster(a5, cluster));
 		incrementTime();
 		
+		//outputObjects();
+		
 		assertFactCount("HasRole", revision, issue, cluster, 6);
 		assertFactCount("Sync", revision, issue, cluster, 0);
 		assertFactCount("NeedToSync", revision, issue, cluster, 0);
@@ -1717,7 +1719,7 @@ public class IPConDrlsTest {
 		assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
 		assertFactCount("ReportedVote", revision, issue, cluster, 8); // 5 novote, 3 vote, 2 extra reported novote - a5's two that are removed
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // if someone joined then while they're synching this will be 1
-		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
+		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1); // should be 1 because it's now 2v2, so if one of the voters leaves it will require a revision
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
 		
 		assertActionCount("getObligations", null, null, revision, issue, cluster, 0);
@@ -1745,6 +1747,8 @@ public class IPConDrlsTest {
 		}
 		insertAction(new LeaveCluster(agent, cluster));
 		incrementTime();
+		
+		outputObjects();
 		
 		// Check common ones...
 		assertFactCount("Sync", revision, issue, cluster, 0);

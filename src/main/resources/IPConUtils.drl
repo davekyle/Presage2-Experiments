@@ -78,6 +78,7 @@ end
 rule "holdsAt for possibleRemRevision"
 // needs to happen after the obligation to revise check
 agenda-group "PRR"
+salience -1
 auto-focus true
 	when
 		// NOTE that this code is all reused from above except the following line missing and adding QS...
@@ -96,15 +97,15 @@ auto-focus true
 								// that voted for the value
 								$b : ReportedVote( $voteAgentFor: agent, $voteAgentFor memberOf $agents, voteRevision==$revision, voteValue==$value, issue==$issue, cluster==$cluster ) and
 								// and didn't vote since the one you just got
-								not ReportedVote( agent==$voteAgentFor, voteRevision==$revision, voteBallot>$b.voteBallot, issue==$issue, cluster==$cluster )
+								not ReportedVote( agent==$voteAgentFor, voteRevision==$revision, voteBallot>$b.voteBallot, ballot>$b.ballot, issue==$issue, cluster==$cluster )
 								//, count( $b ) )
 								, collectList( $b ) )
 		//Number( $notForVotes : intValue /*, $forVotes==$notForVotes */ ) from accumulate(
 		$notForVotes : List( $forVotes.size() <= $notForVotes.size(), $forVotes.size()<$quorumSize.getQuorumSize() ) from accumulate(
 								// that voted against the value
 								$b1 : ReportedVote( $voteAgentNot : agent, $voteAgentNot memberOf $agents, voteRevision==$revision, voteValue==IPCNV_val, issue==$issue, cluster==$cluster ) and 
-								// and didn't vote since the one you just got
-								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, issue==$issue, cluster==$cluster )
+								// and didn't report anything higher since the one you just got
+								not ReportedVote( agent==$voteAgentNot, voteRevision==$revision, voteBallot>$b1.voteBallot, ballot>$b1.ballot, issue==$issue, cluster==$cluster )
 								//, count( $b1 ) ) //and
 								, collectList( $b1 ) )
 		//Number( $didntVotes : intValue /*, $forVotes <= $notForVotes+$didntVotes*/ ) from accumulate(
