@@ -111,7 +111,14 @@ public class LaneMoveHandler extends MoveHandler {
 		// Only count is as a collision if collisions are all paired.
 		Pair<UUID, UUID> collision = this.checkForMutualCollisions(collisions);
 		if (collision!=null) {
-			this.throwCollision(collision, e.getTime());
+			Time time = null;
+			if (e==null) {
+				time = null;
+			}
+			else {
+				time = e.getTime();
+			}
+			this.throwCollision(collision, time);
 		}
 		// return "collisions" this cycle as near-misses ?
 		return collisionsThisCycle;
@@ -135,7 +142,7 @@ public class LaneMoveHandler extends MoveHandler {
 			throw new CollisionException("A collision between " + collision.getA() + " and " + collision.getB()  + " occurred in this cycle.");
 		} catch (CollisionException e) {
 			e.printStackTrace();
-/*			System.err.println();
+			System.err.println();
 			System.err.println();
 			System.err.println("Do you want to exit? y/n:");
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
@@ -148,12 +155,12 @@ public class LaneMoveHandler extends MoveHandler {
 			}
 			if (in.equals("y")||in.equals("Y")) {
 				System.err.println("Exiting.");
-				System.exit(1);
+				this.eventBus.publish(new FinishEarlyEvent(time));
+				//System.exit(1);
 			}
 			else {
 				System.err.println("Continuing...");
-			}*/
-			this.eventBus.publish(new FinishEarlyEvent(time));
+			}
 		}
 	}
 
