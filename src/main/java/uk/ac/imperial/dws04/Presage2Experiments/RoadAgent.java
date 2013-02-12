@@ -1611,7 +1611,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 					int minPossibleSpeed = Math.min(mySpeed-speedService.getMaxDecel(), 1);
 					// get the lowest possible speed you should go to turn off (you already know njd is less than your topspeed)
 					int moveOffset = Math.max(nextJunctionDist, minPossibleSpeed);
-					logger.debug("[" + getID() + "] Agent " + getName() + " turning off at " + nextJunctionDist + " with move " + result);
+					if (moveOffset<=0) {
+						moveOffset=1;
+					}
+					logger.debug("[" + getID() + "] Agent " + getName() + " turning off at " + nextJunctionDist + " with move " + moveOffset);
 					result = new CellMove(-1, moveOffset);
 				}
 			}
