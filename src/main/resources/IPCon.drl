@@ -334,39 +334,35 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 		ArrayList<Object> n2Syncs = new ArrayList<Object>($needToSyncs);
 		logger.trace("n2Syncs: " + n2Syncs);
 		if (roles.size()!=0) {
-		// switch to an Object[] from the unmodifiable list...
+			logger.trace("Removing roles: " + roles);
 			for (Object role : roles) {
 				insert( new AgentLeft( $agent, ((HasRole)role).getRevision(), ((HasRole)role).getIssue(), ((HasRole)role).getCluster() ) );
 				logger.trace(" ... " + role );
 				retract( role );
 			}
 		}
-		logger.trace("done roles");
 		if (syncs.size()!=0) {
+			logger.trace("Removing syncs: " + syncs);
 			for (Object sync : syncs) {
 				logger.trace(" ... " + sync );
 				retract( sync );
 			}
 		}
-		logger.trace("done syncs");
-		logger.trace("rvotes size:" + $reportedVotes + " : " + $reportedVotes.size());
-		logger.trace("rvotes size:" + rVotes + " : " + rVotes.size());
 		if (rVotes.size()!=0) {
-			logger.trace("Removing rvotes");
+			logger.trace("Removing rvotes: " + rVotes);
 			for (Object rVote : rVotes) {
 				logger.trace(" ... " + rVote );
 				retract( rVote );
 			}
 		}
-		logger.trace("done rvotes");
 		if (n2Syncs.size()!=0) {
-		logger.trace("removing needToSyncs");
+			logger.trace("Removing needToSyncs: " + n2Syncs);
 			for (Object n2Sync : n2Syncs) {
 				logger.trace(" ... " + n2Sync );
 				retract( n2Sync );
 			}
 		}
-		logger.trace("done");
+		logger.trace("Done");
 		//retract( $leave );
 		// FIXME what about Voted facts - they affect Chosen, but not possRemRev ? 
 end

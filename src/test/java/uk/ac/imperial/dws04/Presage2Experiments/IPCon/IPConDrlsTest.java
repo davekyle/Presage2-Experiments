@@ -1343,7 +1343,7 @@ public class IPConDrlsTest {
 		assertQuorumSize(revision, issue, cluster, 2);
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 5);
-		assertFactCount("ReportedVote", revision, issue, cluster, 7);
+		assertFactCount("ReportedVote", revision, issue, cluster, 6); // a4 left
 		// FIXME TODO not sure why this didn't fire
 		//assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 1); // obligation to revise because agents removed
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // agent no longer synching
@@ -1715,7 +1715,7 @@ public class IPConDrlsTest {
 		assertFactCount("Open_Vote", revision, issue, cluster, 1);
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
-		assertFactCount("ReportedVote", revision, issue, cluster, 10); // 5 novote, 3 vote, 2 extra reported novote
+		assertFactCount("ReportedVote", revision, issue, cluster, 8); // 5 novote, 3 vote, 2 extra reported novote - a5's two that are removed
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // if someone joined then while they're synching this will be 1
 		assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 		assertActionCount("getObligations", "Revise", a1, revision, issue, cluster, 0);
@@ -1754,7 +1754,7 @@ public class IPConDrlsTest {
 		assertFactCount("Open_Vote", revision, issue, cluster, 1);
 		assertFactCount("Chosen", revision, issue, cluster, 1);
 		assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
-		assertFactCount("ReportedVote", revision, issue, cluster, 10); // 5 novote, 3 vote, 2 extra reported novote
+		assertFactCount("ReportedVote", revision, issue, cluster, 6); // 5 novote, 3 vote, 2 extra reported novote, minus a5's 2 and the recent leavee's 2
 		assertFactCount("PossibleAddRevision", revision, issue, cluster, 0);
 		
 		switch (agentToLeave) {
@@ -1802,7 +1802,7 @@ public class IPConDrlsTest {
 			assertFactCount("Open_Vote", revision, issue, cluster, 1);
 			assertFactCount("Chosen", revision, issue, cluster, 1);
 			assertFactCount("Voted", revision, issue, cluster, 8); // 5 novote at start, 3 actual vote
-			assertFactCount("ReportedVote", revision, issue, cluster, 10); // 5 novote, 3 vote, 2 extra reported novote
+			assertFactCount("ReportedVote", revision, issue, cluster, 6); // 5 novote, 3 vote, 2 extra reported novote minus a5*2, and another 2
 			assertFactCount("PossibleAddRevision", revision, issue, cluster, 0); // if someone joined then while they're synching this will be 1
 			assertFactCount("PossibleRemRevision", revision, issue, cluster, 1);
 			
