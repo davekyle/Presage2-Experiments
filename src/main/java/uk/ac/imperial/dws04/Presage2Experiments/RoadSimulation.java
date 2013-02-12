@@ -98,7 +98,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public NeighbourChoiceMethod neighbourCM = null;
 	
 	@Parameter(name="seed", optional=true)
-	public String seed = "123456"; 
+	public String seed = ((Integer)Random.randomInt()).toString(); 
 	
 	@Parameter(name="insertMethod", optional=true)
 	public String insertMethod = "odd";
