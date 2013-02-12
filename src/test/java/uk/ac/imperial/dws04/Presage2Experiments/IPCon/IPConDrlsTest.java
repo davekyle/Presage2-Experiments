@@ -32,6 +32,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConTime;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.JoinAsLearner;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.LeaveCluster;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.RemRole;
@@ -399,6 +400,102 @@ public class IPConDrlsTest {
 		incrementTime();
 		
 		assertFactCount("HasRole", revision, issue, cluster, 4);
+	}
+	
+	@Test
+	public void leaveClusterTest() throws Exception {
+		logger.info("\nStarting leaveClusterTest()");
+		
+	
+		Integer rev0 = 0;
+		Integer rev1 = 1;
+		String iss1 = "Issue1";
+		String iss2 = "Issue2";
+		UUID clus1 = Random.randomUUID();
+		UUID clus2 = Random.randomUUID();
+		
+		IPConAgent a1 = new IPConAgent("a1"); session.insert(a1);
+		initAgent(a1, new Role[]{Role.LEARNER}, rev0, iss1, clus1);
+		initAgent(a1, new Role[]{Role.LEARNER}, rev1, iss1, clus1);
+		initAgent(a1, new Role[]{Role.LEARNER}, rev0, iss2, clus1);
+		session.insert(new IPConRIC(rev0, iss1, clus1));
+		session.insert(new IPConRIC(rev1, iss1, clus1));
+		session.insert(new IPConRIC(rev0, iss2, clus1));
+		session.insert(new IPConRIC(rev0, iss1, clus2));
+		session.insert(new IPConRIC(rev0, iss2, clus2));
+		
+		incrementTime();
+		outputObjects();
+		
+		//initially assert
+		assertFactCount("HasRole", null, null, null, 3);
+		assertFactCount("AgentLeft", null, null, null, 0);
+		assertFactCount("Sync", null, null, null, 0);
+		assertFactCount("NeedToSync", null, null, null, 0);
+		assertQuorumSize(rev0, iss1, clus1, 0);
+		assertQuorumSize(rev1, iss1, clus1, 0);
+		assertQuorumSize(rev0, iss2, clus1, 0);
+		assertFactCount("Pre_Vote", null, null, null, 0);
+		assertFactCount("Open_Vote", null, null, null, 0);
+		assertFactCount("Chosen", null, null, null, 0);
+		assertFactCount("Voted", null, null, null, 3); // auto-inserted...
+		assertFactCount("ReportedVote", null, null, null, 3); // auto-inserted...
+		assertActionCount("getObligations", null, a1, null, null, null, 0);
+		assertFactCount("PossibleAddRevision", null, null, null, 0);
+		assertFactCount("PossibleRemRevision", null, null, null, 0);
+		
+		assertActionCount("getObligations", null, null, null, null, null, 0);
+		
+		assertActionCount("getPowers", null, a1, null, null, null, 4); // leave*1 + arrogate*1 + join*2
+		assertActionCount("getPermissions", null, a1, null, null, null, 4); // leave*1 + arrogate*1 + join*2
+		assertActionCount("getPowers", "ArrogateLeadership", a1, null, null, null, 1);
+		assertActionCount("getPowers", "LeaveCluster", a1, null, null, null, 1);
+		assertActionCount("getPowers", "JoinAsLearner", a1, null, null, null, 2);
+		assertActionCount("getPermissions", "ArrogateLeadership", a1, null, null, null, 1);
+		assertActionCount("getPermissions", "LeaveCluster", a1, null, null, null, 1);
+		assertActionCount("getPermissions", "JoinAsLearner", a1, null, null, null, 2);
+		
+		/*
+		 * Time 1: 
+		 * A1 leaves and joins clus2 simultaneously
+		 */
+		insertAction(new LeaveCluster(a1, clus1));
+		insertAction(new JoinAsLearner(a1, rev0, iss1, clus2));
+		insertAction(new JoinAsLearner(a1, rev0, iss2, clus2));
+		incrementTime();
+		
+		//outputObjects();
+		
+		//assert
+		assertFactCount("HasRole", null, null, null, 2);
+		assertFactCount("AgentLeft", null, null, null, 0); // we want it to expire instantly
+		assertFactCount("Sync", null, null, null, 0);
+		assertFactCount("NeedToSync", null, null, null, 0);
+		assertQuorumSize(rev0, iss1, clus1, 0);
+		assertQuorumSize(rev1, iss1, clus1, 0);
+		assertQuorumSize(rev0, iss2, clus1, 0);
+		assertFactCount("Pre_Vote", null, null, null, 0);
+		assertFactCount("Open_Vote", null, null, null, 0);
+		assertFactCount("Chosen", null, null, null, 0);
+		assertFactCount("Voted", null, null, null, 3); // auto-inserted...
+		assertFactCount("ReportedVote", null, null, null, 0); // removed by leavecluster
+		assertActionCount("getObligations", null, a1, null, null, null, 0);
+		assertFactCount("PossibleAddRevision", null, null, null, 0);
+		assertFactCount("PossibleRemRevision", null, null, null, 0);
+		
+		assertActionCount("getObligations", null, null, null, null, null, 0);
+		
+
+		assertActionCount("getPowers", "ArrogateLeadership", a1, null, null, null, 1);
+		assertActionCount("getPowers", "LeaveCluster", a1, null, null, null, 1);
+		assertActionCount("getPowers", "JoinAsLearner", a1, null, null, null, 2);
+		assertActionCount("getPermissions", "ArrogateLeadership", a1, null, null, null, 1);
+		assertActionCount("getPermissions", "LeaveCluster", a1, null, null, null, 1);
+		assertActionCount("getPermissions", "JoinAsLearner", a1, null, null, null, 2);
+		assertActionCount("getPowers", null, a1, null, null, null, 4); // leave*1 + arrogate*1 + join*2
+		assertActionCount("getPermissions", null, a1, null, null, null, 4); // leave*1 + arrogate*1 + join*2
+		
+		logger.info("Finished leaveClusterTest()\n");
 	}
 	
 	@Test
@@ -809,7 +906,7 @@ public class IPConDrlsTest {
 		 * Time step 3
 		 * Leader submits. Check permission to vote for all agents.
 		 */
-		session.insert( new Submit2A(a1, revision, 10, 3, issue, cluster));
+		insertAction( new Submit2A(a1, revision, 10, 3, issue, cluster));
 		incrementTime();
 
 		assertFactCount("Open_Vote", revision, issue, cluster, 1);
@@ -845,7 +942,7 @@ public class IPConDrlsTest {
 		 * Agent 3 votes correctly, 3 agents have now voted, so chosen
 		 * Check correct value has been chosen
 		 */
-		session.insert( new Vote2B(a3, 1, 10, 3, issue, cluster));
+		insertAction( new Vote2B(a3, 1, 10, 3, issue, cluster));
 		incrementTime();
 		// value was chosen
 		Collection<Object> chosens = assertFactCount("Chosen", revision, issue, cluster, 1);
@@ -861,8 +958,8 @@ public class IPConDrlsTest {
 		 * Remaining 2 agents vote correctly
 		 * Check vote counts and correct chosen
 		 */
-		session.insert( new Vote2B(a4, 1, 10, 3, issue, cluster));
-		session.insert( new Vote2B(a5, 1, 10, 3, issue, cluster));
+		insertAction( new Vote2B(a4, 1, 10, 3, issue, cluster));
+		insertAction( new Vote2B(a5, 1, 10, 3, issue, cluster));
 		incrementTime();
 		
 		if (pass) {
