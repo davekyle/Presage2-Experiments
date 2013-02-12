@@ -125,7 +125,8 @@ lock-on-active true
 no-loop
 	when
 		AgentLeft( $agent : agent, $revision : revision, $issue : issue, $cluster : cluster )
-		ReportedVote( agent==$agent, voteRevision==$revision, $value : voteValue, revision==$revision, issue==$issue, cluster==$cluster )
+		// need to test Voted rather than reportedvote, since the rVote was removed when the AgentLeft was made...
+		Voted( agent==$agent, $value : value, revision==$revision, issue==$issue, cluster==$cluster )
 		PossibleRemRevision( value==$value, revision==$revision, issue==$issue, cluster==$cluster )
 		// This is bound to the AgentLeft, so is required even if someone isn't around
 		//Permission( $leader : agent, $action : action )
