@@ -125,6 +125,12 @@ declare AgentLeft
 	cluster : UUID
 end
 
+// internal persistent flag for processing agentleft
+declare ProcessedLeaving
+	agent : IPConAgent
+	cluster : UUID
+end
+
 declare IPConTime
 end
 
@@ -308,6 +314,7 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 	when
 		$leave : LeaveCluster( $agent : agent, $cluster : cluster )
 		//LeavePow( agent==$agent, cluster==$cluster )
+		not ProcessedLeaving( agent==$agent, cluster==$cluster )
 		
 		Power( agent==$agent, $action : action )
 		LeaveCluster( agent==$agent, cluster==$cluster ) from $action
@@ -362,6 +369,7 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 				retract( n2Sync );
 			}
 		}
+		insert(new ProcessedLeaving( $agent, $cluster ) );
 		logger.trace("Done");
 		//retract( $leave );
 		// FIXME what about Voted facts - they affect Chosen, but not possRemRev ? 
