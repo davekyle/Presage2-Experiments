@@ -207,7 +207,6 @@ public class RoadSimulation extends InjectedSimulation {
 	 */
 	@Override
 	protected void addToScenario(Scenario s) {
-		this.session.setGlobal("storage", storage);
 		for (int i = 0; i < initialAgents; i++) {
 			int initialX = Random.randomInt(lanes);
 			int initialY = Random.randomInt(length);

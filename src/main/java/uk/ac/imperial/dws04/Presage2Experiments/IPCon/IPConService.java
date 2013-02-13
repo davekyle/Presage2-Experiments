@@ -23,6 +23,7 @@ import org.drools.runtime.rule.Variable;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import uk.ac.imperial.dws04.Presage2Experiments.FinishEarlyEvent;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
@@ -39,6 +40,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairAThenBAscComparator;
 import uk.ac.imperial.presage2.core.IntegerTime;
+import uk.ac.imperial.presage2.core.db.StorageService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
@@ -46,6 +48,7 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.event.EventBus;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
+import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 
@@ -60,6 +63,7 @@ public class IPConService extends EnvironmentService {
 	StatefulKnowledgeSession session;
 	private final EnvironmentServiceProvider serviceProvider;
 	private FactHandle timeHandle;
+	private StorageService storage;
 
 	@Inject
 	public IPConService(EnvironmentSharedStateAccess sharedState, EnvironmentServiceProvider serviceProvider,
@@ -104,12 +108,38 @@ public class IPConService extends EnvironmentService {
 	    eb.subscribe(this);
 	}
 	
+	/**
+	 * automagically inject the storage
+	 * @param storage
+	 */
+	@Inject(optional = true)
+	public void setStorage(StorageService storage) {
+		this.storage = storage;
+	}
+	
+	@EventListener
+	public void onSimulationEnd(FinalizeEvent event) {
+		if (storage!=null) {
+			saveToDB(event.getTime().intValue());
+		}
+	}
+	
+	@EventListener
+	public void onSimulationEarlyEnd(FinishEarlyEvent event) {
+		if (storage!=null) {
+			saveToDB(event.getTime().intValue());
+		}
+	}
+	
 	@EventListener
 	public void onEndOfCycle(EndOfTimeCycle event) {
+		if (storage!=null) {
+			saveToDB(event.getTime().intValue());
+		}
 		logger.debug("Updating timehandle: " + timeHandle + " to " + event.getTime().intValue()+1);
 		session.update(timeHandle, event.getTime().intValue()+1);
 	}
-	
+
 	/** 
 	 * Inserts the agent fact for the registered agent, and sets them to be LEAD/ACC/PROP/LEARN for a cluster containing RICS on all their goals
 	 * @see uk.ac.imperial.presage2.core.environment.EnvironmentService#registerParticipant(uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest)
@@ -560,4 +590,39 @@ public class IPConService extends EnvironmentService {
 		return timeHandle;
 	}
 	
+	/**
+	 * Save all the required data to the db
+	 */
+	private void saveToDB(int timestep) {
+		logger.info("Saving IPCon data to the db...");
+		//this.storage.getSimulation().getEnvironment().setProperty(key, timestep, value);
+		Collection<IPConRIC> rics = getCurrentRICs();
+		for (IPConRIC ric : rics) {
+			logger.trace("... saving ric:" + ric + " ... ");
+			Integer revision = ric.getRevision();
+			String issue = ric.getIssue();
+			UUID cluster = ric.getCluster();
+			// members
+			Collection<HasRole> hasRoles = getAgentRoles(null, revision, issue, cluster);
+			setTransient(ric.toString()+"_roles", timestep, hasRoles.toString());
+			// chosen fact
+			Chosen chosenFact = getChosen(revision, issue, cluster);
+			setTransient(ric.toString()+"_chosen", timestep, chosenFact.toString());
+			// cluster size
+			Collection<IPConAgent> agents = new HashSet<IPConAgent>();
+			for (HasRole hasRole : hasRoles) {
+				IPConAgent agent = hasRole.getAgent();
+				if (!agents.contains(agent)) {
+					agents.add(agent);
+				}
+			}
+			setTransient(ric.toString()+"_size", timestep, ((Integer)agents.size()).toString());
+		}
+		
+		logger.info("Done saving IPCon data to the db.");
+	}
+	
+	private void setTransient(String key, int timestep, String value) {
+		this.storage.getSimulation().getEnvironment().setProperty(key, timestep, value);
+	}
 }
