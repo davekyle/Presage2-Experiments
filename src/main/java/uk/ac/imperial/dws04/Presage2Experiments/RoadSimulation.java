@@ -12,6 +12,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
+import org.drools.runtime.StatefulKnowledgeSession;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -111,6 +113,8 @@ public class RoadSimulation extends InjectedSimulation {
 	private EnvironmentSharedStateAccess sharedState;
 
 	private StorageService storage;
+
+	private StatefulKnowledgeSession session;
 	
 	/**
 	 * @param modules
@@ -178,6 +182,11 @@ public class RoadSimulation extends InjectedSimulation {
 		}
 	}
 	
+	@Inject
+	public void setSession(StatefulKnowledgeSession session) {
+		this.session = session;
+	}
+	
 	/**
 	 * @param serviceProvider
 	 * @return
@@ -198,6 +207,7 @@ public class RoadSimulation extends InjectedSimulation {
 	 */
 	@Override
 	protected void addToScenario(Scenario s) {
+		this.session.setGlobal("storage", storage);
 		for (int i = 0; i < initialAgents; i++) {
 			int initialX = Random.randomInt(lanes);
 			int initialY = Random.randomInt(length);
@@ -219,6 +229,13 @@ public class RoadSimulation extends InjectedSimulation {
 			agent.initialiseTime(getCurrentSimulationTime());
 			agentLocations.put(uuid, startLoc);
 			agentNames.put(uuid, name);
+			if (this.storage != null) {
+				//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
+				PersistentAgent state = this.storage.getAgent(uuid);
+				Integer time = 0;
+				state.setProperty("insertedAt", time.toString());
+				state.setProperty("goals", goals.toString());
+			}
 			logger.debug("Now tracking " + agentNames.size() + " agents.");
 		}
 	}
@@ -280,13 +297,15 @@ public class RoadSimulation extends InjectedSimulation {
 		if (shouldInsertNewAgent(this.insertMethod)) {
 			Integer junctionOffset = this.getEnvironmentService().getNextInsertionJunction();
 			if (junctionOffset!=null) {
-				UUID uuid = createNextAgent(0, junctionOffset);
+				RoadAgentGoals goals = createNewAgentGoals();
+				UUID uuid = createNextAgent(0, junctionOffset, goals);
 				// do a entry in the db for this
 				if (this.storage != null) {
 					//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
 					PersistentAgent state = this.storage.getAgent(uuid);
 					Integer time = (e.getTime().intValue()+1);
 					state.setProperty("insertedAt", time.toString());
+					state.setProperty("goals", goals.toString());
 				}
 			}
 		}
@@ -319,13 +338,13 @@ public class RoadSimulation extends InjectedSimulation {
 	 * Creates the next (in naming) agent at the location specified with speed 0 and random goals
 	 * @param lane
 	 * @param startOffset
+	 * @param goals TODO
 	 */
-	private UUID createNextAgent(int lane, int startOffset) {
+	private UUID createNextAgent(int lane, int startOffset, RoadAgentGoals goals) {
 		UUID uuid = Random.randomUUID();
 		String name = "agent"+ agentNames.size();
 		RoadLocation startLoc = new RoadLocation(lane, startOffset);
 		int startSpeed = 0;
-		RoadAgentGoals goals = createNewAgentGoals();
 		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM());
 		this.scenario.addParticipant(p);
 		p.initialise();
