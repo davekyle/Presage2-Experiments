@@ -4,6 +4,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon
 //list any import classes here.
 // java
 import java.util.List
+import java.util.ArrayList
 import java.lang.Math
 import java.lang.Double
 import java.lang.String
@@ -121,6 +122,12 @@ declare AgentLeft
 	agent : IPConAgent
 	revision : Integer
 	issue : String
+	cluster : UUID
+end
+
+// internal persistent flag for processing agentleft
+declare ProcessedLeaving
+	agent : IPConAgent
 	cluster : UUID
 end
 
@@ -307,6 +314,7 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 	when
 		$leave : LeaveCluster( $agent : agent, $cluster : cluster )
 		//LeavePow( agent==$agent, cluster==$cluster )
+		not ProcessedLeaving( agent==$agent, cluster==$cluster )
 		
 		Power( agent==$agent, $action : action )
 		LeaveCluster( agent==$agent, cluster==$cluster ) from $action
@@ -324,36 +332,45 @@ rule "LeaveCluster terminates all roles, syncs, needtosyncs and reported votes"
 					, collectList( $n2Sync ) )
 	then
 		logger.trace("LeaveCluster inserted AgentLeft(s) and retracted lots from agent " + $agent + " ... ");
-		logger.trace("Roles: " + $roles);
-		logger.trace("Syncs: " + $syncs);
-		logger.trace("rVotes: " + $reportedVotes);
-		logger.trace("n2Syncs: " + $needToSyncs);
-		if ($roles.size()!=0) {
-		// switch to an Object[] from the unmodifiable list...
-			for (Object role : $roles.toArray()) {
-				logger.trace(" ... " + role );
+		ArrayList<Object> roles = new ArrayList<Object>($roles);
+		logger.trace("Roles: " + roles);
+		ArrayList<Object> syncs = new ArrayList<Object>($syncs);
+		logger.trace("Syncs: " + syncs);
+		ArrayList<Object> rVotes = new ArrayList<Object>($reportedVotes);
+		logger.trace("rVotes: " + rVotes);
+		ArrayList<Object> n2Syncs = new ArrayList<Object>($needToSyncs);
+		logger.trace("n2Syncs: " + n2Syncs);
+		if (roles.size()!=0) {
+			logger.trace("Removing roles: " + roles);
+			for (Object role : roles) {
 				insert( new AgentLeft( $agent, ((HasRole)role).getRevision(), ((HasRole)role).getIssue(), ((HasRole)role).getCluster() ) );
+				logger.trace(" ... " + role );
 				retract( role );
 			}
 		}
-		if ($syncs.size()!=0) {
-			for (Object sync : $syncs.toArray()) {
+		if (syncs.size()!=0) {
+			logger.trace("Removing syncs: " + syncs);
+			for (Object sync : syncs) {
 				logger.trace(" ... " + sync );
 				retract( sync );
 			}
 		}
-		if ($reportedVotes.size()!=0) {
-			for (Object rVote : $reportedVotes.toArray()) {
+		if (rVotes.size()!=0) {
+			logger.trace("Removing rvotes: " + rVotes);
+			for (Object rVote : rVotes) {
 				logger.trace(" ... " + rVote );
 				retract( rVote );
 			}
 		}
-		if ($needToSyncs.size()!=0) {
-			for (Object n2Sync : $needToSyncs.toArray()) {
+		if (n2Syncs.size()!=0) {
+			logger.trace("Removing needToSyncs: " + n2Syncs);
+			for (Object n2Sync : n2Syncs) {
 				logger.trace(" ... " + n2Sync );
 				retract( n2Sync );
 			}
 		}
+		insert(new ProcessedLeaving( $agent, $cluster ) );
+		logger.trace("Done");
 		//retract( $leave );
 		// FIXME what about Voted facts - they affect Chosen, but not possRemRev ? 
 end

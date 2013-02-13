@@ -15,8 +15,10 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.presage2.core.Action;
+import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentEnvironment;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
@@ -109,7 +111,14 @@ public class LaneMoveHandler extends MoveHandler {
 		// Only count is as a collision if collisions are all paired.
 		Pair<UUID, UUID> collision = this.checkForMutualCollisions(collisions);
 		if (collision!=null) {
-			this.throwCollision(collision);
+			Time time = null;
+			if (e==null) {
+				time = null;
+			}
+			else {
+				time = e.getTime();
+			}
+			this.throwCollision(collision, time);
 		}
 		// return "collisions" this cycle as near-misses ?
 		return collisionsThisCycle;
@@ -128,7 +137,7 @@ public class LaneMoveHandler extends MoveHandler {
 		return null;
 	}
 
-	private void throwCollision(Pair<UUID, UUID> collision) {
+	private void throwCollision(Pair<UUID, UUID> collision, Time time) {
 		try {
 			throw new CollisionException("A collision between " + collision.getA() + " and " + collision.getB()  + " occurred in this cycle.");
 		} catch (CollisionException e) {
@@ -146,7 +155,8 @@ public class LaneMoveHandler extends MoveHandler {
 			}
 			if (in.equals("y")||in.equals("Y")) {
 				System.err.println("Exiting.");
-				System.exit(1);
+				this.eventBus.publish(new FinishEarlyEvent(time));
+				//System.exit(1);
 			}
 			else {
 				System.err.println("Continuing...");
@@ -225,21 +235,39 @@ public class LaneMoveHandler extends MoveHandler {
 
 		if (!target.in(environment.getArea())) {
 			// check if it's a junction location
-			if ( (target.getLane()==-1) && (roadEnvironmentService.isJunctionOffset(target.getOffset())) ) {
+			if (target.getLane()==-1) {
+				Integer exitPoint = null;
+				Integer startOffset = MathsUtils.mod(start.getOffset(), roadEnvironmentService.getLength());
+				Integer targetOffset = MathsUtils.mod(target.getOffset(), roadEnvironmentService.getLength());
+				if (startOffset>targetOffset) {
+					startOffset = startOffset - roadEnvironmentService.getLength();
+				}
+				for (int junction : roadEnvironmentService.getJunctionLocations()) {
+					if ((startOffset <= junction) && (targetOffset>=junction)) {
+						exitPoint = junction;
+						logger.info("Agent " + actor + " left the road at " + exitPoint);
+						eventBus.publish(new AgentLeftScenario(actor,exitPoint, SimTime.get()));
+						// turning off means avoiding the possibility of crashing... ohwells: sliproads are LOOOONG
+						return null;
+					}
+				}
+				logger.warn("Agent " + actor + " tried to turn off using move " + m + " between " + start + " and " + target + " and offsets " + startOffset + "," + targetOffset + " but was not near a junction");
+			}
+			/*if ( (target.getLane()==-1) && (roadEnvironmentService.isJunctionOffset(target.getOffset())) ) {
 				// do stuff
 				logger.info("Agent " + actor + " left the road at " + target.getOffset());
 				eventBus.publish(new AgentLeftScenario(actor,target.getOffset(), SimTime.get()));
 				// turning off means avoiding the possibility of crashing... ohwells: sliproads are LOOOONG
 				return null;
 			}
-			else {
+			else {*/
 				try {
 					final Move mNew = environment.getArea().getValidMove(start, m);
 					target = new RoadLocation(start.add(mNew));
 				} catch (EdgeException e) {
 					throw new ActionHandlingException(e);
 				}
-			}
+			//}
 		}
 		this.getLocationService().setAgentLocation(actor, target);
 		this.speedService.setAgentSpeed(actor, (int) m.getY());
