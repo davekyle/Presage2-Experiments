@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
+import org.drools.rule.builder.dialect.asm.InvokerGenerator.GetMethodBytecodeMethod;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
@@ -34,6 +35,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.ConstantWeightedMoveComparator;
+import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.ExitMoveComparator;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.InstitutionalSafeMoveComparator;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SafeInstitutionalMoveComparator;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SpeedWeightedMoveComparator;
@@ -64,7 +66,12 @@ import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
  */
 public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 
-	public enum OwnChoiceMethod {SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS, SAFE_INST, INST_SAFE};
+	public enum OwnChoiceMethod {
+		SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS, SAFE_INST, INST_SAFE, MOVE_TO_EXIT;
+		public boolean isInstChoice() {
+			return (this.equals(INST_SAFE) || this.equals(SAFE_INST));
+		}
+	};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 
 	
@@ -151,7 +158,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		messageQueue = new LinkedList<Message>();
 		ownMsgs = new LinkedList<IPConActionMsg> ();
 		institutionalFacts = new HashMap<String, Chosen>();
-		this.ownChoiceMethod = ownChoiceMethod;
+		if (ownChoiceMethod.equals(OwnChoiceMethod.MOVE_TO_EXIT)) {
+			logger.error(OwnChoiceMethod.MOVE_TO_EXIT + " is not a valid move choice method !");
+			this.ownChoiceMethod = OwnChoiceMethod.SAFE_CONSTANT;
+		}
+		else {
+			this.ownChoiceMethod = ownChoiceMethod;
+		}
 		this.neighbourChoiceMethod = neighbourChoiceMethod;
 	}
 	
@@ -603,6 +616,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// Check to see if you want to turn off, then if you can end up at the junction in the next timecycle, do so
 		if (	(fsm.getState().equals("MOVE_TO_EXIT")) && (junctionDist!=null) ) {
 			//move = driver.turnOff();
+			resignAndLeaveAll();
 			move = createExitMove(junctionDist, neighbourChoiceMethod);
 		}
 		else {
@@ -613,6 +627,31 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			passJunction();
 		}
 		submitMove(move);
+	}
+
+	/**
+	 * Agent should resign and leave all clusters before leaving.
+	 * Should send the msgs in here, since normal msg processing is already finished.
+	 * FIXME Potential issue of joining/arrogating/whatever in the same cycle before this is processed...
+	 */
+	private void resignAndLeaveAll() {
+		logger.info(getID() + " leaving all clusters");
+		Collection<IPConRIC> currentRICs = ipconService.getAllRICs(getIPConHandle());
+		LinkedList<IPConAction> acts = new LinkedList<IPConAction>();
+		LinkedList<IPConActionMsg> msgs = new LinkedList<IPConActionMsg>();
+		for (IPConRIC ric : currentRICs) {
+			if (ipconService.getRICLeader(ric.getRevision(), ric.getIssue(), ric.getCluster()).contains(getIPConHandle())) {
+				acts.add(new ResignLeadership(getIPConHandle(), ric.getRevision(), ric.getIssue(), ric.getCluster()));
+			}
+			acts.add(new LeaveCluster(getIPConHandle(), ric.getCluster()));
+		}
+		for (IPConAction act : acts) {
+			msgs.add(generateIPConActionMsg(act));
+		}
+		while (!msgs.isEmpty()) {
+			logger.debug(getID() + " sending msg " + msgs.getFirst());
+			this.network.sendMessage(msgs.removeFirst());
+		}
 	}
 
 	private Boolean checkProposalSensibleness_FromExecute(IPConRIC issueRIC) {
@@ -1471,7 +1510,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * Create a safe move with the intention of heading towards the exit
 	 * @return
 	 */
-	private CellMove createExitMove(int nextJunctionDist, NeighbourChoiceMethod neighbourChoiceMethod) {
+	@Deprecated
+	private CellMove _old_createExitMove(int nextJunctionDist, NeighbourChoiceMethod neighbourChoiceMethod) {
 		CellMove result = null;
 		if (myLoc.getLane()==0) {
 			if (	(nextJunctionDist>= Math.max((mySpeed-speedService.getMaxDecel()), 1)) &&
@@ -1538,6 +1578,52 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				logger.warn("[" + getID() + "] Agent " + getName() + " tried to check invalid lane " + (myLoc.getLane()-1) + " for a safe move");
 				result = null;
 			}
+		}
+		if (result==null){
+			logger.warn("Shouldn't get here.");
+			result = driver.decelerateMax();
+		}
+		return result;
+	}
+	
+	/**
+	 * Create a safe move with the intention of heading towards the exit
+	 * @return
+	 */
+	private CellMove createExitMove(int nextJunctionDist, NeighbourChoiceMethod neighbourChoiceMethod) {
+		CellMove result = null;
+		if (myLoc.getLane()==0) {
+			if (	(nextJunctionDist>= Math.max((mySpeed-speedService.getMaxDecel()), 1)) &&
+					(nextJunctionDist<= Math.min((mySpeed+speedService.getMaxAccel()), speedService.getMaxSpeed())) ) {
+				result = driver.turnOff();
+				logger.debug("[" + getID() + "] Agent " + getName() + " turning off in " + nextJunctionDist);
+			}
+			else {
+				// FIXME TODO
+				if (nextJunctionDist > Math.min(mySpeed+speedService.getMaxAccel(), speedService.getMaxSpeed())) {
+					// if you can't go past the junction 
+					// choose lowest speed such that you won't crash and will be in lane0 (maybe choose to change up if there are no even tenuously safe moves in lane0)
+					logger.debug("[" + getID() + "] Agent " + getName() + " trying to generate an exitMove");
+					result = newCreateMove(OwnChoiceMethod.MOVE_TO_EXIT, neighbourChoiceMethod);
+				}
+				else {
+					// get min possible speed (have to move somewhere to change lane)
+					int minPossibleSpeed = Math.min(mySpeed-speedService.getMaxDecel(), 1);
+					// get the lowest possible speed you should go to turn off (you already know njd is less than your topspeed)
+					int moveOffset = Math.max(nextJunctionDist, minPossibleSpeed);
+					if (moveOffset<=0) {
+						moveOffset=1;
+					}
+					logger.debug("[" + getID() + "] Agent " + getName() + " turning off at " + nextJunctionDist + " with move " + moveOffset);
+					result = new CellMove(-1, moveOffset);
+				}
+			}
+		}
+		else {
+			// you're not in lane0 (check validity anyway)
+			// FIXME TODO then you should move towards lane0 using safe moves that are as slow as possible
+			logger.debug("[" + getID() + "] Agent " + getName() + " trying to generate an exitMove");
+			result = newCreateMove(OwnChoiceMethod.MOVE_TO_EXIT, neighbourChoiceMethod);
 		}
 		if (result==null){
 			logger.warn("Shouldn't get here.");
@@ -1782,6 +1868,20 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 			case INST_SAFE : {
 				result = chooseInstitutionalMove(safetyWeightedMoves, false);
+				break;
+			}
+			case MOVE_TO_EXIT : {
+				// choose the slowest safe move that gets you closer to lane0
+				LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
+				list.addAll(safetyWeightedMoves.entrySet());
+				Collections.sort(list, new ExitMoveComparator<Integer>());
+				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
+				result = list.getLast().getKey();
+				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+						(list.get(list.size()-2).getValue()>=0)
+						) {
+					result = list.get(list.size()-2).getKey();
+				}
 				break;
 			}
 			default : {
@@ -2058,7 +2158,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		
 		if ( (startLoc!=null) && (startSpeed!=null) ) {
-			if (this.ownChoiceMethod.equals(OwnChoiceMethod.INST_SAFE) && !agent.equals(getID()) && this.agentRICs.containsKey(agent) ) {
+			if (this.ownChoiceMethod.isInstChoice() && !agent.equals(getID()) && this.agentRICs.containsKey(agent) ) {
 				// get the chosen for the agent you're looking at
 				Integer chosenSpeed = null;
 				Integer chosenLaneChange = null;
