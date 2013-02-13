@@ -597,6 +597,7 @@ public class IPConService extends EnvironmentService {
 		logger.info("Saving IPCon data to the db...");
 		//this.storage.getSimulation().getEnvironment().setProperty(key, timestep, value);
 		Collection<IPConRIC> rics = getCurrentRICs();
+		setTransient("RIC_Count", timestep, ((Integer)rics.size()).toString());
 		for (IPConRIC ric : rics) {
 			logger.trace("... saving ric:" + ric + " ... ");
 			Integer revision = ric.getRevision();
@@ -607,7 +608,11 @@ public class IPConService extends EnvironmentService {
 			setTransient(ric.toString()+"_roles", timestep, hasRoles.toString());
 			// chosen fact
 			Chosen chosenFact = getChosen(revision, issue, cluster);
-			setTransient(ric.toString()+"_chosen", timestep, chosenFact.toString());
+			String chosenString = "";
+			if (chosenFact!=null) {
+				chosenString = chosenFact.toString();
+			}
+			setTransient(ric.toString()+"_chosen", timestep, chosenString);
 			// cluster size
 			Collection<IPConAgent> agents = new HashSet<IPConAgent>();
 			for (HasRole hasRole : hasRoles) {
