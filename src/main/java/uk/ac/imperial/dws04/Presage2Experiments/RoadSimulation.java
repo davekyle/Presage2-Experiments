@@ -24,6 +24,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.NeighbourChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
+import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.ParticipantsComplete;
@@ -40,6 +41,7 @@ import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.network.NetworkConstraint;
 import uk.ac.imperial.presage2.core.participant.Participant;
+import uk.ac.imperial.presage2.core.plugin.Plugin;
 import uk.ac.imperial.presage2.core.plugin.PluginModule;
 import uk.ac.imperial.presage2.rules.RuleModule;
 import uk.ac.imperial.presage2.rules.RuleStorage;
@@ -96,7 +98,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public NeighbourChoiceMethod neighbourCM = null;
 	
 	@Parameter(name="seed", optional=true)
-	public String seed = "123456"; 
+	public String seed = ((Integer)Random.randomInt()).toString(); 
 	
 	@Parameter(name="insertMethod", optional=true)
 	public String insertMethod = "odd";
@@ -336,7 +338,7 @@ public class RoadSimulation extends InjectedSimulation {
 	}
 	
 	private RoadAgentGoals createNewAgentGoals() {
-		return new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0);
+		return new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(4)+1, Random.randomInt(length), Random.randomInt(3), Random.randomInt(2)+1);
 	}
 	
 	@EventListener
@@ -423,5 +425,11 @@ public class RoadSimulation extends InjectedSimulation {
 			return this.neighbourCM;
 		}
 	}
-
+	
+	@EventListener
+	public void finishEarly(FinishEarlyEvent event) {
+		logger.fatal("CALLING COMPLETION");
+		this.simulator.complete();
+		System.exit(1);
+	}
 }
