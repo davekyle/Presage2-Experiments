@@ -251,6 +251,19 @@ public class ParticipantIPConService extends IPConService {
 		// do nothing
 	}
 
+	/* (non-Javadoc)
+	 * @see uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService#getAllRICs(uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent)
+	 */
+	@Override
+	public Collection<IPConRIC> getAllRICs(IPConAgent handle) {
+		if (handle.equals(this.handle)) {
+			return super.getAllRICs(handle);
+		}
+		else {
+			throw new SharedStateAccessException("A participant may not view another agent's RICs!");
+		}
+	}
+
 	
 	
 	
