@@ -3,6 +3,8 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,6 +39,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
+import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairAThenBAscComparator;
 import uk.ac.imperial.presage2.core.IntegerTime;
@@ -597,7 +600,7 @@ public class IPConService extends EnvironmentService {
 		logger.info("Saving IPCon data to the db...");
 		//this.storage.getSimulation().getEnvironment().setProperty(key, timestep, value);
 		Collection<IPConRIC> rics = getCurrentRICs();
-		setTransient("RIC_Count", timestep, ((Integer)rics.size()).toString());
+		setTransient("RIC_Count", timestep, ((Integer)rics.size()));
 		for (IPConRIC ric : rics) {
 			logger.trace("... saving ric:" + ric + " ... ");
 			Integer revision = ric.getRevision();
@@ -605,14 +608,10 @@ public class IPConService extends EnvironmentService {
 			UUID cluster = ric.getCluster();
 			// members
 			Collection<HasRole> hasRoles = getAgentRoles(null, revision, issue, cluster);
-			setTransient(ric.toString()+"_roles", timestep, hasRoles.toString());
+			setTransient(ric.toString()+"_roles", timestep, (Serializable)hasRoles);
 			// chosen fact
 			Chosen chosenFact = getChosen(revision, issue, cluster);
-			String chosenString = "";
-			if (chosenFact!=null) {
-				chosenString = chosenFact.toString();
-			}
-			setTransient(ric.toString()+"_chosen", timestep, chosenString);
+			setTransient(ric.toString()+"_chosen", timestep, chosenFact);
 			// cluster size
 			Collection<IPConAgent> agents = new HashSet<IPConAgent>();
 			for (HasRole hasRole : hasRoles) {
@@ -621,13 +620,26 @@ public class IPConService extends EnvironmentService {
 					agents.add(agent);
 				}
 			}
-			setTransient(ric.toString()+"_size", timestep, ((Integer)agents.size()).toString());
+			setTransient(ric.toString()+"_size", timestep, ((Integer)agents.size()));
 		}
 		
 		logger.info("Done saving IPCon data to the db.");
 	}
 	
-	private void setTransient(String key, int timestep, String value) {
-		this.storage.getSimulation().getEnvironment().setProperty(key, timestep, value);
+	private void setTransient(String key, int timestep, Serializable value) {
+		if (value==null) {
+			value = "";
+		}
+		if (value.getClass().isAssignableFrom(String.class)) {
+			this.storage.getSimulation().getEnvironment().setProperty(key, timestep, (String) value);
+		}
+		else {
+			try {
+				this.storage.getSimulation().getEnvironment().setProperty(key, timestep, StringSerializer.toString(value));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 }

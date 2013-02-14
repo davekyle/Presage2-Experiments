@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +25,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.NeighbourChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
+import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
@@ -230,10 +232,12 @@ public class RoadSimulation extends InjectedSimulation {
 			agentNames.put(uuid, name);
 			if (this.storage != null) {
 				//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
-				PersistentAgent state = this.storage.getAgent(uuid);
-				Integer time = 0;
-				state.setProperty("insertedAt", time.toString());
-				state.setProperty("goals", goals.toString());
+//				PersistentAgent state = this.storage.getAgent(uuid);
+//				Integer time = 0;
+//				state.setProperty("insertedAt", time.toString());
+//				state.setProperty("goals", goals.toString());
+				this.persistToDB(uuid, "insertedAt", 0);
+				this.persistToDB(uuid, "goals", goals);
 			}
 			logger.debug("Now tracking " + agentNames.size() + " agents.");
 		}
@@ -301,10 +305,12 @@ public class RoadSimulation extends InjectedSimulation {
 				// do a entry in the db for this
 				if (this.storage != null) {
 					//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
-					PersistentAgent state = this.storage.getAgent(uuid);
+//					PersistentAgent state = this.storage.getAgent(uuid);
 					Integer time = (e.getTime().intValue()+1);
-					state.setProperty("insertedAt", time.toString());
-					state.setProperty("goals", goals.toString());
+//					state.setProperty("insertedAt", time.toString());
+//					state.setProperty("goals", goals.toString());
+					this.persistToDB(uuid, "insertedAt", time.intValue());
+					this.persistToDB(uuid, "goals", goals);
 				}
 			}
 		}
@@ -399,8 +405,9 @@ public class RoadSimulation extends InjectedSimulation {
 		});
 		if (this.storage != null) {
 			//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
-			PersistentAgent state = this.storage.getAgent(uuid);
-			state.setProperty("leftAt", e.time.toString());
+//			PersistentAgent state = this.storage.getAgent(uuid);
+//			state.setProperty("leftAt", e.time.toString());
+			this.persistToDB(uuid, "leftAt", e.time.intValue());
 		}
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
@@ -449,5 +456,22 @@ public class RoadSimulation extends InjectedSimulation {
 		logger.fatal("CALLING COMPLETION");
 		this.simulator.complete();
 		System.exit(1);
+	}
+	
+	public void persistToDB(UUID agent, String key, Serializable value) {
+		if (value==null) {
+			value = "";
+		}
+		if (value.getClass().isAssignableFrom(String.class)) {
+			this.storage.getAgent(agent).setProperty(key, (String) value);
+		}
+		else {
+			try {
+				this.storage.getAgent(agent).setProperty(key, StringSerializer.toString(value));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 }

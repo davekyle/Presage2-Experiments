@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.utils.record;
 
+import java.io.Serializable;
 import java.util.Map.Entry;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Map.Entry;
  * @author dws04
  *
  */
-public class Pair<A,B> {
+public class Pair<A,B> implements Serializable {
 		
 	/**
 	 * 

@@ -3,7 +3,9 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.io.IOException;
 import java.io.InvalidClassException;
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +42,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.InstitutionalSaf
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SafeInstitutionalMoveComparator;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SpeedWeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
+import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.dws04.utils.convert.ToDouble;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
@@ -2803,11 +2806,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		int time = SimTime.get().intValue();
 		// check db is available
 		if (this.persist != null) {
-			this.persist.getState(time).setProperty("location", this.myLoc.toString());
-			this.persist.getState(time).setProperty("speed", ((Integer)(this.mySpeed)).toString());
+			storeInDB("location", time, this.myLoc);
+			storeInDB("speed", time, this.mySpeed);
 			
 			Double speedDissatisfaction = calcStateDissatisfaction();
-			this.persist.getState(time).setProperty("dissatisfaction", speedDissatisfaction.toString());
+			storeInDB("dissatisfaction", time, speedDissatisfaction);
 			
 		}
 	}
@@ -2817,7 +2820,29 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		int time = SimTime.get().intValue();
 		// check db is available
 		if (this.persist != null) {
-			this.persist.getState(time).setProperty("move", move.toString());
+			storeInDB("move", time, move);
+		}
+	}
+
+	/**
+	 * @param key
+	 * @param time
+	 * @param value
+	 */
+	private void storeInDB(String key, int time, Serializable value) {
+		if (value==null) {
+			value = "";
+		}
+		if (value.getClass().isAssignableFrom(String.class)) {
+			this.persist.getState(time).setProperty(key, (String) value);
+		}
+		else {
+			try {
+				this.persist.getState(time).setProperty(key, StringSerializer.toString(value));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 
