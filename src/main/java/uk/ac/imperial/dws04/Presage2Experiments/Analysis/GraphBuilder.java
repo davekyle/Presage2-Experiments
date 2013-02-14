@@ -3,8 +3,12 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
+import java.awt.Frame;
+import java.awt.GridLayout;
+import java.awt.Panel;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 
@@ -14,6 +18,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.data.DomainOrder;
 import org.jfree.data.general.DatasetChangeListener;
 import org.jfree.data.general.DatasetGroup;
+import org.jfree.data.statistics.Statistics;
 import org.jfree.data.xy.DefaultXYDataset;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
@@ -50,6 +55,8 @@ public class GraphBuilder {
 	boolean exportMode = true;
 
 	final static String imagePath = "/Users/dave/Documents/workspace/ExperimentalData/";
+	
+	ArrayList<Chart> charts = new ArrayList<Chart>();
 	
 	/**
 	 * @param args
@@ -146,6 +153,7 @@ public class GraphBuilder {
 			}
 		}
 		
+		
 		/*
 		 * Environment Transient:
 		 * simId/state/time
@@ -185,16 +193,27 @@ public class GraphBuilder {
 		 * IPCon max/avg cluster size percycle
 		 *  - also do an overall value ? maybe a box for each sim ?
 		 */
-		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed", "timestep", "speed");
-		saveChart(speedChart.getChart(), 1, "speed");
+		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
+		charts.add(speedChart);
+		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "speeds", true);
+		charts.add(speedBAW);
+		
+		Frame frame = new Frame("GRAPHS");
+		Panel panel = new Panel(new GridLayout(1,2));
+		frame.add(panel);
 		
 		
 		// save to file if required
-		
+		for (Chart chart : charts) {
+			saveChart(chart.getChart(), simId, chart.getChart().getTitle().getText());
+			panel.add(chart.getPanel());
+		}
+		frame.pack();
+		frame.setVisible(true);
 		
 		
 		db.stop();
-		System.exit(0);
+		//System.exit(0);
 	}
 
 }
