@@ -20,6 +20,7 @@ import org.jfree.data.general.DatasetChangeListener;
 import org.jfree.data.general.DatasetGroup;
 import org.jfree.data.statistics.Statistics;
 import org.jfree.data.xy.DefaultXYDataset;
+import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -139,21 +140,6 @@ public class GraphBuilder {
 		 *  - dissatisfaction (Serialised double)
 		 *  - move (Serialised Pair<CellMove,Integer>)
 		 */
-		XYDataset speedDataset = new XYSeriesCollection();
-		XYSeriesCollection speedCollection = (XYSeriesCollection)speedDataset;
-		for (PersistentAgent pAgent : pAgents) {
-			String key = pAgent.getID().toString();
-			logger.info("Processing agent " + key);
-			logger.debug("Processing speed for agent " + key);
-			speedCollection.addSeries(new XYSeries(key, true, false));
-			for (int t=0; t<=endTime; t++) {
-				logger.trace("Time " + t);
-				Integer speed = (Integer) StringSerializer.fromString(pAgent.getState(t).getProperty("speed"));
-				speedCollection.getSeries(key).add(t, speed);
-			}
-		}
-		
-		
 		/*
 		 * Environment Transient:
 		 * simId/state/time
@@ -193,17 +179,82 @@ public class GraphBuilder {
 		 * IPCon max/avg cluster size percycle
 		 *  - also do an overall value ? maybe a box for each sim ?
 		 */
+		
+		/*
+		 * Declare datasets
+		 */
+		XYDataset speedDataset = new XYSeriesCollection();
+		XYSeriesCollection speedCollection = (XYSeriesCollection)speedDataset;
+		
+		XYDataset congestionDataset = new XYSeriesCollection();
+		XYSeriesCollection congestionCollection = (XYSeriesCollection)congestionDataset;
+		String congestionCountKey = simId+"_agentCount";
+		congestionCollection.addSeries(new XYSeries(congestionCountKey, true, false));
+		XYSeries congestionCount = congestionCollection.getSeries(congestionCountKey);
+		String congestionChangeInKey = simId+"_changeIn";
+		congestionCollection.addSeries(new XYSeries(congestionChangeInKey, true, false));
+		XYSeries congestionChangeIn = congestionCollection.getSeries(congestionChangeInKey);
+		String congestionChangeOutKey = simId+"_changeOut";
+		congestionCollection.addSeries(new XYSeries(congestionChangeOutKey, true, false));
+		XYSeries congestionChangeOut = congestionCollection.getSeries(congestionChangeOutKey);
+		for (int t = 0; t<=endTime; t++) {
+			congestionChangeIn.add(t, 0);
+			congestionChangeOut.add(t, 0);
+		}
+		
+		
+		// get environment values
+		
+		
+		
+		// get agent data
+		for (PersistentAgent pAgent : pAgents) {
+			String key = pAgent.getID().toString();
+			logger.info("Processing agent " + key);
+			
+			// add series' in all the relevant collections
+			speedCollection.addSeries(new XYSeries(key, true, false));		
+			
+			
+			
+			// get agent persistent values
+			Integer insertedAt = (Integer) StringSerializer.fromString(pAgent.getProperty("insertedAt"));
+			Integer leftAt = (Integer) StringSerializer.fromString(pAgent.getProperty("leftAt"));
+			Double inValue = (Double) congestionChangeIn.getY(insertedAt);
+			congestionChangeIn.update((Number)insertedAt, (Number)(inValue+1));
+			if (leftAt!=null) {
+				Double outValue = (Double) congestionChangeOut.getY(leftAt);
+				congestionChangeOut.update((Number)leftAt, (Number)(outValue+1));
+			}
+			
+			
+			for (int t=0; t<=endTime; t++) {
+				logger.trace("Time " + t);
+				// get transient values
+				logger.debug("Processing speed for agent " + key);
+				Integer speed = (Integer) StringSerializer.fromString(pAgent.getState(t).getProperty("speed"));
+				speedCollection.getSeries(key).add(t, speed);
+				
+			}
+		}
+		
+		Double agentCount = 0.0;
+		for (int t=0; t<=endTime; t++) {
+			agentCount = agentCount + (Double)congestionChangeIn.getY(t) - (Double)congestionChangeOut.getY(t);
+			congestionCount.add(t, agentCount);
+		}
+		
+		
 		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
 		charts.add(speedChart);
 		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "speeds", true);
 		charts.add(speedBAW);
+		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(sim, congestionDataset, "Congestion", "timestep", "AgentCount");
+		charts.add(congestionChart);
 		
 		Frame frame = new Frame("GRAPHS");
-		Panel panel = new Panel(new GridLayout(1,2));
+		Panel panel = new Panel(new GridLayout(2,2));
 		frame.add(panel);
-		
-		
-		// save to file if required
 		for (Chart chart : charts) {
 			saveChart(chart.getChart(), simId, chart.getChart().getTitle().getText());
 			panel.add(chart.getPanel());
