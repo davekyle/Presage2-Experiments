@@ -5,6 +5,7 @@ package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
@@ -13,6 +14,7 @@ import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.presage2.core.db.DatabaseModule;
 import uk.ac.imperial.presage2.core.db.DatabaseService;
 import uk.ac.imperial.presage2.core.db.StorageService;
@@ -88,6 +90,46 @@ public class GraphBuilder {
 			else if (!exportDir.isDirectory())
 				System.exit(60);
 		}
+		
+		// get the data you want...
+		
+		/*
+		 * Agent Persistent:
+		 * simId/aid/name/state
+		 * state:
+		 *  - type (String)
+		 *  - goals (RoadAgentGoals)
+		 *  - insertedAt (int)
+		 *  - leftAt (int)
+		 */
+		/*
+		 * Agent Transient:
+		 * simId/time/aid/state
+		 * state:
+		 *  - x (double)
+		 *  - y (double)
+		 *  - z (double)
+		 *  - location (RoadLocation)
+		 *  - speed (int)
+		 *  - dissatisfaction (double)
+		 *  - move (Pair<CellMove,Integer>)
+		 */
+		/*
+		 * Environment Transient:
+		 * simId/state/time
+		 * state:
+		 *  - RIC_Count (int)
+		 *  - [ric.toString()]_roles ( Serializable / Collection<HasRole> / HashSet )
+		 *  - [ric.toString()]_chosen (Chosen)
+		 */
+		/*
+		 * Environment Persistent:
+		 * (nothing)
+		 */
+		/*
+		 * Simulation:
+		 * id/name/state/currentTime/finishTime/createdAt/classname/finishedAt/parent/parameters/startedAt
+		 */
 		
 		// make list of charts you want
 		
