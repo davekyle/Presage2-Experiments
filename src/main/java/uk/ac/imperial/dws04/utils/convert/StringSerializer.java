@@ -24,12 +24,17 @@ public class StringSerializer {
 
 	/** Read the object from Base64 string. */
     public static Object fromString( String s ) throws IOException , ClassNotFoundException {
-        byte [] data = Base64Coder.decode( s );
-        ObjectInputStream ois = new ObjectInputStream( 
-                                        new ByteArrayInputStream(  data ) );
-        Object o  = ois.readObject();
-        ois.close();
-        return o;
+    	if (s==null) {
+    		return null;
+    	}
+    	else {
+    		byte [] data = Base64Coder.decode( s );
+	        ObjectInputStream ois = new ObjectInputStream( 
+	                                        new ByteArrayInputStream(  data ) );
+	        Object o  = ois.readObject();
+	        ois.close();
+	        return o;
+    	}
     }
 
     /** Write the object to a Base64 string. */

@@ -10,6 +10,7 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.xy.DefaultXYDataset;
+import org.jfree.data.xy.XYDataset;
 
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 
@@ -20,20 +21,21 @@ import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 public class DefaultTimeSeriesChart implements TimeSeriesChart {
 	
 	final PersistentSimulation sim;
-	final DefaultXYDataset data;
+	final XYDataset data;
 	final JFreeChart chart;
 	final ChartPanel panel;
 
-	public DefaultTimeSeriesChart(PersistentSimulation sim) {
+	public DefaultTimeSeriesChart(PersistentSimulation sim, XYDataset data, String title, String xLabel, String yLabel) {
 		super();
 		this.sim = sim;
 
-		data = new DefaultXYDataset();
-		chart = ChartFactory.createXYLineChart("title", "", "timestep", data, PlotOrientation.HORIZONTAL, true, false, false);
+		this.data = data;
+		chart = ChartFactory.createXYLineChart(title, xLabel, yLabel, data, PlotOrientation.VERTICAL, true, false, false);
 		panel = new ChartPanel(chart);
 
 		chart.getXYPlot().setBackgroundPaint(Color.WHITE);
-		chart.getXYPlot().getDomainAxis().setRange(0, 30);
+		//chart.getXYPlot().getDomainAxis().setRange(0, 30);
+		chart.getXYPlot().getDomainAxis().setAutoRange(true);
 	}
 
 	/* (non-Javadoc)
