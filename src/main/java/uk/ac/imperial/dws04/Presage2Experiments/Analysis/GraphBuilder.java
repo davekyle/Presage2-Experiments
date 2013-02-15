@@ -12,6 +12,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -35,6 +39,7 @@ import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.presage2.core.db.DatabaseModule;
@@ -216,16 +221,25 @@ public class GraphBuilder {
 		String occupiedRICCountKey = simId+"_occupiedCount";
 		ricCountCollection.addSeries(new XYSeries(occupiedRICCountKey, true, false));
 		
-		
+		XYDataset ricMemberDataset = new XYSeriesCollection();
+		XYSeriesCollection ricMemberCollection = (XYSeriesCollection)ricMemberDataset;
+		/*
+		 * Map of RIC(toString) to maps from timestamp to acceptorcount
+		 */
+		HashMap<String, HashMap<Integer, Integer>> acceptorTimeMap = new HashMap<String, HashMap<Integer, Integer>>();
 
 		
 		// declare charts
 		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
+		speedChart.hideLegend(true);
 		charts.add(speedChart);
 		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(sim, congestionDataset, "Congestion", "timestep", "AgentCount");
 		charts.add(congestionChart);
 		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(sim, ricCountDataset, "RICs", "timestep", "Count");
 		charts.add(ricCountChart);
+		DefaultTimeSeriesChart ricAcceptorCountChart = new DefaultTimeSeriesChart(sim, ricMemberDataset, "RIC size", "timestep", "Number of Acceptors");
+		ricAcceptorCountChart.hideLegend(true);
+		charts.add(ricAcceptorCountChart);
 		
 		
 		
@@ -242,8 +256,20 @@ public class GraphBuilder {
 			ricCountCollection.getSeries(ricCountKey).add(t, ricCount);
 			Integer occupiedRIC = (Integer) StringSerializer.fromString(pEnv.getProperty("OccupiedRIC_Count", t));
 			ricCountCollection.getSeries(occupiedRICCountKey).add(t, occupiedRIC);
+			
+			Map<String,String> properties = pEnv.getProperties(t);
+			for (Entry<String,String>property : properties.entrySet()) {
+				if (property.getKey().endsWith("_roles")) {
+					addAcceptorCountToMap(acceptorTimeMap, t, property.getValue());
+				}
+			}
+			
+			
+			
 		}
 		
+		
+		populateRICAcceptorCountDatasetFromMap(ricMemberCollection, acceptorTimeMap);
 		
 		
 		// get agent data
@@ -281,42 +307,23 @@ public class GraphBuilder {
 		for (int t=0; t<=endTime; t++) {
 			agentCount = agentCount + (Double)congestionChangeIn.getY(t) - (Double)congestionChangeOut.getY(t);
 			congestionCount.add(t, agentCount);
-			double angle = 2*(Math.PI/16);
-			if ((Double)congestionChangeIn.getY(t)!=0.0 && t!=0) {
-				String inAnnotate = "+"+((Double)congestionChangeIn.getY(t)).intValue();
-				XYTextAnnotation annotation = new XYTextAnnotation(inAnnotate, t-1, (Double)congestionCount.getY(t-1));
-				annotation.setFont(new Font("SansSerif", Font.PLAIN, 9));
-				TextAnchor anchor = TextAnchor.BOTTOM_RIGHT;
-				annotation.setTextAnchor(anchor);
-				annotation.setRotationAnchor(anchor);
-		        annotation.setRotationAngle(angle);
-				((XYPlot)congestionChart.getChart().getPlot()).addAnnotation(annotation);
-			}
-			if ((Double)congestionChangeOut.getY(t)!=0.0 && t!=0) {
-				String outAnnotate = "-"+((Double)congestionChangeOut.getY(t)).intValue();
-				XYTextAnnotation annotation = new XYTextAnnotation(outAnnotate, t-1, (Double)congestionCount.getY(t-1));
-				annotation.setFont(new Font("SansSerif", Font.PLAIN, 9));
-				TextAnchor anchor = TextAnchor.TOP_RIGHT;
-				annotation.setTextAnchor(anchor);
-				annotation.setRotationAnchor(anchor);
-		        annotation.setRotationAngle(-angle);
-				((XYPlot)congestionChart.getChart().getPlot()).addAnnotation(annotation);
-			}
+			annotateCongestionChart(congestionChart, t, simId);
 		}
 		
 
 		// declare BAW chart because it's data doesn't update...
 		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
+		speedBAW.hideLegend(true);
 		charts.add(speedBAW);
 		
 		
 		Frame frame = new Frame("GRAPHS");
-		Panel panel = new Panel(new GridLayout(2,2));
+		Panel panel = new Panel(new GridLayout(0,2));
 		frame.add(panel);
 		for (Chart chart : charts) {
 			chart.getChart().fireChartChanged();
 			ChartUtils.tweak(chart.getChart(), false, false);
-			ChartUtils.removeLegendForBAWPlots(chart);
+			//ChartUtils.removeLegendForBAWPlots(chart);
 			saveChart(chart.getChart(), simId, chart.getChart().getTitle().getText());
 			panel.add(chart.getPanel());
 		}
@@ -326,6 +333,82 @@ public class GraphBuilder {
 		
 		db.stop();
 		//System.exit(0);
+	}
+
+	/**
+	 * @param congestionChart
+	 * @param t
+	 * @param simId
+	 */
+	private static void annotateCongestionChart( DefaultTimeSeriesChart congestionChart, int t, Integer simId) {
+		String congestionCountKey = simId+"_agentCount";
+		String congestionChangeInKey = simId+"_changeIn";
+		String congestionChangeOutKey = simId+"_changeOut";
+		XYSeriesCollection collection = (XYSeriesCollection)congestionChart.getChart().getXYPlot().getDataset();
+		XYSeries congestionCount = collection.getSeries(congestionCountKey);
+		XYSeries congestionChangeIn = collection.getSeries(congestionChangeInKey);
+		XYSeries congestionChangeOut = collection.getSeries(congestionChangeOutKey);
+		double angle = 2*(Math.PI/16);
+		if ((Double)congestionChangeIn.getY(t)!=0.0 && t!=0) {
+			String inAnnotate = "+"+((Double)congestionChangeIn.getY(t)).intValue();
+			XYTextAnnotation annotation = new XYTextAnnotation(inAnnotate, t-1, (Double)congestionCount.getY(t-1));
+			annotation.setFont(new Font("SansSerif", Font.PLAIN, 9));
+			TextAnchor anchor = TextAnchor.BOTTOM_RIGHT;
+			annotation.setTextAnchor(anchor);
+			annotation.setRotationAnchor(anchor);
+		    annotation.setRotationAngle(angle);
+			((XYPlot)congestionChart.getChart().getPlot()).addAnnotation(annotation);
+		}
+		if ((Double)congestionChangeOut.getY(t)!=0.0 && t!=0) {
+			String outAnnotate = "-"+((Double)congestionChangeOut.getY(t)).intValue();
+			XYTextAnnotation annotation = new XYTextAnnotation(outAnnotate, t-1, (Double)congestionCount.getY(t-1));
+			annotation.setFont(new Font("SansSerif", Font.PLAIN, 9));
+			TextAnchor anchor = TextAnchor.TOP_RIGHT;
+			annotation.setTextAnchor(anchor);
+			annotation.setRotationAnchor(anchor);
+		    annotation.setRotationAngle(-angle);
+			((XYPlot)congestionChart.getChart().getPlot()).addAnnotation(annotation);
+		}
+	}
+
+	private static void populateRICAcceptorCountDatasetFromMap(XYSeriesCollection ricMemberCollection, HashMap<String, HashMap<Integer, Integer>> acceptorTimeMap) {
+		for (Entry<String, HashMap<Integer,Integer>> topEntry : acceptorTimeMap.entrySet()) {
+			String ricName = topEntry.getKey();
+			HashMap<Integer,Integer> ricData = topEntry.getValue();
+			XYSeries series = new XYSeries(ricName, true, false);
+			
+			for (Entry<Integer,Integer> ricEntry : ricData.entrySet()) {
+				series.add(ricEntry.getKey(), ricEntry.getValue());
+			}
+			ricMemberCollection.addSeries(series);
+		}
+	}
+
+	/**
+	 * 
+	 * @param map hashmap of RICname to map of time:count
+	 * @param value String of serialised data (HashSet of HasRole)
+	 * @throws ClassNotFoundException 
+	 * @throws IOException 
+	 */
+	private static void addAcceptorCountToMap(HashMap<String, HashMap<Integer,Integer>> map, Integer time, String value) throws IOException, ClassNotFoundException {
+		HashSet<HasRole> roles = (HashSet<HasRole>) StringSerializer.fromString(value);
+		Integer count = 0;
+		String ricName = null;
+		for (HasRole role : roles) {
+			if (ricName==null) {
+				ricName = role.getRIC().toString();
+			}
+			if (role.getRole().equals(Role.ACCEPTOR)) {
+				count++;
+			}
+		}
+		if (count!=0) {
+			if (!map.containsKey(ricName)) {
+				map.put(ricName, new HashMap<Integer,Integer>());
+			}
+			map.get(ricName).put(time, count);
+		}
 	}
 	
 }
