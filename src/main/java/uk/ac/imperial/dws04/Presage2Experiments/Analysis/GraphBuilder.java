@@ -29,6 +29,7 @@ import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.ui.TextAnchor;
 
 import com.google.inject.Guice;
 import com.google.inject.Inject;
@@ -282,11 +283,25 @@ public class GraphBuilder {
 		for (int t=0; t<=endTime; t++) {
 			agentCount = agentCount + (Double)congestionChangeIn.getY(t) - (Double)congestionChangeOut.getY(t);
 			congestionCount.add(t, agentCount);
-			if ((Double)congestionChangeIn.getY(t)!=0.0) {
-				String outAnnotate = ((Double)congestionChangeIn.getY(t)).toString();
-				XYTextAnnotation annotation = new XYTextAnnotation(outAnnotate, t, (Double)congestionCount.getY(t));
+			double angle = 2*(Math.PI/16);
+			if ((Double)congestionChangeIn.getY(t)!=0.0 && t!=0) {
+				String inAnnotate = "+"+((Double)congestionChangeIn.getY(t)).intValue();
+				XYTextAnnotation annotation = new XYTextAnnotation(inAnnotate, t-1, (Double)congestionCount.getY(t-1));
 				annotation.setFont(new Font("SansSerif", Font.PLAIN, 9));
-		        annotation.setRotationAngle(3.0*(Math.PI / 4.0));
+				TextAnchor anchor = TextAnchor.BOTTOM_RIGHT;
+				annotation.setTextAnchor(anchor);
+				annotation.setRotationAnchor(anchor);
+		        annotation.setRotationAngle(angle);
+				((XYPlot)congestionChart.getChart().getPlot()).addAnnotation(annotation);
+			}
+			if ((Double)congestionChangeOut.getY(t)!=0.0 && t!=0) {
+				String outAnnotate = "-"+((Double)congestionChangeOut.getY(t)).intValue();
+				XYTextAnnotation annotation = new XYTextAnnotation(outAnnotate, t-1, (Double)congestionCount.getY(t-1));
+				annotation.setFont(new Font("SansSerif", Font.PLAIN, 9));
+				TextAnchor anchor = TextAnchor.TOP_RIGHT;
+				annotation.setTextAnchor(anchor);
+				annotation.setRotationAnchor(anchor);
+		        annotation.setRotationAngle(-angle);
 				((XYPlot)congestionChart.getChart().getPlot()).addAnnotation(annotation);
 			}
 		}
