@@ -3,7 +3,6 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
-import java.awt.Color;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
@@ -11,7 +10,6 @@ import java.awt.Panel;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -23,13 +21,6 @@ import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.DomainOrder;
-import org.jfree.data.Range;
-import org.jfree.data.general.DatasetChangeListener;
-import org.jfree.data.general.DatasetGroup;
-import org.jfree.data.statistics.Statistics;
-import org.jfree.data.xy.DefaultXYDataset;
-import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -392,6 +383,7 @@ public class GraphBuilder {
 	 * @throws IOException 
 	 */
 	private static void addAcceptorCountToMap(HashMap<String, HashMap<Integer,Integer>> map, Integer time, String value) throws IOException, ClassNotFoundException {
+		@SuppressWarnings("unchecked")
 		HashSet<HasRole> roles = (HashSet<HasRole>) StringSerializer.fromString(value);
 		Integer count = 0;
 		String ricName = null;
