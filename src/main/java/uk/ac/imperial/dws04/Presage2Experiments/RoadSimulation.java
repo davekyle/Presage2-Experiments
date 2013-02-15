@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.drools.runtime.StatefulKnowledgeSession;
 
@@ -107,7 +108,7 @@ public class RoadSimulation extends InjectedSimulation {
 	@Parameter(name="insertMethod", optional=true)
 	public String insertMethod = "odd";
 	
-	HashMap<UUID, String> agentNames;
+	ConcurrentHashMap<UUID, String> agentNames;
 	HashMap<UUID,RoadLocation> agentLocations;
 
 	EnvironmentServiceProvider serviceProvider;
@@ -124,7 +125,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public RoadSimulation(Set<AbstractModule> modules) {
 		super(modules);
 		agentLocations = new HashMap<UUID, RoadLocation>();
-		agentNames = new HashMap<UUID, String>();
+		agentNames = new ConcurrentHashMap<UUID, String>();
 		// TODO if this is a param, needs to be loaded in getModules() or something instead
 		// the uuid's aren't governed by the same seed, so if you want to compare do it by agentname instead
 		//Random.seed = 123456;
