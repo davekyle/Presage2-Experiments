@@ -222,8 +222,6 @@ public class GraphBuilder {
 		// declare charts
 		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
 		charts.add(speedChart);
-		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
-		charts.add(speedBAW);
 		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(sim, congestionDataset, "Congestion", "timestep", "AgentCount");
 		charts.add(congestionChart);
 		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(sim, ricCountDataset, "RICs", "timestep", "Count");
@@ -306,7 +304,10 @@ public class GraphBuilder {
 			}
 		}
 		
-		
+
+		// declare BAW chart because it's data doesn't update...
+		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
+		charts.add(speedBAW);
 		
 		
 		Frame frame = new Frame("GRAPHS");
