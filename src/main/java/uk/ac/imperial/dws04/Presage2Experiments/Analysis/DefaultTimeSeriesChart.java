@@ -65,4 +65,11 @@ public class DefaultTimeSeriesChart implements TimeSeriesChart {
 
 	}
 
+	@Override
+	public void hideLegend(boolean hide) {
+		if (hide) {
+			this.chart.removeLegend();
+		}
+	}
+
 }

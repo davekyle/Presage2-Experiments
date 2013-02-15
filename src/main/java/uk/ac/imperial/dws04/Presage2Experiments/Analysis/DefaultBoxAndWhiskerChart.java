@@ -74,4 +74,11 @@ public class DefaultBoxAndWhiskerChart implements Chart {
 		return this.chart;
 	}
 
+	@Override
+	public void hideLegend(boolean hide) {
+		if (hide) {
+			this.chart.removeLegend();
+		}
+	}
+
 }

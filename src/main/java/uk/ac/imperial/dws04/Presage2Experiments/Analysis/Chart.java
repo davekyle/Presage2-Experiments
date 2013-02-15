@@ -20,5 +20,7 @@ public interface Chart {
 	ChartPanel getPanel();
 
 	JFreeChart getChart();
+	
+	void hideLegend(boolean hide);
 
 }
