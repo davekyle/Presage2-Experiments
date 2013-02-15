@@ -4,6 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Panel;
@@ -16,6 +17,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.DomainOrder;
 import org.jfree.data.Range;
@@ -214,6 +216,21 @@ public class GraphBuilder {
 		ricCountCollection.addSeries(new XYSeries(occupiedRICCountKey, true, false));
 		
 		
+
+		
+		// declare charts
+		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
+		charts.add(speedChart);
+		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
+		charts.add(speedBAW);
+		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(sim, congestionDataset, "Congestion", "timestep", "AgentCount");
+		charts.add(congestionChart);
+		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(sim, ricCountDataset, "RICs", "timestep", "Count");
+		charts.add(ricCountChart);
+		
+		
+		
+		
 		// get environment values
 		PersistentEnvironment pEnv = sim.getEnvironment();
 		
@@ -265,19 +282,14 @@ public class GraphBuilder {
 		for (int t=0; t<=endTime; t++) {
 			agentCount = agentCount + (Double)congestionChangeIn.getY(t) - (Double)congestionChangeOut.getY(t);
 			congestionCount.add(t, agentCount);
+			if ((Double)congestionChangeIn.getY(t)!=0.0) {
+				String outAnnotate = ((Double)congestionChangeIn.getY(t)).toString();
+				XYTextAnnotation annotation = new XYTextAnnotation(outAnnotate, t, (Double)congestionCount.getY(t));
+				annotation.setFont(new Font("SansSerif", Font.PLAIN, 9));
+		        annotation.setRotationAngle(3.0*(Math.PI / 4.0));
+				((XYPlot)congestionChart.getChart().getPlot()).addAnnotation(annotation);
+			}
 		}
-		
-		
-		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
-		charts.add(speedChart);
-		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
-		charts.add(speedBAW);
-		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(sim, congestionDataset, "Congestion", "timestep", "AgentCount");
-		charts.add(congestionChart);
-		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(sim, ricCountDataset, "RICs", "timestep", "Count");
-		charts.add(ricCountChart);
-		
-		
 		
 		
 		
@@ -286,6 +298,7 @@ public class GraphBuilder {
 		Panel panel = new Panel(new GridLayout(2,2));
 		frame.add(panel);
 		for (Chart chart : charts) {
+			chart.getChart().fireChartChanged();
 			ChartUtils.tweak(chart.getChart(), false, false);
 			ChartUtils.removeLegendForBAWPlots(chart);
 			saveChart(chart.getChart(), simId, chart.getChart().getTitle().getText());

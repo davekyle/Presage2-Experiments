@@ -54,7 +54,7 @@ public class DefaultBoxAndWhiskerChart implements Chart {
 	}
 	
 	public final static BoxAndWhiskerItem xySeriesToBAW(XYSeries series, Boolean stripNullAndNaNItems) {
-		ArrayList<Number> list = StatBuilder.xySeriesToArrayList(series);
+		ArrayList<Number> list = SeriesUtils.xySeriesToArrayList(series);
 		return BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(list, stripNullAndNaNItems);
 	}
 

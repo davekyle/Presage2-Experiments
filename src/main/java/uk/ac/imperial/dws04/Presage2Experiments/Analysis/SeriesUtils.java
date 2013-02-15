@@ -14,7 +14,7 @@ import org.jfree.data.xy.XYSeries;
  * @author dws04
  *
  */
-public abstract class StatBuilder {
+public abstract class SeriesUtils {
 	
 	public final static DescriptiveStatistics xySeriesToApacheStats(XYSeries series) {
 		DescriptiveStatistics result = new DescriptiveStatistics();
