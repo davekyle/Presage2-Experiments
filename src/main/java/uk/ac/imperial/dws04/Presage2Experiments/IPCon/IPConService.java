@@ -539,6 +539,15 @@ public class IPConService extends EnvironmentService {
 		return result;
 	}
 	
+	private Collection<IPConRIC> getOccupiedRICs() {
+		Collection<IPConRIC> result = new HashSet<IPConRIC>();
+		QueryResults coll = session.getQueryResults("getCurrentRICs", new Object[]{Variable.v});
+		for (QueryResultsRow row : coll) {
+			result.add((IPConRIC)row.get("$ric"));
+		}
+		return result;
+	}
+	
 	/**
 	 * @return all the RICs in the specified cluster
 	 */
@@ -601,6 +610,8 @@ public class IPConService extends EnvironmentService {
 		//this.storage.getSimulation().getEnvironment().setProperty(key, timestep, value);
 		Collection<IPConRIC> rics = getCurrentRICs();
 		setTransient("RIC_Count", timestep, ((Integer)rics.size()));
+		Collection<IPConRIC> occupiedRICs = getOccupiedRICs();
+		setTransient("OccupiedRIC_Count", timestep, ((Integer)occupiedRICs.size()));
 		for (IPConRIC ric : rics) {
 			logger.trace("... saving ric:" + ric + " ... ");
 			Integer revision = ric.getRevision();

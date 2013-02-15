@@ -48,7 +48,7 @@ public class DefaultBoxAndWhiskerChart implements Chart {
 		DefaultBoxAndWhiskerCategoryDataset result = new DefaultBoxAndWhiskerCategoryDataset();
 		for (Object seriesObj : collection.getSeries()) {
 			XYSeries series = ((XYSeries)seriesObj);
-			result.add(xySeriesToBAW(series, stripNullAndNaNItems), "Rows", series.getKey());
+			result.add(xySeriesToBAW(series, stripNullAndNaNItems), "RowKey", series.getKey());
 		}
 		return result;
 	}

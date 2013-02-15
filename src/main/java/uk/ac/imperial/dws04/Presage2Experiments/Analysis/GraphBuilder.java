@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
+import java.awt.Color;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Panel;
@@ -15,7 +16,9 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.DomainOrder;
+import org.jfree.data.Range;
 import org.jfree.data.general.DatasetChangeListener;
 import org.jfree.data.general.DatasetGroup;
 import org.jfree.data.statistics.Statistics;
@@ -35,6 +38,7 @@ import uk.ac.imperial.presage2.core.db.DatabaseModule;
 import uk.ac.imperial.presage2.core.db.DatabaseService;
 import uk.ac.imperial.presage2.core.db.StorageService;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentAgent;
+import uk.ac.imperial.presage2.core.db.persistent.PersistentEnvironment;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 
 /**
@@ -71,7 +75,7 @@ public class GraphBuilder {
 				gui.exportMode = true;
 			try {
 				//gui.init(Integer.parseInt(args[0]));
-				gui.init(1);
+				gui.init(3);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -202,8 +206,27 @@ public class GraphBuilder {
 			congestionChangeOut.add(t, 0);
 		}
 		
+		XYDataset ricCountDataset = new XYSeriesCollection();
+		XYSeriesCollection ricCountCollection = (XYSeriesCollection)ricCountDataset;
+		String ricCountKey = simId+"_ricCount";
+		ricCountCollection.addSeries(new XYSeries(ricCountKey, true, false));
+		String occupiedRICCountKey = simId+"_occupiedCount";
+		ricCountCollection.addSeries(new XYSeries(occupiedRICCountKey, true, false));
+		
 		
 		// get environment values
+		PersistentEnvironment pEnv = sim.getEnvironment();
+		
+		// get persistent env data
+		
+		
+		// transient env data
+		for (int t = 0; t<=endTime; t++) {
+			Integer ricCount = (Integer) StringSerializer.fromString(pEnv.getProperty("RIC_Count", t));
+			ricCountCollection.getSeries(ricCountKey).add(t, ricCount);
+			Integer occupiedRIC = (Integer) StringSerializer.fromString(pEnv.getProperty("OccupiedRIC_Count", t));
+			ricCountCollection.getSeries(occupiedRICCountKey).add(t, occupiedRIC);
+		}
 		
 		
 		
@@ -227,7 +250,7 @@ public class GraphBuilder {
 				congestionChangeOut.update((Number)leftAt, (Number)(outValue+1));
 			}
 			
-			
+			// get agent transient values
 			for (int t=0; t<=endTime; t++) {
 				logger.trace("Time " + t);
 				// get transient values
@@ -247,15 +270,24 @@ public class GraphBuilder {
 		
 		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
 		charts.add(speedChart);
-		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "speeds", true);
+		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
 		charts.add(speedBAW);
 		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(sim, congestionDataset, "Congestion", "timestep", "AgentCount");
 		charts.add(congestionChart);
+		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(sim, ricCountDataset, "RICs", "timestep", "Count");
+		charts.add(ricCountChart);
+		
+		
+		
+		
+		
 		
 		Frame frame = new Frame("GRAPHS");
 		Panel panel = new Panel(new GridLayout(2,2));
 		frame.add(panel);
 		for (Chart chart : charts) {
+			ChartUtils.tweak(chart.getChart(), false, false);
+			ChartUtils.removeLegendForBAWPlots(chart);
 			saveChart(chart.getChart(), simId, chart.getChart().getTitle().getText());
 			panel.add(chart.getPanel());
 		}
@@ -266,5 +298,5 @@ public class GraphBuilder {
 		db.stop();
 		//System.exit(0);
 	}
-
+	
 }
