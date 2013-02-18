@@ -98,7 +98,7 @@ public class DefaultBoxAndWhiskerChart implements Chart {
 		}
 		//System.out.println("Data is " + data);
 		DefaultBoxAndWhiskerCategoryDataset result = new DefaultBoxAndWhiskerCategoryDataset();
-		//BoxAndWhiskerItem calculated = bawFromApache(data);
+		BoxAndWhiskerItem apache = bawFromApache(data);
 		BoxAndWhiskerItem calculated = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(data, stripNullAndNaNItems);
 		result.add(calculated, key, key);
 		return result;
@@ -115,6 +115,7 @@ public class DefaultBoxAndWhiskerChart implements Chart {
 		double median = stats.getPercentile(50);
 		double q1 = stats.getPercentile(25);
 		double q3 = stats.getPercentile(75);
+		System.out.println(stats);
 		return new BoxAndWhiskerItem(mean, median, q1, q3, null, null, null, null, null);
 	}
 
