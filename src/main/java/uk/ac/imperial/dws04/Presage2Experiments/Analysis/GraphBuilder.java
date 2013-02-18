@@ -26,6 +26,7 @@ import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.SeriesRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -40,12 +41,14 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.dws04.utils.convert.ToDouble;
+import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.presage2.core.db.DatabaseModule;
 import uk.ac.imperial.presage2.core.db.DatabaseService;
 import uk.ac.imperial.presage2.core.db.StorageService;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentAgent;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentEnvironment;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
+import uk.ac.imperial.presage2.util.location.CellMove;
 
 /**
  * @author dws04
@@ -195,6 +198,11 @@ public class GraphBuilder {
 		 */
 		XYDataset speedDataset = new XYSeriesCollection();
 		XYSeriesCollection speedCollection = (XYSeriesCollection)speedDataset;
+
+		XYDataset dissDataset = new XYSeriesCollection();
+		XYSeriesCollection dissCollection = (XYSeriesCollection)dissDataset;
+		XYDataset moveUtilDataset = new XYSeriesCollection();
+		XYSeriesCollection moveUtilCollection = (XYSeriesCollection)moveUtilDataset;
 		
 		XYDataset congestionDataset = new XYSeriesCollection();
 		XYSeriesCollection congestionCollection = (XYSeriesCollection)congestionDataset;
@@ -231,6 +239,12 @@ public class GraphBuilder {
 		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
 		speedChart.hideLegend(true);
 		charts.add(speedChart);
+		DefaultTimeSeriesChart dissChart = new DefaultTimeSeriesChart(sim, dissDataset, "Agent Dissatisfaction TimeSeries", "timestep", "dissatisfaction");
+		dissChart.hideLegend(true);
+		charts.add(dissChart); 
+		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(sim, moveUtilDataset, "Agent Move Utility TimeSeries", "timestep", "utility");
+		moveUtilChart.hideLegend(true);
+		charts.add(moveUtilChart);
 		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(sim, congestionDataset, "Congestion", "timestep", "AgentCount");
 		charts.add(congestionChart);
 		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(sim, ricCountDataset, "RICs", "timestep", "Count");
@@ -276,7 +290,9 @@ public class GraphBuilder {
 			logger.info("Processing agent " + key);
 			
 			// add series' in all the relevant collections
-			speedCollection.addSeries(new XYSeries(key, true, false));		
+			speedCollection.addSeries(new XYSeries(key, true, false));
+			dissCollection.addSeries(new XYSeries(key, true, false));
+			moveUtilCollection.addSeries(new XYSeries(key, true, false));	
 			
 			
 			
@@ -298,11 +314,26 @@ public class GraphBuilder {
 				Integer speed = (Integer) StringSerializer.fromString(pAgent.getState(t).getProperty("speed"));
 				speedCollection.getSeries(key).add(t, speed);
 				
+				logger.debug("Processing dissatisfaction for agent " + key);
+				Double diss = (Double) StringSerializer.fromString(pAgent.getState(t).getProperty("dissatisfaction"));
+				dissCollection.getSeries(key).add(t, diss);
+				
+				logger.debug("Processing move utility for agent " + key);
+				Pair<CellMove,Integer> pair = (Pair<CellMove,Integer>) StringSerializer.fromString(pAgent.getState(t).getProperty("move"));
+				Integer util = null;
+				if (pair!=null) {
+					util = pair.getB();
+				}
+				moveUtilCollection.getSeries(key).add(t, util);
+				
 			}
 		}
 		
-		createAverageLine(speedChart, endTime, "meanSpeed", false);
-		createAverageLine(ricAcceptorCountChart, endTime, "meanSize", true);
+		createAverageLine(speedChart, endTime, "Speed", false);
+		createAverageLine(ricAcceptorCountChart, endTime, "Size", true);
+		createAverageLine(dissChart, endTime, "Dissatisfaction", false);
+		createAverageLine(moveUtilChart, endTime, "Move Utility", false);
+		//ChartUtils.makeLogRange(moveUtilChart);
 		
 		Double agentCount = 0.0;
 		for (int t=0; t<=endTime; t++) {
@@ -316,6 +347,20 @@ public class GraphBuilder {
 		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
 		speedBAW.hideLegend(true);
 		charts.add(speedBAW);
+		
+		//remove move util chart and add adjusted chart
+		charts.remove(moveUtilChart);
+		DefaultTimeSeriesChart adjustedMoveUtilChart = makeAdjustedMoveUtilChart(moveUtilCollection);
+		//ChartUtils.makeLogRange(adjustedMoveUtilChart);
+		createAverageLine(adjustedMoveUtilChart, endTime, "MoveUtil", true);
+		adjustedMoveUtilChart.hideLegend(false);
+		charts.add(adjustedMoveUtilChart);
+		Frame newFrame = new Frame("Adj");
+		Panel newPanel = new Panel(new GridLayout(0,1));
+		newFrame.add(newPanel);
+		newPanel.add(adjustedMoveUtilChart.getPanel());
+		newFrame.pack();
+		newFrame.setVisible(true);
 		
 		
 		Frame frame = new Frame("GRAPHS");
@@ -336,8 +381,16 @@ public class GraphBuilder {
 		//System.exit(0);
 	}
 
-	private void createAverageLine(TimeSeriesChart chart, final int endTime, final String avgSeriesKey, boolean includeLastCycle) {
+	/**
+	 * 
+	 * @param chart
+	 * @param endTime
+	 * @param keyStub end of key - will have "mean" prepended to it
+	 * @param includeLastCycle
+	 */
+	private void createAverageLine(TimeSeriesChart chart, final int endTime, final String keyStub, boolean includeLastCycle) {
 		XYSeriesCollection collection = (XYSeriesCollection)chart.getXYPlot().getDataset();
+		String avgSeriesKey = "mean" + keyStub;
 		XYSeries avgSeries = new XYSeries(avgSeriesKey, true, false);
 		int end = endTime;
 		if (!includeLastCycle) {
@@ -360,6 +413,7 @@ public class GraphBuilder {
 				}
 				catch (IndexOutOfBoundsException e) {
 					// ditch it
+					//e.printStackTrace();
 				}
 			}
 			avgSeries.add(t, (total/count));
@@ -456,6 +510,26 @@ public class GraphBuilder {
 			}
 			map.get(ricName).put(time, count);
 		}
+	}
+	
+	private DefaultTimeSeriesChart makeAdjustedMoveUtilChart(final XYSeriesCollection data) {
+		XYSeriesCollection adjusted = new XYSeriesCollection();
+		for (Object serObj : data.getSeries()) {
+			XYSeries series = (XYSeries)serObj;
+			String key = (String) series.getKey();
+			adjusted.addSeries(new XYSeries(key));
+			for (Object itemObj : series.getItems()) {
+				XYDataItem item = (XYDataItem)itemObj;
+				Double y = item.getYValue();
+				if (y>100) {
+					y = 100.0;
+				}
+				adjusted.getSeries(key).add(item.getXValue(), y);
+			}
+		}
+		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(sim, adjusted, "Agent Move Utility TimeSeries", "timestep", "utility");
+		moveUtilChart.hideLegend(true);
+		return moveUtilChart;
 	}
 	
 }

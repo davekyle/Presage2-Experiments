@@ -7,11 +7,13 @@ import java.awt.Color;
 
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.Range;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.ui.tabbedui.VerticalLayout;
 
 /**
  * @author dws04
@@ -45,6 +47,14 @@ public abstract class ChartUtils {
 		if (chart.getClass().isAssignableFrom(DefaultBoxAndWhiskerChart.class)) {
 			chart.getChart().removeLegend();
 		}	
+	}
+	
+	public static void makeLogRange(TimeSeriesChart chart) {
+		XYPlot plot = chart.getXYPlot();
+		LogarithmicAxis logAxis = new LogarithmicAxis(plot.getRangeAxis().getLabel());
+		logAxis.setAutoRange(true);
+		logAxis.setAllowNegativesFlag(true);
+		plot.setRangeAxis(logAxis);
 	}
 
 }
