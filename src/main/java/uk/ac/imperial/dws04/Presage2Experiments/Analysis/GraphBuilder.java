@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
+import java.awt.BasicStroke;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
@@ -21,6 +22,7 @@ import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -32,7 +34,9 @@ import com.google.inject.Injector;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
+import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
+import uk.ac.imperial.dws04.utils.convert.ToDouble;
 import uk.ac.imperial.presage2.core.db.DatabaseModule;
 import uk.ac.imperial.presage2.core.db.DatabaseService;
 import uk.ac.imperial.presage2.core.db.StorageService;
@@ -294,6 +298,8 @@ public class GraphBuilder {
 			}
 		}
 		
+		createAverageLine(speedChart, endTime, "meanSpeed");
+		
 		Double agentCount = 0.0;
 		for (int t=0; t<=endTime; t++) {
 			agentCount = agentCount + (Double)congestionChangeIn.getY(t) - (Double)congestionChangeOut.getY(t);
@@ -324,6 +330,48 @@ public class GraphBuilder {
 		
 		db.stop();
 		//System.exit(0);
+	}
+
+	private void createAverageLine(TimeSeriesChart chart, int endTime, String avgSeriesKey) {
+		XYSeriesCollection collection = (XYSeriesCollection)chart.getChart().getXYPlot().getDataset();
+		XYSeries avgSeries = new XYSeries(avgSeriesKey, true, false);
+		for (int t = 0; t<endTime; t++) {
+			double total = 0.0;
+			double count = 0.0;
+			for (Object seriesObj : collection.getSeries()) {
+				XYSeries series = (XYSeries)seriesObj;
+				Double val = null;
+				Number tempVal = null;
+				try {
+					tempVal = series.getY(t);
+					if (tempVal==null) {
+						val = 0.0;
+					}
+					else {
+						val = ToDouble.toDouble(tempVal);
+					}
+					count++;
+					total = total+val;
+				}
+				catch (IndexOutOfBoundsException e) {
+					// ditch it
+				}
+			}
+			avgSeries.add(t, (total/count));
+		}
+		//collection.addSeries(avgSeries);
+		XYDataset avgData = new XYSeriesCollection(avgSeries);
+		int avgIndex = chart.getChart().getXYPlot().getDatasetCount();
+		chart.getChart().getXYPlot().setDataset(avgIndex, avgData);
+		XYLineAndShapeRenderer avgRenderer = new XYLineAndShapeRenderer(true, false);
+		chart.getChart().getXYPlot().setRenderer(avgIndex, avgRenderer);
+		chart.getChart().getXYPlot().getRenderer(avgIndex).setSeriesStroke(
+			    0, 
+			    new BasicStroke(
+			        1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
+			        1.0f, new float[] {2.0f}/*new float[] {6.0f, 6.0f}*/, 0.0f
+			    ));
+		//chart.getChart().getXYPlot().setRenderer(avgIndex, avgRenderer);
 	}
 
 	/**
