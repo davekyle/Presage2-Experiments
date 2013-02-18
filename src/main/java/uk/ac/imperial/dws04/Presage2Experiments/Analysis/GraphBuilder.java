@@ -233,20 +233,20 @@ public class GraphBuilder {
 
 		
 		// declare charts
-		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(sim, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
+		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(simId, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
 		speedChart.hideLegend(true);
 		charts.add(speedChart);
-		DefaultTimeSeriesChart dissChart = new DefaultTimeSeriesChart(sim, dissDataset, "Agent Dissatisfaction TimeSeries", "timestep", "dissatisfaction");
+		DefaultTimeSeriesChart dissChart = new DefaultTimeSeriesChart(simId, dissDataset, "Agent Dissatisfaction TimeSeries", "timestep", "dissatisfaction");
 		dissChart.hideLegend(true);
 		charts.add(dissChart); 
-		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(sim, moveUtilDataset, "Agent Move Utility TimeSeries", "timestep", "utility");
+		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, moveUtilDataset, "Agent Move Utility TimeSeries", "timestep", "utility");
 		moveUtilChart.hideLegend(true);
 		charts.add(moveUtilChart);
-		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(sim, congestionDataset, "Congestion", "timestep", "AgentCount");
+		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(simId, congestionDataset, "Congestion", "timestep", "AgentCount");
 		charts.add(congestionChart);
-		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(sim, ricCountDataset, "RICs", "timestep", "Count");
+		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(simId, ricCountDataset, "RICs", "timestep", "Count");
 		charts.add(ricCountChart);
-		DefaultTimeSeriesChart ricAcceptorCountChart = new DefaultTimeSeriesChart(sim, ricMemberDataset, "RIC size", "timestep", "Number of Acceptors");
+		DefaultTimeSeriesChart ricAcceptorCountChart = new DefaultTimeSeriesChart(simId, ricMemberDataset, "RIC size", "timestep", "Number of Acceptors");
 		ricAcceptorCountChart.hideLegend(true);
 		charts.add(ricAcceptorCountChart);
 		
@@ -351,11 +351,11 @@ public class GraphBuilder {
 		
 
 		// declare BAW chart because it's data doesn't update...
-		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
+		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(simId, speedCollection, "Agent Speed BAW", "Agent", true);
 		speedBAW.hideLegend(true);
 		charts.add(speedBAW);
 		BoxAndWhiskerCategoryDataset combinedSpeedBAWData = DefaultBoxAndWhiskerChart.combineDataToBAW(speedCollection, String.valueOf(simId), true);
-		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(sim, combinedSpeedBAWData, "Combined Agent Speed BAW", null);
+		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(simId, combinedSpeedBAWData, "Combined Agent Speed BAW", null);
 		charts.add(combinedSpeedBAW);
 		
 		
@@ -363,9 +363,7 @@ public class GraphBuilder {
 		Panel panel = new Panel(new GridLayout(0,2));
 		frame.add(panel);
 		for (Chart chart : charts) {
-			chart.getChart().fireChartChanged();
 			ChartUtils.tweak(chart.getChart(), false, false);
-			//ChartUtils.removeLegendForBAWPlots(chart);
 			saveChart(chart.getChart(), simId, chart.getChart().getTitle().getText());
 			panel.add(chart.getPanel());
 		}
@@ -553,7 +551,7 @@ public class GraphBuilder {
 		}
 	}
 	
-	private DefaultTimeSeriesChart makeAdjustedMoveUtilChart(final XYSeriesCollection data) {
+	private DefaultTimeSeriesChart makeAdjustedMoveUtilChart(final XYSeriesCollection data, int simId) {
 		XYSeriesCollection adjusted = new XYSeriesCollection();
 		for (Object serObj : data.getSeries()) {
 			XYSeries series = (XYSeries)serObj;
@@ -568,7 +566,7 @@ public class GraphBuilder {
 				adjusted.getSeries(key).add(item.getXValue(), y);
 			}
 		}
-		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(sim, adjusted, "Agent Move Utility TimeSeries", "timestep", "utility");
+		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, adjusted, "Agent Move Utility TimeSeries", "timestep", "utility");
 		moveUtilChart.hideLegend(true);
 		return moveUtilChart;
 	}
