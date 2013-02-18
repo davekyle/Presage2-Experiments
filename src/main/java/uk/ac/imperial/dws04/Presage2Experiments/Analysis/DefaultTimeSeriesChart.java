@@ -4,6 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
 import java.awt.Color;
+import java.io.Serializable;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -19,16 +20,21 @@ import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
  * @author dws04
  *
  */
-public class DefaultTimeSeriesChart implements TimeSeriesChart {
+public class DefaultTimeSeriesChart implements TimeSeriesChart, Serializable {
 	
-	final PersistentSimulation sim;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -736475791627637895L;
+	
+	final int simId;
 	final XYDataset data;
 	final JFreeChart chart;
 	final ChartPanel panel;
 
-	public DefaultTimeSeriesChart(PersistentSimulation sim, XYDataset data, String title, String xLabel, String yLabel) {
+	public DefaultTimeSeriesChart(int simId, XYDataset data, String title, String xLabel, String yLabel) {
 		super();
-		this.sim = sim;
+		this.simId = simId;
 
 		this.data = data;
 		chart = ChartFactory.createXYLineChart(title, xLabel, yLabel, data, PlotOrientation.VERTICAL, true, false, false);

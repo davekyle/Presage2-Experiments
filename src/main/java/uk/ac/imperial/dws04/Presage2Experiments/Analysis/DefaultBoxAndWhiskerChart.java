@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -24,23 +25,28 @@ import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
  * @author dws04
  *
  */
-public class DefaultBoxAndWhiskerChart implements Chart {
-	final PersistentSimulation sim;
+public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 9191511854848960366L;
+	
+	final int simId;
 	final BoxAndWhiskerCategoryDataset data;
 	final JFreeChart chart;
 	final ChartPanel panel;
 
-	public DefaultBoxAndWhiskerChart(PersistentSimulation sim, BoxAndWhiskerCategoryDataset data, String title, String categoryLabel) {
+	public DefaultBoxAndWhiskerChart(int simId, BoxAndWhiskerCategoryDataset data, String title, String categoryLabel) {
 		super();
-		this.sim = sim;
+		this.simId = simId;
 		this.data = data;
 		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, null, data, true);
 		panel = new ChartPanel(chart);
 	}
 	
-	public DefaultBoxAndWhiskerChart(PersistentSimulation sim, XYSeriesCollection data, String title, String categoryLabel, Boolean stripNullAndNaNItems) {
+	public DefaultBoxAndWhiskerChart(int simId, XYSeriesCollection data, String title, String categoryLabel, Boolean stripNullAndNaNItems) {
 		super();
-		this.sim = sim;
+		this.simId = simId;
 		this.data = BAWDatasetFromXYCollection(data, stripNullAndNaNItems);
 		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, null, this.data, true);
 		panel = new ChartPanel(chart);
