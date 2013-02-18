@@ -122,6 +122,8 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 		double q1 = stats.getPercentile(25);
 		double q3 = stats.getPercentile(75);
 		System.out.println(stats);
+		System.out.println("q1: " + q1);
+		System.out.println("q3: " + q3);
 		return new BoxAndWhiskerItem(mean, median, q1, q3, null, null, null, null, null);
 	}
 
