@@ -30,6 +30,8 @@ import org.jfree.chart.plot.SeriesRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.statistics.BoxAndWhiskerCalculator;
+import org.jfree.data.statistics.BoxAndWhiskerCategoryDataset;
 import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
@@ -294,11 +296,18 @@ public class GraphBuilder {
 			// get agent persistent values
 			Integer insertedAt = (Integer) StringSerializer.fromString(pAgent.getProperty("insertedAt"));
 			Integer leftAt = (Integer) StringSerializer.fromString(pAgent.getProperty("leftAt"));
-			Double inValue = (Double) congestionChangeIn.getY(insertedAt);
-			congestionChangeIn.update((Number)insertedAt, (Number)(inValue+1));
+			Double inValue = null;
+			try {
+				inValue = (Double) congestionChangeIn.getY(insertedAt);
+			} catch (IndexOutOfBoundsException e) {
+				// ditch it
+			}
+			if (inValue!=null) {
+				congestionChangeIn.update((Number)(insertedAt), (Number)(inValue+1));
+			}
 			if (leftAt!=null) {
-				Double outValue = (Double) congestionChangeOut.getY(leftAt);
-				congestionChangeOut.update((Number)leftAt, (Number)(outValue+1));
+				Double outValue = (Double) congestionChangeOut.getY(leftAt-1);
+				congestionChangeOut.update((Number)(leftAt), (Number)(outValue+1));
 			}
 			
 			// get agent transient values
@@ -345,6 +354,9 @@ public class GraphBuilder {
 		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(sim, speedCollection, "Agent Speed BAW", "Agent", true);
 		speedBAW.hideLegend(true);
 		charts.add(speedBAW);
+		BoxAndWhiskerCategoryDataset combinedSpeedBAWData = DefaultBoxAndWhiskerChart.combineDataToBAW(speedCollection, String.valueOf(simId), true);
+		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(sim, combinedSpeedBAWData, "Combined Agent Speed BAW", null);
+		charts.add(combinedSpeedBAW);
 		
 		
 		Frame frame = new Frame("GRAPHS");

@@ -4,7 +4,9 @@
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
+import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -79,6 +81,41 @@ public class DefaultBoxAndWhiskerChart implements Chart {
 		if (hide) {
 			this.chart.removeLegend();
 		}
+	}
+
+	public static BoxAndWhiskerCategoryDataset combineDataToBAW(XYSeriesCollection collection, String key, Boolean stripNullAndNaNItems) {
+		ArrayList<Number> data = null;
+		for (Object serObj : collection.getSeries()) {
+			XYSeries series = (XYSeries)serObj;
+			ArrayList<Number> list = SeriesUtils.xySeriesToArrayList(series);
+			//System.out.println("Adding " + list + " to the combined BAW");
+			if (data==null) {
+				data = list;
+			}
+			else {
+				data.addAll(list);
+			}
+		}
+		//System.out.println("Data is " + data);
+		DefaultBoxAndWhiskerCategoryDataset result = new DefaultBoxAndWhiskerCategoryDataset();
+		//BoxAndWhiskerItem calculated = bawFromApache(data);
+		BoxAndWhiskerItem calculated = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(data, stripNullAndNaNItems);
+		result.add(calculated, key, key);
+		return result;
+	}
+
+	private static BoxAndWhiskerItem bawFromApache(ArrayList<Number> data) {
+		DescriptiveStatistics stats = new DescriptiveStatistics();
+		for (Number number : data) {
+			if (number!=null) {
+				stats.addValue(number.doubleValue());
+			}
+		}
+		double mean = stats.getMean();
+		double median = stats.getPercentile(50);
+		double q1 = stats.getPercentile(25);
+		double q3 = stats.getPercentile(75);
+		return new BoxAndWhiskerItem(mean, median, q1, q3, null, null, null, null, null);
 	}
 
 }
