@@ -3,12 +3,15 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
+import java.awt.AWTException;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Panel;
+import java.awt.Shape;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,12 +28,14 @@ import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.SeriesRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.TextAnchor;
+import org.jfree.util.ShapeList;
 
 import com.google.inject.Guice;
 import com.google.inject.Inject;
@@ -41,6 +46,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.dws04.utils.convert.ToDouble;
+import uk.ac.imperial.dws04.utils.misc.ScreenImage;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.presage2.core.db.DatabaseModule;
 import uk.ac.imperial.presage2.core.db.DatabaseService;
@@ -84,7 +90,7 @@ public class GraphBuilder {
 				gui.exportMode = true;
 			try {
 				//gui.init(Integer.parseInt(args[0]));
-				gui.init(3);
+				gui.init(4);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -96,17 +102,6 @@ public class GraphBuilder {
 		super();
 		this.db = db;
 		this.sto = sto;
-	}
-	
-	void saveChart(JFreeChart chart, int simId, String description) {
-		try {
-			ChartUtilities
-					.saveChartAsPNG(
-							new File(imagePath + simId + "_" + description + ".png"),
-							chart, 1280, 720);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 	
 	private void init(int simId) throws IOException, ClassNotFoundException {
@@ -323,6 +318,9 @@ public class GraphBuilder {
 				Integer util = null;
 				if (pair!=null) {
 					util = pair.getB();
+					if (util>100) {
+						util = 100;
+					}
 				}
 				moveUtilCollection.getSeries(key).add(t, util);
 				
@@ -333,7 +331,7 @@ public class GraphBuilder {
 		createAverageLine(ricAcceptorCountChart, endTime, "Size", true);
 		createAverageLine(dissChart, endTime, "Dissatisfaction", false);
 		createAverageLine(moveUtilChart, endTime, "Move Utility", false);
-		//ChartUtils.makeLogRange(moveUtilChart);
+		tweakMoveUtilChart(moveUtilChart);
 		
 		Double agentCount = 0.0;
 		for (int t=0; t<=endTime; t++) {
@@ -348,20 +346,6 @@ public class GraphBuilder {
 		speedBAW.hideLegend(true);
 		charts.add(speedBAW);
 		
-		//remove move util chart and add adjusted chart
-		charts.remove(moveUtilChart);
-		DefaultTimeSeriesChart adjustedMoveUtilChart = makeAdjustedMoveUtilChart(moveUtilCollection);
-		//ChartUtils.makeLogRange(adjustedMoveUtilChart);
-		createAverageLine(adjustedMoveUtilChart, endTime, "MoveUtil", true);
-		adjustedMoveUtilChart.hideLegend(false);
-		charts.add(adjustedMoveUtilChart);
-		Frame newFrame = new Frame("Adj");
-		Panel newPanel = new Panel(new GridLayout(0,1));
-		newFrame.add(newPanel);
-		newPanel.add(adjustedMoveUtilChart.getPanel());
-		newFrame.pack();
-		newFrame.setVisible(true);
-		
 		
 		Frame frame = new Frame("GRAPHS");
 		Panel panel = new Panel(new GridLayout(0,2));
@@ -375,10 +359,55 @@ public class GraphBuilder {
 		}
 		frame.pack();
 		frame.setVisible(true);
+		savePanel(panel, simId);
+		
 		
 		
 		db.stop();
 		//System.exit(0);
+	}
+
+	/**
+	 * @param panel
+	 * @param simId
+	 */
+	private void savePanel(Panel panel, int simId) {
+		try {
+			Thread.sleep(1000);
+			BufferedImage img = ScreenImage.createImage(panel);
+			ScreenImage.writeImage(img, imagePath + simId + "_combined.png");
+		} catch (AWTException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e2) {
+			e2.printStackTrace();
+		}
+	}
+	
+	void saveChart(JFreeChart chart, int simId, String description) {
+		try {
+			ChartUtilities
+					.saveChartAsPNG(
+							new File(imagePath + simId + "_" + description + ".png"),
+							chart, 1280, 720);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * @param moveUtilChart
+	 */
+	private void tweakMoveUtilChart(DefaultTimeSeriesChart moveUtilChart) {
+		XYPlot utilPlot = moveUtilChart.getXYPlot();
+		XYDotRenderer render = new XYDotRenderer();
+		int dotSize = 2;
+		render.setDotHeight(dotSize);
+		render.setDotWidth(dotSize);
+		utilPlot.setRenderer(0, render);
+		ChartUtils.makeLogRange(moveUtilChart);
 	}
 
 	/**
