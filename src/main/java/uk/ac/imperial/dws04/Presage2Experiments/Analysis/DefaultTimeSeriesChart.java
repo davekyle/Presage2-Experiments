@@ -9,6 +9,7 @@ import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.DefaultXYDataset;
 import org.jfree.data.xy.XYDataset;
 
@@ -70,6 +71,11 @@ public class DefaultTimeSeriesChart implements TimeSeriesChart {
 		if (hide) {
 			this.chart.removeLegend();
 		}
+	}
+
+	@Override
+	public XYPlot getXYPlot() {
+		return chart.getXYPlot();
 	}
 
 }

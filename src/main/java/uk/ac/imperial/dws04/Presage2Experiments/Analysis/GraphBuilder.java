@@ -4,6 +4,7 @@
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
 import java.awt.BasicStroke;
+import java.awt.Color;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
@@ -21,6 +22,8 @@ import org.apache.log4j.Logger;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYTextAnnotation;
+import org.jfree.chart.plot.DatasetRenderingOrder;
+import org.jfree.chart.plot.SeriesRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataset;
@@ -298,7 +301,8 @@ public class GraphBuilder {
 			}
 		}
 		
-		createAverageLine(speedChart, endTime, "meanSpeed");
+		createAverageLine(speedChart, endTime, "meanSpeed", false);
+		createAverageLine(ricAcceptorCountChart, endTime, "meanSize", true);
 		
 		Double agentCount = 0.0;
 		for (int t=0; t<=endTime; t++) {
@@ -332,9 +336,13 @@ public class GraphBuilder {
 		//System.exit(0);
 	}
 
-	private void createAverageLine(TimeSeriesChart chart, int endTime, String avgSeriesKey) {
-		XYSeriesCollection collection = (XYSeriesCollection)chart.getChart().getXYPlot().getDataset();
+	private void createAverageLine(TimeSeriesChart chart, final int endTime, final String avgSeriesKey, boolean includeLastCycle) {
+		XYSeriesCollection collection = (XYSeriesCollection)chart.getXYPlot().getDataset();
 		XYSeries avgSeries = new XYSeries(avgSeriesKey, true, false);
+		int end = endTime;
+		if (!includeLastCycle) {
+			end--;
+		}
 		for (int t = 0; t<endTime; t++) {
 			double total = 0.0;
 			double count = 0.0;
@@ -344,14 +352,11 @@ public class GraphBuilder {
 				Number tempVal = null;
 				try {
 					tempVal = series.getY(t);
-					if (tempVal==null) {
-						val = 0.0;
-					}
-					else {
+					if (tempVal!=null) {
 						val = ToDouble.toDouble(tempVal);
+						count++;
+						total = total+val;
 					}
-					count++;
-					total = total+val;
 				}
 				catch (IndexOutOfBoundsException e) {
 					// ditch it
@@ -361,17 +366,19 @@ public class GraphBuilder {
 		}
 		//collection.addSeries(avgSeries);
 		XYDataset avgData = new XYSeriesCollection(avgSeries);
-		int avgIndex = chart.getChart().getXYPlot().getDatasetCount();
-		chart.getChart().getXYPlot().setDataset(avgIndex, avgData);
+		int avgIndex = chart.getXYPlot().getDatasetCount();
+		chart.getXYPlot().setDataset(avgIndex, avgData);
 		XYLineAndShapeRenderer avgRenderer = new XYLineAndShapeRenderer(true, false);
-		chart.getChart().getXYPlot().setRenderer(avgIndex, avgRenderer);
-		chart.getChart().getXYPlot().getRenderer(avgIndex).setSeriesStroke(
+		chart.getXYPlot().setRenderer(avgIndex, avgRenderer);
+		chart.getXYPlot().getRenderer(avgIndex).setSeriesStroke(
 			    0, 
 			    new BasicStroke(
 			        1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
-			        1.0f, new float[] {2.0f}/*new float[] {6.0f, 6.0f}*/, 0.0f
+			        1.0f, new float[] {3.0f}/*new float[] {6.0f, 6.0f}*/, 0.0f
 			    ));
-		//chart.getChart().getXYPlot().setRenderer(avgIndex, avgRenderer);
+		chart.getXYPlot().getRenderer(avgIndex).setSeriesPaint(0, Color.RED);
+		//chart.getXYPlot().setSeriesRenderingOrder(SeriesRenderingOrder.REVERSE);
+		chart.getXYPlot().setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
 	}
 
 	/**
@@ -383,7 +390,7 @@ public class GraphBuilder {
 		String congestionCountKey = simId+"_agentCount";
 		String congestionChangeInKey = simId+"_changeIn";
 		String congestionChangeOutKey = simId+"_changeOut";
-		XYSeriesCollection collection = (XYSeriesCollection)congestionChart.getChart().getXYPlot().getDataset();
+		XYSeriesCollection collection = (XYSeriesCollection)congestionChart.getXYPlot().getDataset();
 		XYSeries congestionCount = collection.getSeries(congestionCountKey);
 		XYSeries congestionChangeIn = collection.getSeries(congestionChangeInKey);
 		XYSeries congestionChangeOut = collection.getSeries(congestionChangeOutKey);
