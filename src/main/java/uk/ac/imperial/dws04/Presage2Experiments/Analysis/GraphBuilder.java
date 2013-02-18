@@ -343,7 +343,7 @@ public class GraphBuilder {
 		if (!includeLastCycle) {
 			end--;
 		}
-		for (int t = 0; t<endTime; t++) {
+		for (int t = 0; t<=end; t++) {
 			double total = 0.0;
 			double count = 0.0;
 			for (Object seriesObj : collection.getSeries()) {
