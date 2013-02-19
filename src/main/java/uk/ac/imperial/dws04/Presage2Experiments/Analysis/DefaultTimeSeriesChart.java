@@ -28,13 +28,13 @@ public class DefaultTimeSeriesChart implements TimeSeriesChart, Serializable {
 	 */
 	private static final long serialVersionUID = -736475791627637895L;
 	
-	final int simId;
+	final Long simId;
 	final XYDataset data;
 	final JFreeChart chart;
 	final ChartPanel panel;
 	final OwnChoiceMethod choiceMethod;
 
-	public DefaultTimeSeriesChart(int simId, OwnChoiceMethod choiceMethod, XYDataset data, String title, String xLabel, String yLabel) {
+	public DefaultTimeSeriesChart(Long simId, OwnChoiceMethod choiceMethod, XYDataset data, String title, String xLabel, String yLabel) {
 		super();
 		this.simId = simId;
 
@@ -86,7 +86,7 @@ public class DefaultTimeSeriesChart implements TimeSeriesChart, Serializable {
 	}
 
 	@Override
-	public int getSimId() {
+	public Long getSimId() {
 		return this.simId;
 	}
 

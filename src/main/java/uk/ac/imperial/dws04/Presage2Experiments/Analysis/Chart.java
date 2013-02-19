@@ -19,7 +19,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
  */
 public interface Chart {
 	
-	int getSimId();
+	Long getSimId();
 	
 	OwnChoiceMethod getChoiceMethod();
 

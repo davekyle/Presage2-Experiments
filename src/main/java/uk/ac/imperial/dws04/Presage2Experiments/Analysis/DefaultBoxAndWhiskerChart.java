@@ -32,13 +32,13 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 	 */
 	private static final long serialVersionUID = 9191511854848960366L;
 	
-	final int simId;
+	final Long simId;
 	final BoxAndWhiskerCategoryDataset data;
 	final JFreeChart chart;
 	final ChartPanel panel;
 	final OwnChoiceMethod choiceMethod;
 
-	public DefaultBoxAndWhiskerChart(int simId, OwnChoiceMethod choiceMethod, BoxAndWhiskerCategoryDataset data, String title, String categoryLabel) {
+	public DefaultBoxAndWhiskerChart(Long simId, OwnChoiceMethod choiceMethod, BoxAndWhiskerCategoryDataset data, String title, String categoryLabel) {
 		super();
 		this.simId = simId;
 		this.data = data;
@@ -47,7 +47,7 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 		this.choiceMethod = choiceMethod;
 	}
 	
-	public DefaultBoxAndWhiskerChart(int simId, OwnChoiceMethod choiceMethod, XYSeriesCollection data, String title, String categoryLabel, Boolean stripNullAndNaNItems) {
+	public DefaultBoxAndWhiskerChart(Long simId, OwnChoiceMethod choiceMethod, XYSeriesCollection data, String title, String categoryLabel, Boolean stripNullAndNaNItems) {
 		super();
 		this.simId = simId;
 		this.data = BAWDatasetFromXYCollection(data, stripNullAndNaNItems);
@@ -132,7 +132,7 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 	}
 
 	@Override
-	public int getSimId() {
+	public Long getSimId() {
 	return this.simId;
 	}
 
