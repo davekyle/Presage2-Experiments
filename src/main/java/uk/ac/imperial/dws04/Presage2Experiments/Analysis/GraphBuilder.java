@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -74,11 +75,9 @@ public class GraphBuilder {
 	int t = 0;
 	int t0 = -1;
 
-	boolean exportMode = true;
+	boolean headlessMode = false;
 
 	final static String imagePath = "/Users/dave/Documents/workspace/ExperimentalData/";
-	
-	ArrayList<Chart> charts = new ArrayList<Chart>();
 	
 	/**
 	 * @param args
@@ -88,14 +87,20 @@ public class GraphBuilder {
 		if (module != null) {
 			Injector injector = Guice.createInjector(module);
 			GraphBuilder gui = injector.getInstance(GraphBuilder.class);
-			if (args.length > 1 && Boolean.parseBoolean(args[1]) == true)
-				gui.exportMode = true;
+			if (args.length > 0 && Boolean.parseBoolean(args[0]) == true)
+				gui.headlessMode = true;
 			try {
-				//gui.init(Integer.parseInt(args[0]));
-				gui.buildForSim(4);
+				List<Long> simIds = gui.init();
+				HashMap<Long,ArrayList<Chart>> charts = new HashMap<Long,ArrayList<Chart>>();
+				for (Long simId : simIds) {
+					charts.put(simId,gui.buildForSim(simId));
+				}
+				gui.process(charts);
+				gui.finish();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+			gui.logger.info("Finished.");
 		}
 	}
 
@@ -106,17 +111,30 @@ public class GraphBuilder {
 		this.sto = sto;
 	}
 	
-	private void buildForSim(int simId) throws IOException, ClassNotFoundException {
+	private List<Long> init() throws Exception {
+		db.start();
+		List<Long> result = sto.getSimulations();
+		return result;
+	}
+	
+	private void finish() {
+		db.stop();
+	}
+	
+	private ArrayList<Chart> buildForSim(Long simId) throws IOException, ClassNotFoundException {
+		logger.info("Processing sim " + simId + "...");
 		try {
 			db.start();
 		} catch (Exception e) {
 			e.printStackTrace();
-			return;
+			return null;
 		}
 
+		ArrayList<Chart> charts = new ArrayList<Chart>();
+		
 		sim = sto.getSimulationById(simId);
 		OwnChoiceMethod choiceMethod = OwnChoiceMethod.fromString(sim.getParameters().get("ownChoiceMethod"));
-		if (exportMode) {
+		if (headlessMode) {
 			File exportDir = new File(imagePath + sim.getName());
 			if (!exportDir.exists())
 				exportDir.mkdir();
@@ -370,20 +388,23 @@ public class GraphBuilder {
 			panel.add(chart.getPanel());
 		}
 		frame.pack();
-		frame.setVisible(true);
+		if (!headlessMode) {
+			frame.setVisible(true);
+		}
 		savePanel(panel, simId);
 		
 		
 		
-		db.stop();
-		//System.exit(0);
+		//db.stop();
+		logger.info("Done processing sim " + simId + ".");
+		return charts;
 	}
 
 	/**
 	 * @param panel
 	 * @param simId
 	 */
-	private void savePanel(Panel panel, int simId) {
+	private void savePanel(Panel panel, Long simId) {
 		try {
 			Thread.sleep(1000);
 			BufferedImage img = ScreenImage.createImage(panel);
@@ -398,7 +419,7 @@ public class GraphBuilder {
 		}
 	}
 	
-	void saveChart(JFreeChart chart, int simId, String description) {
+	void saveChart(JFreeChart chart, Long simId, String description) {
 		try {
 			ChartUtilities
 					.saveChartAsPNG(
@@ -481,7 +502,7 @@ public class GraphBuilder {
 	 * @param t
 	 * @param simId
 	 */
-	private static void annotateCongestionChart( DefaultTimeSeriesChart congestionChart, int t, Integer simId) {
+	private static void annotateCongestionChart( DefaultTimeSeriesChart congestionChart, int t, Long simId) {
 		String congestionCountKey = simId+"_agentCount";
 		String congestionChangeInKey = simId+"_changeIn";
 		String congestionChangeOutKey = simId+"_changeOut";
@@ -553,7 +574,7 @@ public class GraphBuilder {
 		}
 	}
 	
-	private DefaultTimeSeriesChart makeAdjustedMoveUtilChart(final XYSeriesCollection data, int simId, OwnChoiceMethod choiceMethod) {
+	private DefaultTimeSeriesChart makeAdjustedMoveUtilChart(final XYSeriesCollection data, Long simId, OwnChoiceMethod choiceMethod) {
 		XYSeriesCollection adjusted = new XYSeriesCollection();
 		for (Object serObj : data.getSeries()) {
 			XYSeries series = (XYSeries)serObj;
@@ -571,6 +592,17 @@ public class GraphBuilder {
 		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, adjusted, "Agent Move Utility TimeSeries", "timestep", "utility");
 		moveUtilChart.hideLegend(true);
 		return moveUtilChart;
+	}
+	
+
+
+	private void process(HashMap<Long, ArrayList<Chart>> map) {
+		for (Entry<Long,ArrayList<Chart>> entry : map.entrySet()) {
+			Long simId = entry.getKey();
+			ArrayList<Chart> charts = entry.getValue();
+			
+			
+		}
 	}
 	
 }
