@@ -21,7 +21,7 @@ import org.jfree.ui.tabbedui.VerticalLayout;
  */
 public abstract class ChartUtils {
 	
-	public static void tweak(JFreeChart chart, Boolean removeLegend, Boolean resize){
+	public static void tweak(JFreeChart chart, Boolean toggleLegend, Boolean resize){
 		Class plotClass = chart.getPlot().getClass();
 		final Plot plot = chart.getPlot();
 	    plot.setBackgroundPaint(Color.white);
@@ -40,12 +40,15 @@ public abstract class ChartUtils {
 			cPlot.setDomainGridlinePaint(Color.lightGray);
 			cPlot.setRangeGridlinePaint(Color.lightGray);
 		}
-		chart.getLegend().setVisible(!removeLegend);
+		if (chart.getLegend()!=null && toggleLegend){
+			boolean visible = chart.getLegend().isVisible();
+			chart.getLegend().setVisible(!visible);
+		}
 	}
 
 	public static void removeLegendForBAWPlots(Chart chart) {
-		if (chart.getClass().isAssignableFrom(DefaultBoxAndWhiskerChart.class)) {
-			chart.getChart().removeLegend();
+		if (chart.getClass().isAssignableFrom(DefaultBoxAndWhiskerChart.class) && chart.getChart().getLegend()!=null) {
+			chart.getChart().getLegend().setVisible(false);
 		}	
 	}
 	
