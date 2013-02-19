@@ -113,10 +113,10 @@ public class GraphBuilder {
 					charts.put(simId,gui.buildForSim(simId));
 				}
 				gui.process(charts, endTime);
-				gui.finish();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+			gui.finish();
 			gui.logger.info("Finished.");
 			if (gui.headlessMode) System.exit(0);
 		}
@@ -413,7 +413,7 @@ public class GraphBuilder {
 		frame.add(panel);
 		for (Chart chart : charts.values()) {
 			ChartUtils.tweak(chart.getChart(), false, false);
-			saveChart(chart.getChart(), simId, chart.getChart().getTitle().getText());
+			saveChart(chart.getChart(), simId.toString(), chart.getChart().getTitle().getText());
 			panel.add(chart.getPanel());
 		}
 		frame.pack();
@@ -441,14 +441,19 @@ public class GraphBuilder {
 		} catch (AWTException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		} catch (IOException e2) {
 			e2.printStackTrace();
 		}
 	}
 	
-	void saveChart(JFreeChart chart, Long simId, String description) {
+	/**
+	 * Filename will be simId + "_" + description + ".png"
+	 * @param chart
+	 * @param simId
+	 * @param description
+	 */
+	void saveChart(JFreeChart chart, String simId, String description) {
 		try {
 			ChartUtilities
 					.saveChartAsPNG(
@@ -702,7 +707,7 @@ public class GraphBuilder {
 			DefaultBoxAndWhiskerCategoryDataset lengthBAWDataset = makeBAWDataFromHashMap(simLengthMap);
 			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Simulation length by choice method", "Choice Method", "Simulation Length (cycles)");
 			lengthBaw.hideLegend(true);
-			saveChart(lengthBaw.getChart(), Long.getLong("-1"), "LengthBaw");
+			saveChart(lengthBaw.getChart(), "Overall", "LengthBaw");
 			
 			// get charts
 			for (Entry<String,Chart> chartEntry : charts.entrySet()) {
@@ -723,10 +728,11 @@ public class GraphBuilder {
 			
 		// build datasets
 		for (OwnChoiceMethod choiceMethod : outerChartMap.keySet()) {
-			logger.debug("Building avg datasets for method " + choiceMethod + "...");
+			logger.info("Building avg datasets for method " + choiceMethod + "...");
 			dataMap.put(choiceMethod, new HashMap<String,Dataset>());
 			for (Entry<String, HashSet<Chart>> innerMapEntry : outerChartMap.get(choiceMethod).entrySet()) {
 				String chartType = innerMapEntry.getKey();
+				// this is a set of charts (all of same type) for a given choice method - each one is for a specific sim
 				HashSet<Chart> chartSet = innerMapEntry.getValue();
 				Class<? extends Dataset> datasetClass = datasetClassFromChartType(chartType);
 				Dataset dataset = dataMap.get(choiceMethod).get(chartType);
@@ -739,17 +745,21 @@ public class GraphBuilder {
 					XYSeriesCollection dataSeriesCollection = (XYSeriesCollection)dataset;
 					for (Chart chart : chartSet) {
 						XYPlot xyPlot = chart.getChart().getXYPlot();
-						XYSeries avgSeries = null;
-						if (xyPlot.getDatasetCount()!=0) {
+						XYSeries simSeries = null;
+						if (xyPlot.getDatasetCount()!=1) {
 							// avg dataset, so simple
-							avgSeries = ((XYSeriesCollection)xyPlot.getDataset(1)).getSeries(0);
+							try {
+								simSeries = (XYSeries) ((XYSeriesCollection)xyPlot.getDataset(1)).getSeries(0).clone();
+							} catch (CloneNotSupportedException e) {
+								e.printStackTrace();
+							}
 						}
 						else {
 							// doesn't have avg dataset already so need to make one
-							avgSeries = avgSeriesFromChartType(chartType, xyPlot, endTime);
+							simSeries = simSeriesFromChartType(chartType, xyPlot, endTime);
 						}
-						avgSeries.setKey(choiceMethod.toString());
-						dataSeriesCollection.addSeries(avgSeries);
+						simSeries.setKey(chart.getSimId());
+						dataSeriesCollection.addSeries(simSeries);
 					}
 				}
 				else if (datasetClass.isAssignableFrom(BoxAndWhiskerCategoryDataset.class)) {
@@ -761,9 +771,40 @@ public class GraphBuilder {
 		}
 		logger.info("Done building avg datasets. Drawing graphs...");
 		
+		for (Entry<OwnChoiceMethod, HashMap<String, Dataset>> entry : dataMap.entrySet()) {
+			OwnChoiceMethod method = entry.getKey();
+			HashMap<String,Dataset> dataByChartType = entry.getValue();
+			Frame frame = new Frame(method.toString());
+			Panel panel = new Panel(new GridLayout(0,2));
+			frame.add(panel);
+			for (Entry<String,Dataset> chartDataEntry : dataByChartType.entrySet()) {
+				String chartType = chartDataEntry.getKey();
+				Dataset chartDataset = chartDataEntry.getValue();
+				Chart chart = makeCombinedChartFromData__fromProcess(method, chartType, chartDataset);
+				if (chart!=null) {
+					saveChart(chart.getChart(), method.toString(), chartType);
+				}
+			}
+		}
 		
 		
 		logger.info("Done combination processing.");
+	}
+
+	private Chart makeCombinedChartFromData__fromProcess(OwnChoiceMethod choiceMethod, String key, Dataset data) {
+		if (	key.equalsIgnoreCase(speedTitle) ||
+				key.equalsIgnoreCase(dissTitle) ||
+				key.equalsIgnoreCase(utilTitle) ||
+				key.equalsIgnoreCase(congestionTitle) ||
+				key.equalsIgnoreCase(ricCountTitle) ||
+				key.equalsIgnoreCase(ricSizeTitle) 
+				) {
+			return new DefaultTimeSeriesChart(Long.getLong("-1"), choiceMethod, (XYDataset)data, key, "x", "y");
+		}
+		else {
+			// TODO do this
+			return null;
+		}
 	}
 
 	/**
@@ -772,13 +813,31 @@ public class GraphBuilder {
 	 * @param xyPlot
 	 * @return
 	 */
-	private XYSeries avgSeriesFromChartType(String chartType, XYPlot xyPlot, int endTime) {
+	private XYSeries simSeriesFromChartType(String chartType, XYPlot xyPlot, int endTime) {
 		if (	chartType.equalsIgnoreCase(congestionTitle) ||
-				chartType.equalsIgnoreCase(ricCountTitle) ||
-				chartType.equalsIgnoreCase(ricSizeTitle) 
+				chartType.equalsIgnoreCase(ricCountTitle)
 				) {
 			if (xyPlot.getDatasetCount()!=1) {
 				logger.warn("Unexpectedly found a " + chartType + " chart with more than one dataset ! Result may be odd.");
+			}
+			
+			/*
+			 * FIXME TODO THIS IS WRONG - it doesn't need an "avg" it needs to get the right series
+			 * In congestion's case, we need to make one series - the congestion one - while ignoring the in/out
+			 * in ricCount we want both but separately !
+			 */
+			if (chartType.equalsIgnoreCase(congestionTitle)) {
+				List<Object> seriesObjList = ((XYSeriesCollection)xyPlot.getDataset()).getSeries();
+				for (Object obj : seriesObjList) {
+					if ( ( (String)((XYSeries)obj).getKey() ).endsWith("agentCount") ) {
+						try {
+							return (XYSeries) ((XYSeries)obj).clone();
+						} catch (CloneNotSupportedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+				logger.warn("Couldn't find an agentCount series in a " + chartType + " chart.");
 			}
 			return createAvgSeries((XYSeriesCollection)xyPlot.getDataset(), "doesn'tmatter", endTime, true);
 		}
