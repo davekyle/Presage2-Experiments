@@ -718,10 +718,12 @@ public class GraphBuilder {
 				outerChartMap.get(choiceMethod).get(chartTitle).add(chart);
 			}
 		}
+		logger.trace("Collected and sorted charts : " + outerChartMap);
 		logger.info("Collected info from all sims. Building datasets... ");
 			
 		// build datasets
 		for (OwnChoiceMethod choiceMethod : outerChartMap.keySet()) {
+			logger.debug("Building avg datasets for method " + choiceMethod + "...");
 			dataMap.put(choiceMethod, new HashMap<String,Dataset>());
 			for (Entry<String, HashSet<Chart>> innerMapEntry : outerChartMap.get(choiceMethod).entrySet()) {
 				String chartType = innerMapEntry.getKey();
@@ -740,7 +742,7 @@ public class GraphBuilder {
 						XYSeries avgSeries = null;
 						if (xyPlot.getDatasetCount()!=0) {
 							// avg dataset, so simple
-							avgSeries = ((XYSeriesCollection)xyPlot.getDataset(1)).getSeries(1);
+							avgSeries = ((XYSeriesCollection)xyPlot.getDataset(1)).getSeries(0);
 						}
 						else {
 							// doesn't have avg dataset already so need to make one
@@ -753,9 +755,15 @@ public class GraphBuilder {
 				else if (datasetClass.isAssignableFrom(BoxAndWhiskerCategoryDataset.class)) {
 					// do this
 				}
+				// dataset now has serieses for avg of each choiceMethod in it
+				logger.debug("Done building avg datasets for method " + choiceMethod + ".");
 			}
 		}
-		logger.trace("Collected and sorted charts : " + outerChartMap);
+		logger.info("Done building avg datasets. Drawing graphs...");
+		
+		
+		
+		logger.info("Done combination processing.");
 	}
 
 	/**
