@@ -10,11 +10,11 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Panel;
-import java.awt.Shape;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,19 +27,15 @@ import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.plot.DatasetRenderingOrder;
-import org.jfree.chart.plot.SeriesRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.data.statistics.BoxAndWhiskerCalculator;
 import org.jfree.data.statistics.BoxAndWhiskerCategoryDataset;
 import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.TextAnchor;
-import org.jfree.util.ShapeList;
-
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -47,7 +43,6 @@ import com.google.inject.Injector;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
-import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.dws04.utils.convert.ToDouble;
 import uk.ac.imperial.dws04.utils.misc.ScreenImage;
@@ -78,6 +73,8 @@ public class GraphBuilder {
 	boolean headlessMode = false;
 
 	final static String imagePath = "/Users/dave/Documents/workspace/ExperimentalData/";
+	
+	
 	final static String speedTitle = "Agent Speed TimeSeries";
 	final static String dissTitle = "Agent Dissatisfaction TimeSeries";
 	final static String utilTitle = "Agent Move Utility TimeSeries";
@@ -86,6 +83,9 @@ public class GraphBuilder {
 	final static String ricSizeTitle = "RIC Size TimeSeries";
 	final static String speedBAWTitle = "Speed BAW";
 	final static String combinedSpeedBAWTitle = "Combined Speed BAW";
+	final static List<String> chartTitles = Arrays.asList(new String[]{
+		speedTitle, dissTitle, utilTitle, congestionTitle, ricCountTitle, ricSizeTitle, speedBAWTitle, combinedSpeedBAWTitle
+	});
 	
 	
 	
@@ -112,6 +112,7 @@ public class GraphBuilder {
 				e.printStackTrace();
 			}
 			gui.logger.info("Finished.");
+			if (gui.headlessMode) System.exit(0);
 		}
 	}
 
@@ -412,8 +413,8 @@ public class GraphBuilder {
 		frame.pack();
 		if (!headlessMode) {
 			frame.setVisible(true);
+			savePanel(panel, simId); // won't draw if not visible...
 		}
-		savePanel(panel, simId);
 		
 		
 		
@@ -618,13 +619,62 @@ public class GraphBuilder {
 	
 
 
+	/**
+	 * 
+	 * @param map map from simId:{map from ChartTitle:Chart}}
+	 * @param endTime
+	 */
 	private void process(HashMap<Long, HashMap<String,Chart>> map, int endTime) {
+		/*
+		 * Want a chart for every chart type (from chartTitles)
+		 * On each chart, want a line/BAWitem for each moveChoiceMethod
+		 * Each choiceMethodLine should be averaged from all charts of that type of that choiceMethod 
+		 * 
+		 * Also want baw for length of sim for each choiceMethod
+		 * 
+		 *  ->
+		 *  
+		 *  Map from choiceMethod:{map from chartType:set of charts} (so all charts of each chartType for each choiceMethod are collected)
+		 *  for each choiceMethod {
+		 *  	for each chartType {
+		 *  		make avg dataset
+		 *  	}
+		 *  }
+		 *  for each chartType {
+		 *  	make chart and add line for each choiceMethod
+		 *  }
+		 *  
+		 *  
+		 */
+		HashMap<OwnChoiceMethod, ArrayList<Integer>> simLengthMap = new HashMap<OwnChoiceMethod, ArrayList<Integer>>();
+		HashMap<OwnChoiceMethod,HashMap<String,HashSet<Chart>>> outerChartMap = new HashMap<OwnChoiceMethod,HashMap<String,HashSet<Chart>>>();
 		for (Entry<Long,HashMap<String,Chart>> entry : map.entrySet()) {
 			Long simId = entry.getKey();
 			HashMap<String,Chart> charts = entry.getValue();
 			
+			// get simLength
+			int length = sto.getSimulationById(simId).getCurrentTime();
+			OwnChoiceMethod method = OwnChoiceMethod.fromString(sim.getParameters().get("ownChoiceMethod")); // yay duplicate code 
+			if (simLengthMap.containsKey(method)) {
+				simLengthMap.put(method, new ArrayList<Integer>());
+			}
+			simLengthMap.get(method).add(length);
 			
+			// get charts
+			for (Entry<String,Chart> chartEntry : charts.entrySet()) {
+				String chartTitle = chartEntry.getKey();
+				Chart chart = chartEntry.getValue();
+				OwnChoiceMethod choiceMethod = chart.getChoiceMethod();
+				if (!outerChartMap.containsKey(choiceMethod)) {
+					outerChartMap.put(choiceMethod, new HashMap<String,HashSet<Chart>>());
+				}
+				if (!(outerChartMap.get(choiceMethod)).containsKey(chartTitle)) {
+					outerChartMap.get(choiceMethod).put(chartTitle, new HashSet<Chart>());
+				}
+				outerChartMap.get(choiceMethod).get(chartTitle).add(chart);
+			}
 		}
+		logger.trace("Collected and sorted charts : " + outerChartMap);
 	}
 	
 }
