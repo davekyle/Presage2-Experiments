@@ -361,7 +361,7 @@ public class GraphBuilder {
 		charts.add(combinedSpeedBAW);
 		
 		
-		Frame frame = new Frame("GRAPHS");
+		Frame frame = new Frame("Results for Simulation " + simId);
 		Panel panel = new Panel(new GridLayout(0,2));
 		frame.add(panel);
 		for (Chart chart : charts) {

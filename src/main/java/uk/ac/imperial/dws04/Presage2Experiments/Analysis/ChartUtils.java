@@ -40,7 +40,7 @@ public abstract class ChartUtils {
 			cPlot.setDomainGridlinePaint(Color.lightGray);
 			cPlot.setRangeGridlinePaint(Color.lightGray);
 		}
-		if (removeLegend) chart.removeLegend();
+		chart.getLegend().setVisible(!removeLegend);
 	}
 
 	public static void removeLegendForBAWPlots(Chart chart) {
