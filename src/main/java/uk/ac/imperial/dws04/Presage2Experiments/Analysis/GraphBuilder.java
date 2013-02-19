@@ -30,6 +30,9 @@ import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.general.Dataset;
+import org.jfree.data.general.DatasetChangeListener;
+import org.jfree.data.general.DatasetGroup;
 import org.jfree.data.statistics.BoxAndWhiskerCalculator;
 import org.jfree.data.statistics.BoxAndWhiskerCategoryDataset;
 import org.jfree.data.statistics.BoxAndWhiskerItem;
@@ -382,10 +385,10 @@ public class GraphBuilder {
 			}
 		}
 		
-		createAverageLine(speedChart, endTime, "Speed", false);
-		createAverageLine(ricAcceptorCountChart, endTime, "Size", true);
-		createAverageLine(dissChart, endTime, "Dissatisfaction", false);
-		createAverageLine(moveUtilChart, endTime, "Move Utility", false);
+		makeAvgLineOnChart(speedChart, endTime, "Speed", false);
+		makeAvgLineOnChart(ricAcceptorCountChart, endTime, "Size", true);
+		makeAvgLineOnChart(dissChart, endTime, "Dissatisfaction", false);
+		makeAvgLineOnChart(moveUtilChart, endTime, "Move Utility", false);
 		tweakMoveUtilChart(moveUtilChart);
 		
 		Double agentCount = 0.0;
@@ -476,9 +479,41 @@ public class GraphBuilder {
 	 * @param keyStub end of key - will have "mean" prepended to it
 	 * @param includeLastCycle
 	 */
-	private void createAverageLine(TimeSeriesChart chart, final int endTime, final String keyStub, boolean includeLastCycle) {
+	private void makeAvgLineOnChart(TimeSeriesChart chart, final int endTime, final String keyStub, final boolean includeLastCycle) {
 		XYSeriesCollection collection = (XYSeriesCollection)chart.getXYPlot().getDataset();
-		String avgSeriesKey = "mean" + keyStub;
+		String key = "mean" + keyStub;
+		XYDataset avgData = new XYSeriesCollection(createAvgSeries(collection, key, endTime, includeLastCycle));
+		int avgIndex = chart.getXYPlot().getDatasetCount();
+		chart.getXYPlot().setDataset(avgIndex, avgData);
+		renderSeriesAsAvg(chart, avgIndex);
+	}
+
+	/**
+	 * @param chart
+	 * @param avgIndex
+	 */
+	private void renderSeriesAsAvg(TimeSeriesChart chart, int avgIndex) {
+		XYLineAndShapeRenderer avgRenderer = new XYLineAndShapeRenderer(true, false);
+		chart.getXYPlot().setRenderer(avgIndex, avgRenderer);
+		chart.getXYPlot().getRenderer(avgIndex).setSeriesStroke(
+			    0, 
+			    new BasicStroke(
+			        1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
+			        1.0f, new float[] {3.0f}/*new float[] {6.0f, 6.0f}*/, 0.0f
+			    ));
+		chart.getXYPlot().getRenderer(avgIndex).setSeriesPaint(0, Color.RED);
+		//chart.getXYPlot().setSeriesRenderingOrder(SeriesRenderingOrder.REVERSE);
+		chart.getXYPlot().setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
+	}
+
+	/**
+	 * @param collection
+	 * @param avgSeriesKey
+	 * @param endTime
+	 * @param includeLastCycle
+	 * @return
+	 */
+	private XYSeries createAvgSeries(XYSeriesCollection collection, final String avgSeriesKey, final int endTime, final boolean includeLastCycle) {
 		XYSeries avgSeries = new XYSeries(avgSeriesKey, true, false);
 		int end = endTime;
 		if (!includeLastCycle) {
@@ -506,21 +541,7 @@ public class GraphBuilder {
 			}
 			avgSeries.add(t, (total/count));
 		}
-		//collection.addSeries(avgSeries);
-		XYDataset avgData = new XYSeriesCollection(avgSeries);
-		int avgIndex = chart.getXYPlot().getDatasetCount();
-		chart.getXYPlot().setDataset(avgIndex, avgData);
-		XYLineAndShapeRenderer avgRenderer = new XYLineAndShapeRenderer(true, false);
-		chart.getXYPlot().setRenderer(avgIndex, avgRenderer);
-		chart.getXYPlot().getRenderer(avgIndex).setSeriesStroke(
-			    0, 
-			    new BasicStroke(
-			        1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
-			        1.0f, new float[] {3.0f}/*new float[] {6.0f, 6.0f}*/, 0.0f
-			    ));
-		chart.getXYPlot().getRenderer(avgIndex).setSeriesPaint(0, Color.RED);
-		//chart.getXYPlot().setSeriesRenderingOrder(SeriesRenderingOrder.REVERSE);
-		chart.getXYPlot().setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
+		return avgSeries;
 	}
 
 	/**
@@ -633,8 +654,10 @@ public class GraphBuilder {
 	 * 
 	 * @param map map from simId:{map from ChartTitle:Chart}}
 	 * @param endTime
+	 * @throws IllegalAccessException 
+	 * @throws InstantiationException 
 	 */
-	private void process(HashMap<Long, HashMap<String,Chart>> map, int endTime) {
+	private void process(HashMap<Long, HashMap<String,Chart>> map, int endTime) throws InstantiationException, IllegalAccessException {
 		logger.info("Beginning combination processing...");
 		/*
 		 * Want a chart for every chart type (from chartTitles)
@@ -658,7 +681,11 @@ public class GraphBuilder {
 		 *  
 		 */
 		HashMap<OwnChoiceMethod, ArrayList<Integer>> simLengthMap = new HashMap<OwnChoiceMethod, ArrayList<Integer>>();
+		/**
+		 * Map from choiceMethod:{map from chartType:set of charts} (so all charts of each chartType for each choiceMethod are collected)
+		 */
 		HashMap<OwnChoiceMethod,HashMap<String,HashSet<Chart>>> outerChartMap = new HashMap<OwnChoiceMethod,HashMap<String,HashSet<Chart>>>();
+		HashMap<OwnChoiceMethod,HashMap<String,Dataset>> dataMap = new HashMap<OwnChoiceMethod,HashMap<String,Dataset>>();
 		for (Entry<Long,HashMap<String,Chart>> entry : map.entrySet()) {
 			Long simId = entry.getKey();
 			HashMap<String,Chart> charts = entry.getValue();
@@ -691,7 +718,92 @@ public class GraphBuilder {
 				outerChartMap.get(choiceMethod).get(chartTitle).add(chart);
 			}
 		}
+		logger.info("Collected info from all sims. Building datasets... ");
+			
+		// build datasets
+		for (OwnChoiceMethod choiceMethod : outerChartMap.keySet()) {
+			dataMap.put(choiceMethod, new HashMap<String,Dataset>());
+			for (Entry<String, HashSet<Chart>> innerMapEntry : outerChartMap.get(choiceMethod).entrySet()) {
+				String chartType = innerMapEntry.getKey();
+				HashSet<Chart> chartSet = innerMapEntry.getValue();
+				Class<? extends Dataset> datasetClass = datasetClassFromChartType(chartType);
+				Dataset dataset = dataMap.get(choiceMethod).get(chartType);
+				if (dataset==null) {
+					dataMap.get(choiceMethod).put(chartType, datasetClass.newInstance());
+				}
+				// not sure if this is needed, but just to be safe...
+				dataset = dataMap.get(choiceMethod).get(chartType);
+				if (datasetClass.isAssignableFrom(XYSeriesCollection.class)) {
+					XYSeriesCollection dataSeriesCollection = (XYSeriesCollection)dataset;
+					for (Chart chart : chartSet) {
+						XYPlot xyPlot = chart.getChart().getXYPlot();
+						XYSeries avgSeries = null;
+						if (xyPlot.getDatasetCount()!=0) {
+							// avg dataset, so simple
+							avgSeries = ((XYSeriesCollection)xyPlot.getDataset(1)).getSeries(1);
+						}
+						else {
+							// doesn't have avg dataset already so need to make one
+							avgSeries = avgSeriesFromChartType(chartType, xyPlot, endTime);
+						}
+						avgSeries.setKey(choiceMethod.toString());
+						dataSeriesCollection.addSeries(avgSeries);
+					}
+				}
+				else if (datasetClass.isAssignableFrom(BoxAndWhiskerCategoryDataset.class)) {
+					// do this
+				}
+			}
+		}
 		logger.trace("Collected and sorted charts : " + outerChartMap);
+	}
+
+	/**
+	 * 
+	 * @param chartType
+	 * @param xyPlot
+	 * @return
+	 */
+	private XYSeries avgSeriesFromChartType(String chartType, XYPlot xyPlot, int endTime) {
+		if (	chartType.equalsIgnoreCase(congestionTitle) ||
+				chartType.equalsIgnoreCase(ricCountTitle) ||
+				chartType.equalsIgnoreCase(ricSizeTitle) 
+				) {
+			if (xyPlot.getDatasetCount()!=1) {
+				logger.warn("Unexpectedly found a " + chartType + " chart with more than one dataset ! Result may be odd.");
+			}
+			return createAvgSeries((XYSeriesCollection)xyPlot.getDataset(), "doesn'tmatter", endTime, true);
+		}
+		else {
+			logger.warn("Didn't recognise chart type " + chartType);
+			return null;
+		}
+	}
+
+	/**
+	 * 
+	 * @param chartType {speedTitle, dissTitle, utilTitle, congestionTitle, ricCountTitle, ricSizeTitle, speedBAWTitle, combinedSpeedBAWTitle}
+	 * @return a new empty dataset corresponding to the charttype given
+	 */
+	private Class<? extends Dataset> datasetClassFromChartType(String chartType) {
+		if (	chartType.equalsIgnoreCase(speedTitle) ||
+				chartType.equalsIgnoreCase(dissTitle) ||
+				chartType.equalsIgnoreCase(utilTitle) ||
+				chartType.equalsIgnoreCase(congestionTitle) ||
+				chartType.equalsIgnoreCase(ricCountTitle) ||
+				chartType.equalsIgnoreCase(ricSizeTitle) 
+				) {
+			return new XYSeriesCollection().getClass();
+		}
+		else if (	chartType.equalsIgnoreCase(speedBAWTitle) ||
+				chartType.equalsIgnoreCase(combinedSpeedBAWTitle)
+				) {
+			return new DefaultBoxAndWhiskerCategoryDataset().getClass();
+		}
+		else {
+			logger.error("Did not recognise chartType: \"" + chartType + "\"");
+			return null;
+		}
 	}
 	
 }
