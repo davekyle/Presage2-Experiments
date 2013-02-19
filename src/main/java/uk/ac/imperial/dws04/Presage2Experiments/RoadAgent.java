@@ -75,6 +75,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		public boolean isInstChoice() {
 			return (this.equals(INST_SAFE) || this.equals(SAFE_INST));
 		}
+		public static OwnChoiceMethod fromString(String string) {
+			for (OwnChoiceMethod value : OwnChoiceMethod.values()) {
+				if (string.equalsIgnoreCase(value.toString())) {
+					return value;
+				}
+			}
+			return null;
+		}
 	};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
 

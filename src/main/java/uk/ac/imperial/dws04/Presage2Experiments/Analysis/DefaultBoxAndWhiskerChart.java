@@ -19,6 +19,7 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 
 /**
@@ -35,21 +36,24 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 	final BoxAndWhiskerCategoryDataset data;
 	final JFreeChart chart;
 	final ChartPanel panel;
+	final OwnChoiceMethod choiceMethod;
 
-	public DefaultBoxAndWhiskerChart(int simId, BoxAndWhiskerCategoryDataset data, String title, String categoryLabel) {
+	public DefaultBoxAndWhiskerChart(int simId, OwnChoiceMethod choiceMethod, BoxAndWhiskerCategoryDataset data, String title, String categoryLabel) {
 		super();
 		this.simId = simId;
 		this.data = data;
 		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, null, data, true);
 		panel = new ChartPanel(chart);
+		this.choiceMethod = choiceMethod;
 	}
 	
-	public DefaultBoxAndWhiskerChart(int simId, XYSeriesCollection data, String title, String categoryLabel, Boolean stripNullAndNaNItems) {
+	public DefaultBoxAndWhiskerChart(int simId, OwnChoiceMethod choiceMethod, XYSeriesCollection data, String title, String categoryLabel, Boolean stripNullAndNaNItems) {
 		super();
 		this.simId = simId;
 		this.data = BAWDatasetFromXYCollection(data, stripNullAndNaNItems);
 		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, null, this.data, true);
 		panel = new ChartPanel(chart);
+		this.choiceMethod = choiceMethod;
 	}
 
 	private DefaultBoxAndWhiskerCategoryDataset BAWDatasetFromXYCollection(XYSeriesCollection collection, Boolean stripNullAndNaNItems) {
@@ -125,6 +129,16 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 		System.out.println("q1: " + q1);
 		System.out.println("q3: " + q3);
 		return new BoxAndWhiskerItem(mean, median, q1, q3, null, null, null, null, null);
+	}
+
+	@Override
+	public int getSimId() {
+	return this.simId;
+	}
+
+	@Override
+	public OwnChoiceMethod getChoiceMethod() {
+		return this.choiceMethod;
 	}
 
 }

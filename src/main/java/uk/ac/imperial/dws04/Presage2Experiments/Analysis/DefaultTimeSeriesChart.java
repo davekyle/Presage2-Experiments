@@ -14,6 +14,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.DefaultXYDataset;
 import org.jfree.data.xy.XYDataset;
 
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 
 /**
@@ -31,8 +32,9 @@ public class DefaultTimeSeriesChart implements TimeSeriesChart, Serializable {
 	final XYDataset data;
 	final JFreeChart chart;
 	final ChartPanel panel;
+	final OwnChoiceMethod choiceMethod;
 
-	public DefaultTimeSeriesChart(int simId, XYDataset data, String title, String xLabel, String yLabel) {
+	public DefaultTimeSeriesChart(int simId, OwnChoiceMethod choiceMethod, XYDataset data, String title, String xLabel, String yLabel) {
 		super();
 		this.simId = simId;
 
@@ -43,6 +45,7 @@ public class DefaultTimeSeriesChart implements TimeSeriesChart, Serializable {
 		chart.getXYPlot().setBackgroundPaint(Color.WHITE);
 		//chart.getXYPlot().getDomainAxis().setRange(0, 30);
 		chart.getXYPlot().getDomainAxis().setAutoRange(true);
+		this.choiceMethod = choiceMethod;
 	}
 
 	/* (non-Javadoc)
@@ -80,6 +83,16 @@ public class DefaultTimeSeriesChart implements TimeSeriesChart, Serializable {
 	@Override
 	public XYPlot getXYPlot() {
 		return chart.getXYPlot();
+	}
+
+	@Override
+	public int getSimId() {
+		return this.simId;
+	}
+
+	@Override
+	public OwnChoiceMethod getChoiceMethod() {
+		return this.choiceMethod;
 	}
 
 }

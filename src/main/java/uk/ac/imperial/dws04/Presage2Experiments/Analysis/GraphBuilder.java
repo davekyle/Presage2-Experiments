@@ -43,6 +43,7 @@ import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
@@ -71,7 +72,6 @@ public class GraphBuilder {
 
 	PersistentSimulation sim;
 	int t = 0;
-	int windowSize = 50;
 	int t0 = -1;
 
 	boolean exportMode = true;
@@ -92,7 +92,7 @@ public class GraphBuilder {
 				gui.exportMode = true;
 			try {
 				//gui.init(Integer.parseInt(args[0]));
-				gui.init(4);
+				gui.buildForSim(4);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -106,7 +106,7 @@ public class GraphBuilder {
 		this.sto = sto;
 	}
 	
-	private void init(int simId) throws IOException, ClassNotFoundException {
+	private void buildForSim(int simId) throws IOException, ClassNotFoundException {
 		try {
 			db.start();
 		} catch (Exception e) {
@@ -115,6 +115,7 @@ public class GraphBuilder {
 		}
 
 		sim = sto.getSimulationById(simId);
+		OwnChoiceMethod choiceMethod = OwnChoiceMethod.fromString(sim.getParameters().get("ownChoiceMethod"));
 		if (exportMode) {
 			File exportDir = new File(imagePath + sim.getName());
 			if (!exportDir.exists())
@@ -127,6 +128,7 @@ public class GraphBuilder {
 		
 		Set<PersistentAgent> pAgents = sim.getAgents();
 		int endTime = sim.getCurrentTime();
+		
 		
 		
 		/*
@@ -233,20 +235,20 @@ public class GraphBuilder {
 
 		
 		// declare charts
-		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(simId, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
+		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(simId, choiceMethod, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
 		speedChart.hideLegend(true);
 		charts.add(speedChart);
-		DefaultTimeSeriesChart dissChart = new DefaultTimeSeriesChart(simId, dissDataset, "Agent Dissatisfaction TimeSeries", "timestep", "dissatisfaction");
+		DefaultTimeSeriesChart dissChart = new DefaultTimeSeriesChart(simId, choiceMethod, dissDataset, "Agent Dissatisfaction TimeSeries", "timestep", "dissatisfaction");
 		dissChart.hideLegend(true);
 		charts.add(dissChart); 
-		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, moveUtilDataset, "Agent Move Utility TimeSeries", "timestep", "utility");
+		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, moveUtilDataset, "Agent Move Utility TimeSeries", "timestep", "utility");
 		moveUtilChart.hideLegend(true);
 		charts.add(moveUtilChart);
-		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(simId, congestionDataset, "Congestion", "timestep", "AgentCount");
+		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(simId, choiceMethod, congestionDataset, "Congestion", "timestep", "AgentCount");
 		charts.add(congestionChart);
-		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(simId, ricCountDataset, "RICs", "timestep", "Count");
+		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(simId, choiceMethod, ricCountDataset, "RICs", "timestep", "Count");
 		charts.add(ricCountChart);
-		DefaultTimeSeriesChart ricAcceptorCountChart = new DefaultTimeSeriesChart(simId, ricMemberDataset, "RIC size", "timestep", "Number of Acceptors");
+		DefaultTimeSeriesChart ricAcceptorCountChart = new DefaultTimeSeriesChart(simId, choiceMethod, ricMemberDataset, "RIC size", "timestep", "Number of Acceptors");
 		ricAcceptorCountChart.hideLegend(true);
 		charts.add(ricAcceptorCountChart);
 		
@@ -351,11 +353,11 @@ public class GraphBuilder {
 		
 
 		// declare BAW chart because it's data doesn't update...
-		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(simId, speedCollection, "Agent Speed BAW", "Agent", true);
+		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, speedCollection, "Agent Speed BAW", "Agent", true);
 		speedBAW.hideLegend(true);
 		charts.add(speedBAW);
 		BoxAndWhiskerCategoryDataset combinedSpeedBAWData = DefaultBoxAndWhiskerChart.combineDataToBAW(speedCollection, String.valueOf(simId), true);
-		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(simId, combinedSpeedBAWData, "Combined Agent Speed BAW", null);
+		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, combinedSpeedBAWData, "Combined Agent Speed BAW", null);
 		charts.add(combinedSpeedBAW);
 		
 		
@@ -551,7 +553,7 @@ public class GraphBuilder {
 		}
 	}
 	
-	private DefaultTimeSeriesChart makeAdjustedMoveUtilChart(final XYSeriesCollection data, int simId) {
+	private DefaultTimeSeriesChart makeAdjustedMoveUtilChart(final XYSeriesCollection data, int simId, OwnChoiceMethod choiceMethod) {
 		XYSeriesCollection adjusted = new XYSeriesCollection();
 		for (Object serObj : data.getSeries()) {
 			XYSeries series = (XYSeries)serObj;
@@ -566,7 +568,7 @@ public class GraphBuilder {
 				adjusted.getSeries(key).add(item.getXValue(), y);
 			}
 		}
-		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, adjusted, "Agent Move Utility TimeSeries", "timestep", "utility");
+		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, adjusted, "Agent Move Utility TimeSeries", "timestep", "utility");
 		moveUtilChart.hideLegend(true);
 		return moveUtilChart;
 	}

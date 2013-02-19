@@ -11,11 +11,17 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.Range;
 import org.jfree.data.xy.XYSeriesCollection;
 
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
+
 /**
  * @author dws04
  *
  */
 public interface Chart {
+	
+	int getSimId();
+	
+	OwnChoiceMethod getChoiceMethod();
 
 	ChartPanel getPanel();
 
