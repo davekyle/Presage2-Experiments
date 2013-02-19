@@ -30,7 +30,10 @@ import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.statistics.BoxAndWhiskerCalculator;
 import org.jfree.data.statistics.BoxAndWhiskerCategoryDataset;
+import org.jfree.data.statistics.BoxAndWhiskerItem;
+import org.jfree.data.statistics.DefaultBoxAndWhiskerCategoryDataset;
 import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
@@ -145,7 +148,7 @@ public class GraphBuilder {
 	}
 	
 	private HashMap<String,Chart> buildForSim(Long simId) throws IOException, ClassNotFoundException {
-		logger.info("Processing sim " + simId + "...");
+		logger.info("Building charts for sim " + simId + "...");
 		try {
 			db.start();
 		} catch (Exception e) {
@@ -327,7 +330,7 @@ public class GraphBuilder {
 		// get agent data
 		for (PersistentAgent pAgent : pAgents) {
 			String key = pAgent.getID().toString();
-			logger.info("Processing agent " + key);
+			logger.debug("Processing agent " + key);
 			
 			// add series' in all the relevant collections
 			speedCollection.addSeries(new XYSeries(key, true, false));
@@ -419,7 +422,7 @@ public class GraphBuilder {
 		
 		
 		//db.stop();
-		logger.info("Done processing sim " + simId + ".");
+		logger.info("Done building charts for sim " + simId + ".");
 		return charts;
 	}
 
@@ -617,6 +620,13 @@ public class GraphBuilder {
 		return moveUtilChart;
 	}
 	
+	private DefaultBoxAndWhiskerCategoryDataset makeBAWDataFromHashMap(HashMap<OwnChoiceMethod, ArrayList<Integer>> map) {
+		DefaultBoxAndWhiskerCategoryDataset result = new DefaultBoxAndWhiskerCategoryDataset();
+		for (Entry<OwnChoiceMethod,ArrayList<Integer>> entry : map.entrySet()) {
+			result.add(entry.getValue(), "rowKey", entry.getKey().toString());
+		}
+		return result;
+	}
 
 
 	/**
@@ -625,6 +635,7 @@ public class GraphBuilder {
 	 * @param endTime
 	 */
 	private void process(HashMap<Long, HashMap<String,Chart>> map, int endTime) {
+		logger.info("Beginning combination processing...");
 		/*
 		 * Want a chart for every chart type (from chartTitles)
 		 * On each chart, want a line/BAWitem for each moveChoiceMethod
@@ -651,14 +662,20 @@ public class GraphBuilder {
 		for (Entry<Long,HashMap<String,Chart>> entry : map.entrySet()) {
 			Long simId = entry.getKey();
 			HashMap<String,Chart> charts = entry.getValue();
+			logger.info("Processing simId " + simId);
+			sim = sto.getSimulationById(simId);
 			
 			// get simLength
-			int length = sto.getSimulationById(simId).getCurrentTime();
+			int length = sim.getCurrentTime();
 			OwnChoiceMethod method = OwnChoiceMethod.fromString(sim.getParameters().get("ownChoiceMethod")); // yay duplicate code 
-			if (simLengthMap.containsKey(method)) {
+			if (!simLengthMap.containsKey(method)) {
 				simLengthMap.put(method, new ArrayList<Integer>());
 			}
 			simLengthMap.get(method).add(length);
+			DefaultBoxAndWhiskerCategoryDataset lengthBAWDataset = makeBAWDataFromHashMap(simLengthMap);
+			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Simulation length by choice method", "Choice Method");
+			lengthBaw.hideLegend(true);
+			saveChart(lengthBaw.getChart(), Long.getLong("-1"), "LengthBaw");
 			
 			// get charts
 			for (Entry<String,Chart> chartEntry : charts.entrySet()) {
