@@ -38,20 +38,20 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 	final ChartPanel panel;
 	final OwnChoiceMethod choiceMethod;
 
-	public DefaultBoxAndWhiskerChart(Long simId, OwnChoiceMethod choiceMethod, BoxAndWhiskerCategoryDataset data, String title, String categoryLabel) {
+	public DefaultBoxAndWhiskerChart(Long simId, OwnChoiceMethod choiceMethod, BoxAndWhiskerCategoryDataset data, String title, String categoryLabel, String valueLabel) {
 		super();
 		this.simId = simId;
 		this.data = data;
-		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, null, data, true);
+		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, valueLabel, data, true);
 		panel = new ChartPanel(chart);
 		this.choiceMethod = choiceMethod;
 	}
 	
-	public DefaultBoxAndWhiskerChart(Long simId, OwnChoiceMethod choiceMethod, XYSeriesCollection data, String title, String categoryLabel, Boolean stripNullAndNaNItems) {
+	public DefaultBoxAndWhiskerChart(Long simId, OwnChoiceMethod choiceMethod, XYSeriesCollection data, String title, String categoryLabel, String valueLabel, Boolean stripNullAndNaNItems) {
 		super();
 		this.simId = simId;
 		this.data = BAWDatasetFromXYCollection(data, stripNullAndNaNItems);
-		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, null, this.data, true);
+		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, valueLabel, this.data, true);
 		panel = new ChartPanel(chart);
 		this.choiceMethod = choiceMethod;
 	}

@@ -397,11 +397,11 @@ public class GraphBuilder {
 		
 
 		// declare BAW chart because it's data doesn't update...
-		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, speedCollection, speedBAWTitle, "Agent", true);
+		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, speedCollection, speedBAWTitle, "Agent", "Speed", true);
 		speedBAW.hideLegend(true);
 		charts.put(speedBAWTitle, speedBAW);
 		BoxAndWhiskerCategoryDataset combinedSpeedBAWData = DefaultBoxAndWhiskerChart.combineDataToBAW(speedCollection, String.valueOf(simId), true);
-		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, combinedSpeedBAWData, combinedSpeedBAWTitle, null);
+		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, combinedSpeedBAWData, combinedSpeedBAWTitle, null, "Speed");
 		charts.put(combinedSpeedBAWTitle, combinedSpeedBAW);
 		
 		
@@ -673,7 +673,7 @@ public class GraphBuilder {
 			}
 			simLengthMap.get(method).add(length);
 			DefaultBoxAndWhiskerCategoryDataset lengthBAWDataset = makeBAWDataFromHashMap(simLengthMap);
-			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Simulation length by choice method", "Choice Method");
+			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Simulation length by choice method", "Choice Method", "Simulation Length (cycles)");
 			lengthBaw.hideLegend(true);
 			saveChart(lengthBaw.getChart(), Long.getLong("-1"), "LengthBaw");
 			
