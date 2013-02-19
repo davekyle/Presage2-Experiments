@@ -78,6 +78,16 @@ public class GraphBuilder {
 	boolean headlessMode = false;
 
 	final static String imagePath = "/Users/dave/Documents/workspace/ExperimentalData/";
+	final static String speedTitle = "Agent Speed TimeSeries";
+	final static String dissTitle = "Agent Dissatisfaction TimeSeries";
+	final static String utilTitle = "Agent Move Utility TimeSeries";
+	final static String congestionTitle = "Congestion TimeSeries";
+	final static String ricCountTitle = "RIC Count TimeSeries";
+	final static String ricSizeTitle = "RIC Size TimeSeries";
+	final static String speedBAWTitle = "Speed BAW";
+	final static String combinedSpeedBAWTitle = "Combined Speed BAW";
+	
+	
 	
 	/**
 	 * @param args
@@ -91,11 +101,12 @@ public class GraphBuilder {
 				gui.headlessMode = true;
 			try {
 				List<Long> simIds = gui.init();
-				HashMap<Long,ArrayList<Chart>> charts = new HashMap<Long,ArrayList<Chart>>();
+				int endTime = gui.getEndTime(simIds);
+				HashMap<Long,HashMap<String,Chart>> charts = new HashMap<Long,HashMap<String,Chart>>();
 				for (Long simId : simIds) {
 					charts.put(simId,gui.buildForSim(simId));
 				}
-				gui.process(charts);
+				gui.process(charts, endTime);
 				gui.finish();
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -121,7 +132,18 @@ public class GraphBuilder {
 		db.stop();
 	}
 	
-	private ArrayList<Chart> buildForSim(Long simId) throws IOException, ClassNotFoundException {
+	private int getEndTime(List<Long> simIds) {
+		int endTime = 0;
+		for (Long simId : simIds) {
+			int currTime = sto.getSimulationById(simId).getCurrentTime();
+			if (currTime > endTime) {
+				endTime = currTime;
+			}
+		}
+		return endTime;
+	}
+	
+	private HashMap<String,Chart> buildForSim(Long simId) throws IOException, ClassNotFoundException {
 		logger.info("Processing sim " + simId + "...");
 		try {
 			db.start();
@@ -130,7 +152,7 @@ public class GraphBuilder {
 			return null;
 		}
 
-		ArrayList<Chart> charts = new ArrayList<Chart>();
+		HashMap<String,Chart> charts = new HashMap<String,Chart>();
 		
 		sim = sto.getSimulationById(simId);
 		OwnChoiceMethod choiceMethod = OwnChoiceMethod.fromString(sim.getParameters().get("ownChoiceMethod"));
@@ -253,22 +275,22 @@ public class GraphBuilder {
 
 		
 		// declare charts
-		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(simId, choiceMethod, speedDataset, "Agent Speed TimeSeries", "timestep", "speed");
+		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(simId, choiceMethod, speedDataset, speedTitle, "timestep", "speed");
 		speedChart.hideLegend(true);
-		charts.add(speedChart);
-		DefaultTimeSeriesChart dissChart = new DefaultTimeSeriesChart(simId, choiceMethod, dissDataset, "Agent Dissatisfaction TimeSeries", "timestep", "dissatisfaction");
+		charts.put(speedTitle, speedChart);
+		DefaultTimeSeriesChart dissChart = new DefaultTimeSeriesChart(simId, choiceMethod, dissDataset, dissTitle, "timestep", "dissatisfaction");
 		dissChart.hideLegend(true);
-		charts.add(dissChart); 
-		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, moveUtilDataset, "Agent Move Utility TimeSeries", "timestep", "utility");
+		charts.put(dissTitle, dissChart); 
+		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, moveUtilDataset, utilTitle, "timestep", "utility");
 		moveUtilChart.hideLegend(true);
-		charts.add(moveUtilChart);
-		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(simId, choiceMethod, congestionDataset, "Congestion", "timestep", "AgentCount");
-		charts.add(congestionChart);
-		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(simId, choiceMethod, ricCountDataset, "RICs", "timestep", "Count");
-		charts.add(ricCountChart);
-		DefaultTimeSeriesChart ricAcceptorCountChart = new DefaultTimeSeriesChart(simId, choiceMethod, ricMemberDataset, "RIC size", "timestep", "Number of Acceptors");
+		charts.put(utilTitle, moveUtilChart);
+		DefaultTimeSeriesChart congestionChart = new DefaultTimeSeriesChart(simId, choiceMethod, congestionDataset, congestionTitle, "timestep", "AgentCount");
+		charts.put(congestionTitle, congestionChart);
+		DefaultTimeSeriesChart ricCountChart = new DefaultTimeSeriesChart(simId, choiceMethod, ricCountDataset, ricCountTitle, "timestep", "Count");
+		charts.put(ricCountTitle, ricCountChart);
+		DefaultTimeSeriesChart ricAcceptorCountChart = new DefaultTimeSeriesChart(simId, choiceMethod, ricMemberDataset, ricSizeTitle, "timestep", "Number of Acceptors");
 		ricAcceptorCountChart.hideLegend(true);
-		charts.add(ricAcceptorCountChart);
+		charts.put(ricSizeTitle, ricAcceptorCountChart);
 		
 		
 		
@@ -371,18 +393,18 @@ public class GraphBuilder {
 		
 
 		// declare BAW chart because it's data doesn't update...
-		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, speedCollection, "Agent Speed BAW", "Agent", true);
+		DefaultBoxAndWhiskerChart speedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, speedCollection, speedBAWTitle, "Agent", true);
 		speedBAW.hideLegend(true);
-		charts.add(speedBAW);
+		charts.put(speedBAWTitle, speedBAW);
 		BoxAndWhiskerCategoryDataset combinedSpeedBAWData = DefaultBoxAndWhiskerChart.combineDataToBAW(speedCollection, String.valueOf(simId), true);
-		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, combinedSpeedBAWData, "Combined Agent Speed BAW", null);
-		charts.add(combinedSpeedBAW);
+		DefaultBoxAndWhiskerChart combinedSpeedBAW = new DefaultBoxAndWhiskerChart(simId, choiceMethod, combinedSpeedBAWData, combinedSpeedBAWTitle, null);
+		charts.put(combinedSpeedBAWTitle, combinedSpeedBAW);
 		
 		
 		Frame frame = new Frame("Results for Simulation " + simId);
 		Panel panel = new Panel(new GridLayout(0,2));
 		frame.add(panel);
-		for (Chart chart : charts) {
+		for (Chart chart : charts.values()) {
 			ChartUtils.tweak(chart.getChart(), false, false);
 			saveChart(chart.getChart(), simId, chart.getChart().getTitle().getText());
 			panel.add(chart.getPanel());
@@ -589,17 +611,17 @@ public class GraphBuilder {
 				adjusted.getSeries(key).add(item.getXValue(), y);
 			}
 		}
-		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, adjusted, "Agent Move Utility TimeSeries", "timestep", "utility");
+		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, adjusted, utilTitle, "timestep", "utility");
 		moveUtilChart.hideLegend(true);
 		return moveUtilChart;
 	}
 	
 
 
-	private void process(HashMap<Long, ArrayList<Chart>> map) {
-		for (Entry<Long,ArrayList<Chart>> entry : map.entrySet()) {
+	private void process(HashMap<Long, HashMap<String,Chart>> map, int endTime) {
+		for (Entry<Long,HashMap<String,Chart>> entry : map.entrySet()) {
 			Long simId = entry.getKey();
-			ArrayList<Chart> charts = entry.getValue();
+			HashMap<String,Chart> charts = entry.getValue();
 			
 			
 		}
