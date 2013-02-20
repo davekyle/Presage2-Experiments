@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,6 +12,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.drools.runtime.StatefulKnowledgeSession;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
@@ -22,6 +26,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.NeighbourChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
+import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
@@ -103,7 +108,7 @@ public class RoadSimulation extends InjectedSimulation {
 	@Parameter(name="insertMethod", optional=true)
 	public String insertMethod = "odd";
 	
-	HashMap<UUID, String> agentNames;
+	ConcurrentHashMap<UUID, String> agentNames;
 	HashMap<UUID,RoadLocation> agentLocations;
 
 	EnvironmentServiceProvider serviceProvider;
@@ -111,6 +116,8 @@ public class RoadSimulation extends InjectedSimulation {
 	private EnvironmentSharedStateAccess sharedState;
 
 	private StorageService storage;
+
+	private StatefulKnowledgeSession session;
 	
 	/**
 	 * @param modules
@@ -118,7 +125,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public RoadSimulation(Set<AbstractModule> modules) {
 		super(modules);
 		agentLocations = new HashMap<UUID, RoadLocation>();
-		agentNames = new HashMap<UUID, String>();
+		agentNames = new ConcurrentHashMap<UUID, String>();
 		// TODO if this is a param, needs to be loaded in getModules() or something instead
 		// the uuid's aren't governed by the same seed, so if you want to compare do it by agentname instead
 		//Random.seed = 123456;
@@ -178,6 +185,11 @@ public class RoadSimulation extends InjectedSimulation {
 		}
 	}
 	
+	@Inject
+	public void setSession(StatefulKnowledgeSession session) {
+		this.session = session;
+	}
+	
 	/**
 	 * @param serviceProvider
 	 * @return
@@ -219,6 +231,15 @@ public class RoadSimulation extends InjectedSimulation {
 			agent.initialiseTime(getCurrentSimulationTime());
 			agentLocations.put(uuid, startLoc);
 			agentNames.put(uuid, name);
+			if (this.storage != null) {
+				//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
+//				PersistentAgent state = this.storage.getAgent(uuid);
+//				Integer time = 0;
+//				state.setProperty("insertedAt", time.toString());
+//				state.setProperty("goals", goals.toString());
+				this.persistToDB(uuid, "insertedAt", 0);
+				this.persistToDB(uuid, "goals", goals);
+			}
 			logger.debug("Now tracking " + agentNames.size() + " agents.");
 		}
 	}
@@ -280,13 +301,17 @@ public class RoadSimulation extends InjectedSimulation {
 		if (shouldInsertNewAgent(this.insertMethod)) {
 			Integer junctionOffset = this.getEnvironmentService().getNextInsertionJunction();
 			if (junctionOffset!=null) {
-				UUID uuid = createNextAgent(0, junctionOffset);
+				RoadAgentGoals goals = createNewAgentGoals();
+				UUID uuid = createNextAgent(0, junctionOffset, goals);
 				// do a entry in the db for this
 				if (this.storage != null) {
 					//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
-					PersistentAgent state = this.storage.getAgent(uuid);
+//					PersistentAgent state = this.storage.getAgent(uuid);
 					Integer time = (e.getTime().intValue()+1);
-					state.setProperty("insertedAt", time.toString());
+//					state.setProperty("insertedAt", time.toString());
+//					state.setProperty("goals", goals.toString());
+					this.persistToDB(uuid, "insertedAt", time.intValue());
+					this.persistToDB(uuid, "goals", goals);
 				}
 			}
 		}
@@ -319,13 +344,13 @@ public class RoadSimulation extends InjectedSimulation {
 	 * Creates the next (in naming) agent at the location specified with speed 0 and random goals
 	 * @param lane
 	 * @param startOffset
+	 * @param goals TODO
 	 */
-	private UUID createNextAgent(int lane, int startOffset) {
+	private UUID createNextAgent(int lane, int startOffset, RoadAgentGoals goals) {
 		UUID uuid = Random.randomUUID();
 		String name = "agent"+ agentNames.size();
 		RoadLocation startLoc = new RoadLocation(lane, startOffset);
 		int startSpeed = 0;
-		RoadAgentGoals goals = createNewAgentGoals();
 		Participant p = new RoadAgent(uuid, name, startLoc, startSpeed, goals, getOwnCM(), getNeighbourCM());
 		this.scenario.addParticipant(p);
 		p.initialise();
@@ -381,8 +406,9 @@ public class RoadSimulation extends InjectedSimulation {
 		});
 		if (this.storage != null) {
 			//TransientAgentState state = this.storage.getAgentState(uuid,e.time.intValue());
-			PersistentAgent state = this.storage.getAgent(uuid);
-			state.setProperty("leftAt", e.time.toString());
+//			PersistentAgent state = this.storage.getAgent(uuid);
+//			state.setProperty("leftAt", e.time.toString());
+			this.persistToDB(uuid, "leftAt", e.time.intValue());
 		}
 		logger.info("Agent " + uuid + " left the road from " + e.getJunctionOffset());
 		this.scenario.removeParticipant(uuid);
@@ -431,5 +457,22 @@ public class RoadSimulation extends InjectedSimulation {
 		logger.fatal("CALLING COMPLETION");
 		this.simulator.complete();
 		System.exit(1);
+	}
+	
+	public void persistToDB(UUID agent, String key, Serializable value) {
+		if (value==null) {
+			value = "";
+		}
+		if (value.getClass().isAssignableFrom(String.class)) {
+			this.storage.getAgent(agent).setProperty(key, (String) value);
+		}
+		else {
+			try {
+				this.storage.getAgent(agent).setProperty(key, StringSerializer.toString(value));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 }
