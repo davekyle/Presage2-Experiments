@@ -108,6 +108,9 @@ public class RoadSimulation extends InjectedSimulation {
 	@Parameter(name="insertMethod", optional=true)
 	public String insertMethod = "odd";
 	
+	@Parameter(name="nonStopMode", optional=true)
+	public int nonStopMode = 1;
+	
 	ConcurrentHashMap<UUID, String> agentNames;
 	HashMap<UUID,RoadLocation> agentLocations;
 
@@ -363,7 +366,7 @@ public class RoadSimulation extends InjectedSimulation {
 	}
 	
 	private RoadAgentGoals createNewAgentGoals() {
-		return new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(4)+1, Random.randomInt(length), Random.randomInt(3), Random.randomInt(2)+1);
+		return new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(3), Random.randomInt(length), Random.randomInt(3), Random.randomInt(2)+1);
 	}
 	
 	@EventListener
