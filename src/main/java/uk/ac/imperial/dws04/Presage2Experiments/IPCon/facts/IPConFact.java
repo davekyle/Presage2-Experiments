@@ -3,13 +3,18 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts;
 
+import java.io.Serializable;
 import java.util.UUID;
 
 /**
  * @author dws04
  *
  */
-public abstract class IPConFact {
+public abstract class IPConFact implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -7547880884343708623L;
 	final Integer revision;
 	final String issue;
 	final UUID cluster;

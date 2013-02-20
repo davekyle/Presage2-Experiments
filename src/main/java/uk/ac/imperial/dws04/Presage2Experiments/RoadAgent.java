@@ -3,7 +3,9 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
+import java.io.IOException;
 import java.io.InvalidClassException;
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +42,8 @@ import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.InstitutionalSaf
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SafeInstitutionalMoveComparator;
 import uk.ac.imperial.dws04.Presage2Experiments.MoveComparators.SpeedWeightedMoveComparator;
 import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
+import uk.ac.imperial.dws04.utils.convert.StringSerializer;
+import uk.ac.imperial.dws04.utils.convert.ToDouble;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
@@ -70,6 +74,14 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		SAFE_FAST, PLANNED, SAFE_GOALS, SAFE_CONSTANT, GOALS, SAFE_INST, INST_SAFE, MOVE_TO_EXIT;
 		public boolean isInstChoice() {
 			return (this.equals(INST_SAFE) || this.equals(SAFE_INST));
+		}
+		public static OwnChoiceMethod fromString(String string) {
+			for (OwnChoiceMethod value : OwnChoiceMethod.values()) {
+				if (string.equalsIgnoreCase(value.toString())) {
+					return value;
+				}
+			}
+			return null;
 		}
 	};
 	public enum NeighbourChoiceMethod {WORSTCASE, GOALS, INSTITUTIONAL};
@@ -612,7 +624,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		saveDataToDB();
 
 		
-		CellMove move;
+		Pair<CellMove,Integer> move;
 		// Check to see if you want to turn off, then if you can end up at the junction in the next timecycle, do so
 		if (	(fsm.getState().equals("MOVE_TO_EXIT")) && (junctionDist!=null) ) {
 			//move = driver.turnOff();
@@ -623,10 +635,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			//move = createMove(ownChoiceMethod, neighbourChoiceMethod);
 			move = newCreateMove(ownChoiceMethod, neighbourChoiceMethod);
 		}
-		if ((junctionDist!=null) && (junctionDist <= move.getYInt())) {
+		if ((junctionDist!=null) && (junctionDist <= move.getA().getYInt())) {
 			passJunction();
 		}
-		submitMove(move);
+		saveMoveAndUtilToDB(move);
+		submitMove(move.getA());
 	}
 
 	/**
@@ -1590,12 +1603,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * Create a safe move with the intention of heading towards the exit
 	 * @return
 	 */
-	private CellMove createExitMove(int nextJunctionDist, NeighbourChoiceMethod neighbourChoiceMethod) {
-		CellMove result = null;
+	private Pair<CellMove,Integer> createExitMove(int nextJunctionDist, NeighbourChoiceMethod neighbourChoiceMethod) {
+		Pair<CellMove,Integer> result = null;
 		if (myLoc.getLane()==0) {
 			if (	(nextJunctionDist>= Math.max((mySpeed-speedService.getMaxDecel()), 1)) &&
 					(nextJunctionDist<= Math.min((mySpeed+speedService.getMaxAccel()), speedService.getMaxSpeed())) ) {
-				result = driver.turnOff();
+				result = new Pair<CellMove,Integer>(driver.turnOff(),Integer.MAX_VALUE);
 				logger.debug("[" + getID() + "] Agent " + getName() + " turning off in " + nextJunctionDist);
 			}
 			else {
@@ -1615,7 +1628,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 						moveOffset=1;
 					}
 					logger.debug("[" + getID() + "] Agent " + getName() + " turning off at " + nextJunctionDist + " with move " + moveOffset);
-					result = new CellMove(-1, moveOffset);
+					result = new Pair<CellMove,Integer>(new CellMove(-1, moveOffset),Integer.MAX_VALUE);
 				}
 			}
 		}
@@ -1627,7 +1640,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 		if (result==null){
 			logger.warn("Shouldn't get here.");
-			result = driver.decelerateMax();
+			result = new Pair<CellMove,Integer>(driver.decelerateMax(),Integer.MIN_VALUE);
 		}
 		return result;
 	}
@@ -1701,7 +1714,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		return chooseFromSafeMoves(actions, ownChoiceMethod);
 	}
 	
-	private CellMove newCreateMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
+	private Pair<CellMove,Integer> newCreateMove(OwnChoiceMethod ownChoiceMethod, NeighbourChoiceMethod neighbourChoiceMethod){
 		// This is an indirect assumption of only three lanes
 		//  - yes we only want to check in lanes we can move into, but
 		//  - we should also take into account agents not in those lanes which might move into them ahead of us.
@@ -1778,7 +1791,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			}
 		}
 		
-		CellMove move;
+		Pair<CellMove, Integer> move;
 		if (collisionCheckMoves.isEmpty()) {
 			logger.warn("[" + getID() + "] Agent " + getName() + " could not find any moves that guarantee no collisions ! Passing out all moves to see which is the best.");
 			collisionCheckMoves = myMoves;
@@ -1803,9 +1816,9 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param ownChoiceMethod
 	 * @return preferred move from map based on ownChoiceMethod
 	 */
-	private CellMove chooseMove(HashMap<CellMove, Integer> safetyWeightedMoves, OwnChoiceMethod ownChoiceMethod) {
+	private Pair<CellMove,Integer> chooseMove(HashMap<CellMove, Integer> safetyWeightedMoves, OwnChoiceMethod ownChoiceMethod) {
 		logger.debug("[" + getID() + "] Agent " + getName() + " choosing " + ownChoiceMethod + " move from moves: " + safetyWeightedMoves);
-		CellMove result = driver.constantSpeed();
+		Pair<CellMove,Integer> result = new Pair<CellMove,Integer>(driver.constantSpeed(), Integer.MIN_VALUE);
 		if (!safetyWeightedMoves.isEmpty()) {
 			switch (ownChoiceMethod) {
 			case SAFE_CONSTANT : {
@@ -1814,11 +1827,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				list.addAll(safetyWeightedMoves.entrySet());
 				Collections.sort(list, new ConstantWeightedMoveComparator<Integer>(this.mySpeed));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
-				result = list.getLast().getKey();
-				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+				result = Pair.entryToPair(list.getLast());
+				if (result.getA().getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
 						(list.get(list.size()-2).getValue()>=0)
 						) {
-					result = list.get(list.size()-2).getKey();
+					result = Pair.entryToPair(list.get(list.size()-2));
 				}
 				break;
 			}
@@ -1828,11 +1841,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				list.addAll(safetyWeightedMoves.entrySet());
 				Collections.sort(list, new SpeedWeightedMoveComparator<Integer>());
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
-				result = list.getLast().getKey();
-				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+				result = Pair.entryToPair(list.getLast());
+				if (result.getA().getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
 						(list.get(list.size()-2).getValue()>=0)
 						) {
-					result = list.get(list.size()-2).getKey();
+					result = Pair.entryToPair(list.get(list.size()-2));
 				}
 				break;
 			}
@@ -1845,7 +1858,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// sort by difference between moveSpeed and goalSpeed
 				LinkedList<Pair<CellMove,Integer>> sortedList = sortBySpeedDiff(safestMoves);
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + sortedList);
-				result = sortedList.getLast().getA();
+				result = sortedList.getLast();
 				break;
 			}
 			case SAFE_GOALS : {
@@ -1854,11 +1867,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				list.addAll(safetyWeightedMoves.entrySet());
 				Collections.sort(list, new ConstantWeightedMoveComparator<Integer>(this.getGoals().getSpeed()));
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
-				result = list.getLast().getKey();
-				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+				result = Pair.entryToPair(list.getLast());
+				if (result.getA().getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
 						(list.get(list.size()-2).getValue()>=0)
 						) {
-					result = list.get(list.size()-2).getKey();
+					result = Pair.entryToPair(list.get(list.size()-2));
 				}
 				break;
 			}
@@ -1876,11 +1889,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				list.addAll(safetyWeightedMoves.entrySet());
 				Collections.sort(list, new ExitMoveComparator<Integer>());
 				logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
-				result = list.getLast().getKey();
-				if (result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
+				result = Pair.entryToPair(list.getLast());
+				if (result.getA().getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead
 						(list.get(list.size()-2).getValue()>=0)
 						) {
-					result = list.get(list.size()-2).getKey();
+					result = Pair.entryToPair(list.get(list.size()-2));
 				}
 				break;
 			}
@@ -1901,15 +1914,15 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param safetyWeightedMoves
 	 * @return
 	 */
-	private CellMove chooseInstitutionalMove(HashMap<CellMove, Integer> safetyWeightedMoves, Boolean safe) {
-		CellMove result;
+	private Pair<CellMove,Integer> chooseInstitutionalMove(HashMap<CellMove, Integer> safetyWeightedMoves, Boolean safe) {
+		Pair<CellMove,Integer> result;
 		// sort by safety weighting and use institutional speed and lane to break deadlock
 		LinkedList<Map.Entry<CellMove,Integer>> list = new LinkedList<Entry<CellMove,Integer>>();
 		list.addAll(safetyWeightedMoves.entrySet());
 		Comparator<Entry<CellMove, Integer>> comparator = getInstComparator(safe);
 		Collections.sort(list, comparator);
 		logger.trace("[" + getID() + "] Agent " + getName() + " sorted moves to: " + list);
-		result = list.getLast().getKey();
+		result = Pair.entryToPair(list.getLast());
 		// don't give nudge if inst speed is 0...
 		Chosen instChosen = this.institutionalFacts.get("speed");
 		if (instChosen!=null) {
@@ -1917,10 +1930,10 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			if (speed==null) {
 				speed = this.getGoals().getSpeed();
 			}
-			if (speed!=0 && result.getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead (unless your inst chosen speed is 0)
+			if (speed!=0 && result.getA().getYInt()==0 && list.size()>=2 && // if chosen move is to stop, and next move is safe, choose next move instead (unless your inst chosen speed is 0)
 					(list.get(list.size()-2).getValue()>=0)
 					) {
-				result = list.get(list.size()-2).getKey();
+				result = Pair.entryToPair(list.get(list.size()-2));
 			}
 		}
 		return result;
@@ -2801,10 +2814,72 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		int time = SimTime.get().intValue();
 		// check db is available
 		if (this.persist != null) {
-			// save our location for this timestep
-			this.persist.getState(time).setProperty("location", this.myLoc.toString());
-			this.persist.getState(time).setProperty("speed", ((Integer)(this.mySpeed)).toString());
+			storeInDB("location", time, this.myLoc);
+			storeInDB("speed", time, this.mySpeed);
+			
+			Double speedDissatisfaction = calcStateDissatisfaction();
+			storeInDB("dissatisfaction", time, speedDissatisfaction);
+			
 		}
+	}
+
+	private void saveMoveAndUtilToDB(Pair<CellMove, Integer> move) {
+		// get current simulation time
+		int time = SimTime.get().intValue();
+		// check db is available
+		if (this.persist != null) {
+			storeInDB("move", time, move);
+		}
+	}
+
+	/**
+	 * @param key
+	 * @param time
+	 * @param value
+	 */
+	private void storeInDB(String key, int time, Serializable value) {
+		if (value==null) {
+			value = "";
+		}
+		if (value.getClass().isAssignableFrom(String.class)) {
+			this.persist.getState(time).setProperty(key, (String) value);
+		}
+		else {
+			try {
+				this.persist.getState(time).setProperty(key, StringSerializer.toString(value));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private Double calcStateDissatisfaction() {
+		Integer speed = this.mySpeed;
+		Integer speedGoal = this.goals.getSpeed();
+		Integer speedTolerance = this.goals.getSpeedTolerance();
+		Double speedDissatisfaction;
+		if (speed==speedGoal) {
+			speedDissatisfaction = 0.0;
+		}
+		// FIXME this is probably a stupid way of doing it since I'm going to be abs'ing it...
+		else if (speed>speedGoal) {
+			if (speed > speedGoal+speedTolerance) {
+				speedDissatisfaction = (ToDouble.toDouble(speedTolerance)/2) + speed-(speedGoal+speedTolerance);
+			}
+			else {
+				speedDissatisfaction = (ToDouble.toDouble(speed-speedGoal)/2);
+			}
+		}
+		else {
+			if (speed < speedGoal-speedTolerance) {
+				speedDissatisfaction = (ToDouble.toDouble(speedTolerance)/2) + (speedGoal+speedTolerance)-speed;
+			}
+			else {
+				speedDissatisfaction = (ToDouble.toDouble(speedGoal-speed)/2);
+			}
+		}
+		return Math.abs(speedDissatisfaction);
 	}
 
 	/* (non-Javadoc)
