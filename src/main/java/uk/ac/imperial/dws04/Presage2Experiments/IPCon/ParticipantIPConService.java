@@ -16,6 +16,7 @@ import org.drools.runtime.rule.Variable;
 
 import com.google.inject.Inject;
 
+import uk.ac.imperial.dws04.Presage2Experiments.FinishEarlyEvent;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
@@ -33,6 +34,7 @@ import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.participant.Participant;
 import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
+import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
 import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
 
 /**
@@ -249,6 +251,14 @@ public class ParticipantIPConService extends IPConService {
 	public void onEndOfCycle(EndOfTimeCycle event) {
 		// remove annotation so that it doesn't listen (since it doesn't have session access)
 		// do nothing
+	}
+	
+	@Override
+	public void onSimulationEarlyEnd(FinishEarlyEvent event) {
+	}
+	
+	@Override
+	public void onSimulationEnd(FinalizeEvent event) {
 	}
 
 	/* (non-Javadoc)

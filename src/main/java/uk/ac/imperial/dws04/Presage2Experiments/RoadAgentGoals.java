@@ -113,4 +113,15 @@ public class RoadAgentGoals implements Serializable {
 	public final HashMap<String,Pair<Integer, Integer>> getMap() {
 		return map;
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "RoadAgentGoals [map=" + map + ", speed=" + speed + ", dest="
+				+ dest + ", spacing=" + spacing + ", speedTolerance="
+				+ speedTolerance + ", spacingTolerance=" + spacingTolerance
+				+ "]";
+	}
 }
