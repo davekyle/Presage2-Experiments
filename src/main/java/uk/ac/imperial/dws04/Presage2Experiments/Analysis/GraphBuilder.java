@@ -814,6 +814,7 @@ public class GraphBuilder {
 	 * @return
 	 */
 	private XYSeries simSeriesFromChartType(String chartType, XYPlot xyPlot, int endTime) {
+		XYSeries result = null;
 		if (	chartType.equalsIgnoreCase(congestionTitle) ||
 				chartType.equalsIgnoreCase(ricCountTitle)
 				) {
@@ -827,24 +828,40 @@ public class GraphBuilder {
 			 * in ricCount we want both but separately !
 			 */
 			if (chartType.equalsIgnoreCase(congestionTitle)) {
-				List<Object> seriesObjList = ((XYSeriesCollection)xyPlot.getDataset()).getSeries();
-				for (Object obj : seriesObjList) {
-					if ( ( (String)((XYSeries)obj).getKey() ).endsWith("agentCount") ) {
-						try {
-							return (XYSeries) ((XYSeries)obj).clone();
-						} catch (CloneNotSupportedException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-				logger.warn("Couldn't find an agentCount series in a " + chartType + " chart.");
+				result = getSeriesEndingWith(chartType, xyPlot, "agentCount");
 			}
-			return createAvgSeries((XYSeriesCollection)xyPlot.getDataset(), "doesn'tmatter", endTime, true);
+			else if (chartType.equalsIgnoreCase(ricCountTitle)) {
+				result = getSeriesEndingWith(chartType, xyPlot, "ricCount");
+			}
+			else {
+				logger.warn("Should never get here ! simSeriesFromChartType(" + chartType + ", " + xyPlot + ", " + endTime  + ")");
+			}
 		}
 		else {
 			logger.warn("Didn't recognise chart type " + chartType);
-			return null;
 		}
+		return result;
+	}
+
+	/**
+	 * @param chartType
+	 * @param xyPlot
+	 * @param keyEndStub
+	 */
+	private XYSeries getSeriesEndingWith(String chartType, XYPlot xyPlot,
+			String keyEndStub) {
+		List<Object> seriesObjList = ((XYSeriesCollection)xyPlot.getDataset()).getSeries();
+		for (Object obj : seriesObjList) {
+			if ( ( (String)((XYSeries)obj).getKey() ).endsWith(keyEndStub) ) {
+				try {
+					return (XYSeries) ((XYSeries)obj).clone();
+				} catch (CloneNotSupportedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		logger.warn("Couldn't find a " + keyEndStub + " series in a " + chartType + " chart.");
+		return null;
 	}
 
 	/**
