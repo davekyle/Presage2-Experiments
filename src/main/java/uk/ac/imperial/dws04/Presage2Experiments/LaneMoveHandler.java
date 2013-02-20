@@ -42,6 +42,7 @@ import uk.ac.imperial.presage2.util.location.area.HasArea;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 
 /**
  * Special move handler to deal with moves in an area representing a multi-lane
@@ -68,6 +69,8 @@ public class LaneMoveHandler extends MoveHandler {
 
 	}
 
+	private final int nonStopMode;
+	
 	private final Logger logger = Logger.getLogger(LaneMoveHandler.class);
 	private List<CollisionCheck> checks = Collections.synchronizedList(new LinkedList<LaneMoveHandler.CollisionCheck>());
 	private int collisions = 0;
@@ -79,13 +82,14 @@ public class LaneMoveHandler extends MoveHandler {
 	@Inject
 	public LaneMoveHandler(HasArea environment,
 			EnvironmentServiceProvider serviceProvider,
-			EnvironmentSharedStateAccess sharedState, EventBus eb)
+			EnvironmentSharedStateAccess sharedState, EventBus eb, @Named("params.nonStopMode") int nonStopMode)
 			throws UnavailableServiceException {
 		super(environment, serviceProvider, sharedState);
 		this.eventBus = eb;
 		eb.subscribe(this);
 		this.roadEnvironmentService = serviceProvider.getEnvironmentService(RoadEnvironmentService.class);
 		this.speedService = serviceProvider.getEnvironmentService(SpeedService.class);
+		this.nonStopMode = nonStopMode;
 	}
 
 	@Inject(optional = true)
@@ -141,25 +145,31 @@ public class LaneMoveHandler extends MoveHandler {
 		try {
 			throw new CollisionException("A collision between " + collision.getA() + " and " + collision.getB()  + " occurred in this cycle.");
 		} catch (CollisionException e) {
-			e.printStackTrace();
-			System.err.println();
-			System.err.println();
-			System.err.println("Do you want to exit? y/n:");
-			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-			String in = null;
-			try {
-				in = br.readLine();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			if (in.equals("y")||in.equals("Y")) {
-				System.err.println("Exiting.");
-				this.eventBus.publish(new FinishEarlyEvent(time));
-				//System.exit(1);
+			if (!isNonStopMode()) {
+				e.printStackTrace();
+				System.err.println();
+				System.err.println();
+				System.err.println("Do you want to exit? y/n:");
+				BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+				String in = null;
+				try {
+					in = br.readLine();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				if (in.equals("y")||in.equals("Y")) {
+					System.err.println("Exiting.");
+					this.eventBus.publish(new FinishEarlyEvent(time));
+					//System.exit(1);
+				}
+				else {
+					System.err.println("Continuing...");
+				}
 			}
 			else {
-				System.err.println("Continuing...");
+				System.err.println("Exiting.");
+				this.eventBus.publish(new FinishEarlyEvent(time));
 			}
 		}
 	}
@@ -393,6 +403,10 @@ public class LaneMoveHandler extends MoveHandler {
 			return collided;
 		}
 
+	}
+	
+	public boolean isNonStopMode() {
+		return (this.nonStopMode==1);
 	}
 	
 	@SuppressWarnings("unchecked")
