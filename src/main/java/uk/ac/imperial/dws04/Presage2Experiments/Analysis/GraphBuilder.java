@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,11 +24,7 @@ import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.data.general.Dataset;
-import org.jfree.data.general.DatasetChangeListener;
-import org.jfree.data.general.DatasetGroup;
-import org.jfree.data.statistics.BoxAndWhiskerCalculator;
 import org.jfree.data.statistics.BoxAndWhiskerCategoryDataset;
-import org.jfree.data.statistics.BoxAndWhiskerItem;
 import org.jfree.data.statistics.DefaultBoxAndWhiskerCategoryDataset;
 import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYDataset;
@@ -574,7 +571,7 @@ public class GraphBuilder {
 		/**
 		 * Map from choiceMethod:{map from chartType:set of charts} (so all charts of each chartType for each choiceMethod are collected)
 		 */
-		HashMap<OwnChoiceMethod,HashMap<String,HashSet<Chart>>> outerChartMap = new HashMap<OwnChoiceMethod,HashMap<String,HashSet<Chart>>>();
+		HashMap<OwnChoiceMethod,HashMap<String,LinkedHashSet<Chart>>> outerChartMap = new HashMap<OwnChoiceMethod,HashMap<String,LinkedHashSet<Chart>>>();
 		HashMap<OwnChoiceMethod,HashMap<String,Dataset>> dataMap = new HashMap<OwnChoiceMethod,HashMap<String,Dataset>>();
 		for (Entry<Long,HashMap<String,Chart>> entry : map.entrySet()) {
 			Long simId = entry.getKey();
@@ -600,10 +597,10 @@ public class GraphBuilder {
 				Chart chart = chartEntry.getValue();
 				OwnChoiceMethod choiceMethod = chart.getChoiceMethod();
 				if (!outerChartMap.containsKey(choiceMethod)) {
-					outerChartMap.put(choiceMethod, new HashMap<String,HashSet<Chart>>());
+					outerChartMap.put(choiceMethod, new HashMap<String,LinkedHashSet<Chart>>());
 				}
 				if (!(outerChartMap.get(choiceMethod)).containsKey(chartTitle)) {
-					outerChartMap.get(choiceMethod).put(chartTitle, new HashSet<Chart>());
+					outerChartMap.get(choiceMethod).put(chartTitle, new LinkedHashSet<Chart>());
 				}
 				outerChartMap.get(choiceMethod).get(chartTitle).add(chart);
 			}
@@ -616,15 +613,15 @@ public class GraphBuilder {
 			logger.info("Building sim datasets for method " + choiceMethod + "...");
 			// duplicate ricCount chart and rename dup to occupiedCount (HACK HACK HACK)
 			if (outerChartMap.get(choiceMethod).containsKey(ricCountTitle)) {
-				HashSet<Chart> occupiedRICSet = (HashSet<Chart>) outerChartMap.get(choiceMethod).get(ricCountTitle).clone();
+				LinkedHashSet<Chart> occupiedRICSet = (LinkedHashSet<Chart>) outerChartMap.get(choiceMethod).get(ricCountTitle).clone();
 				outerChartMap.get(choiceMethod).put(occupiedRICTitle, occupiedRICSet);
 			}
 			
 			dataMap.put(choiceMethod, new HashMap<String,Dataset>());
-			for (Entry<String, HashSet<Chart>> innerMapEntry : outerChartMap.get(choiceMethod).entrySet()) {
+			for (Entry<String, LinkedHashSet<Chart>> innerMapEntry : outerChartMap.get(choiceMethod).entrySet()) {
 				String chartType = innerMapEntry.getKey();
 				// this is a set of charts (all of same type) for a given choice method - each one is for a specific sim
-				HashSet<Chart> chartSet = innerMapEntry.getValue();
+				LinkedHashSet<Chart> chartSet = innerMapEntry.getValue();
 				Class<? extends Dataset> datasetClass = datasetClassFromChartType(chartType);
 				Dataset dataset = dataMap.get(choiceMethod).get(chartType);
 				if (dataset==null) {
