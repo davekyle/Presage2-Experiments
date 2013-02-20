@@ -13,6 +13,10 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
  */
 public class HasRole extends IPConFact {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 7408397579826924177L;
 	final Role role;
 	final IPConAgent agent;
 	/**

@@ -11,6 +11,10 @@ import java.util.UUID;
  */
 public class Voted extends IPConFact {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -5057851680826704288L;
 	final IPConAgent agent;
 	final Integer ballot;
 	final Object value;

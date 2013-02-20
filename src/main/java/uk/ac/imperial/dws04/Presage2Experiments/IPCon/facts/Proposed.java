@@ -11,6 +11,10 @@ import java.util.UUID;
  */
 public class Proposed extends IPConFact {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1247713043273730221L;
 	final Object value;
 
 	public Proposed(Integer revision, Object value, String issue, UUID cluster) {

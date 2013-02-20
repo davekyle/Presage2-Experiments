@@ -5,40 +5,23 @@ package uk.ac.imperial.dws04.Presage2Experiments;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.drools.runtime.StatefulKnowledgeSession;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.NeighbourChoiceMethod;
+import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.NeighbourChoiceMethod;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.presage2.core.IntegerTime;
-import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
-import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
-import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
-import uk.ac.imperial.presage2.core.simulator.Parameter;
-import uk.ac.imperial.presage2.core.simulator.ParticipantsComplete;
-import uk.ac.imperial.presage2.core.simulator.Scenario;
-import uk.ac.imperial.presage2.core.simulator.SimTime;
-import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.core.db.StorageService;
-import uk.ac.imperial.presage2.core.db.persistent.PersistentAgent;
-import uk.ac.imperial.presage2.core.db.persistent.TransientAgentState;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.StateTransformer;
@@ -46,19 +29,27 @@ import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventListener;
 import uk.ac.imperial.presage2.core.network.NetworkConstraint;
 import uk.ac.imperial.presage2.core.participant.Participant;
-import uk.ac.imperial.presage2.core.plugin.Plugin;
 import uk.ac.imperial.presage2.core.plugin.PluginModule;
+import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
+import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
+import uk.ac.imperial.presage2.core.simulator.Parameter;
+import uk.ac.imperial.presage2.core.simulator.Scenario;
+import uk.ac.imperial.presage2.core.simulator.SimTime;
+import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
 import uk.ac.imperial.presage2.rules.RuleStorage;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
-import uk.ac.imperial.presage2.util.location.LocationService;
 import uk.ac.imperial.presage2.util.location.LocationStoragePlugin;
 import uk.ac.imperial.presage2.util.location.area.Area;
-import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
+import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
+
+import com.google.inject.AbstractModule;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 /**
  * run with uk.ac.imperial.dws04.Presage2Experiments.RoadSimulation finishTime=100 length=50 lanes=3 initialAgents=2 maxSpeed=3 maxAccel=1 maxDecel=1 junctionCount=0 seed=123456 ownChoiceMethod=SAFE_CONSTANT neighbourChoiceMethod=WORSTCASE insertMethod=low
@@ -120,6 +111,7 @@ public class RoadSimulation extends InjectedSimulation {
 
 	private StorageService storage;
 
+	@SuppressWarnings("unused")
 	private StatefulKnowledgeSession session;
 	
 	/**
@@ -129,7 +121,7 @@ public class RoadSimulation extends InjectedSimulation {
 		super(modules);
 		agentLocations = new HashMap<UUID, RoadLocation>();
 		agentNames = new ConcurrentHashMap<UUID, String>();
-		// TODO if this is a param, needs to be loaded in getModules() or something instead
+		// if this is a param, needs to be loaded in getModules() or something instead
 		// the uuid's aren't governed by the same seed, so if you want to compare do it by agentname instead
 		//Random.seed = 123456;
 		new SimTime(new IntegerTime());
@@ -202,7 +194,6 @@ public class RoadSimulation extends InjectedSimulation {
 		try {
 			return this.serviceProvider.getEnvironmentService(EnvironmentMembersService.class);
 		} catch (UnavailableServiceException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}
@@ -286,7 +277,6 @@ public class RoadSimulation extends InjectedSimulation {
 		modules.add(NetworkModule.constrainedNetworkModule(constraints).withNodeDiscovery());
 		
 		// Location plugin
-		// TODO need to modify the plugin
 		modules.add(new PluginModule().addPlugin(LocationStoragePlugin.class));
 		return modules;
 	}
@@ -347,7 +337,7 @@ public class RoadSimulation extends InjectedSimulation {
 	 * Creates the next (in naming) agent at the location specified with speed 0 and random goals
 	 * @param lane
 	 * @param startOffset
-	 * @param goals TODO
+	 * @param goals 
 	 */
 	private UUID createNextAgent(int lane, int startOffset, RoadAgentGoals goals) {
 		UUID uuid = Random.randomUUID();
@@ -473,7 +463,6 @@ public class RoadSimulation extends InjectedSimulation {
 			try {
 				this.storage.getAgent(agent).setProperty(key, StringSerializer.toString(value));
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

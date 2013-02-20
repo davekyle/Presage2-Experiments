@@ -5,8 +5,6 @@ package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
 import java.awt.Color;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.jfree.chart.ChartFactory;
@@ -15,8 +13,6 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYDataset;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
 
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 
@@ -26,6 +22,11 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
  */
 public class ChoiceMethodTimeSeriesChart implements TimeSeriesChart, Serializable {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -518980725070751920L;
+
 	private static final Logger logger = Logger.getLogger(ChoiceMethodTimeSeriesChart.class);
 	
 	/**

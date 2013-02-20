@@ -1,38 +1,21 @@
 package uk.ac.imperial.dws04.Presage2Experiments;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
-import java.util.Set;
-import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import uk.ac.imperial.dws04.Presage2Experiments.LaneMoveHandler;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationService;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantSpeedService;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
-import uk.ac.imperial.presage2.core.Action;
-import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
-import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
-import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
-import uk.ac.imperial.presage2.core.messaging.Input;
-import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
 import uk.ac.imperial.presage2.rules.RuleStorage;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironment;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
-import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
 import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
-import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;

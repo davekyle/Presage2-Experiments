@@ -19,6 +19,7 @@ public class ToDouble {
 	 */
 	public static <K> Double toDouble(K value){
 		Double result = null;
+		@SuppressWarnings("rawtypes")
 		Class c = value.getClass(); 
 		
 		if (c.getSimpleName().equals("Double")) {

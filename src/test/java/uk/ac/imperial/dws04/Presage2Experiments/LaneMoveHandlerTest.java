@@ -10,25 +10,15 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import uk.ac.imperial.dws04.Presage2Experiments.LaneMoveHandler;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationService;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantSpeedService;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationServiceTest.TestAgent;
 import uk.ac.imperial.presage2.core.Action;
 import uk.ac.imperial.presage2.core.IntegerTime;
-import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
-import uk.ac.imperial.presage2.core.event.Event;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
 import uk.ac.imperial.presage2.core.messaging.Input;
-import uk.ac.imperial.presage2.core.simulator.EndOfTimeCycle;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
@@ -306,7 +296,7 @@ public class LaneMoveHandlerTest {
 		TestAgent b = createTestAgent("b", new RoadLocation(1,0), maxSpeed);
 		
 		/*
-		 * FIXME the agent has a speed here but hasn't made a move action,
+		 * the agent has a speed here but hasn't made a move action,
 		 * so its location hasn't been updated but neither has its speed.
 		 */
 		incrementTime();

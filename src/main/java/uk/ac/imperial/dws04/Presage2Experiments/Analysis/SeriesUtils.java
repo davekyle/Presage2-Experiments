@@ -6,8 +6,6 @@ package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 import java.util.ArrayList;
 
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
-import org.jfree.data.statistics.BoxAndWhiskerCalculator;
-import org.jfree.data.statistics.BoxAndWhiskerItem;
 import org.jfree.data.xy.XYSeries;
 
 /**

@@ -5,7 +5,6 @@ package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
 
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.jfree.chart.ChartFactory;
@@ -15,12 +14,10 @@ import org.jfree.data.statistics.BoxAndWhiskerCalculator;
 import org.jfree.data.statistics.BoxAndWhiskerCategoryDataset;
 import org.jfree.data.statistics.BoxAndWhiskerItem;
 import org.jfree.data.statistics.DefaultBoxAndWhiskerCategoryDataset;
-import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
-import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 
 /**
  * @author dws04
@@ -108,6 +105,7 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 		}
 		//System.out.println("Data is " + data);
 		DefaultBoxAndWhiskerCategoryDataset result = new DefaultBoxAndWhiskerCategoryDataset();
+		@SuppressWarnings("unused")
 		BoxAndWhiskerItem apache = bawFromApache(data);
 		BoxAndWhiskerItem calculated = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(data, stripNullAndNaNItems);
 		result.add(calculated, key, key);

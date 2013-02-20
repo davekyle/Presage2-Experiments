@@ -6,8 +6,6 @@ package uk.ac.imperial.dws04.Presage2Experiments;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.inject.AbstractModule;
-
 import uk.ac.imperial.presage2.core.simulator.InjectedSimulation;
 import uk.ac.imperial.presage2.core.simulator.Parameter;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
@@ -18,6 +16,8 @@ import uk.ac.imperial.presage2.util.location.MoveHandler;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
+
+import com.google.inject.AbstractModule;
 
 /**
  * @author dws04

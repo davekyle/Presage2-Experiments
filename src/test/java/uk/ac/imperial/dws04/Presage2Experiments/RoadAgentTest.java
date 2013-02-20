@@ -3,13 +3,13 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
-import static org.junit.Assert.*;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.InvalidClassException;
-import java.util.ArrayList;
 import java.util.UUID;
-
 
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -17,24 +17,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-
-import uk.ac.imperial.dws04.Presage2Experiments.LaneMoveHandler;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationService;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantSpeedService;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
-import uk.ac.imperial.dws04.Presage2Experiments.SpeedService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConService;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.ParticipantIPConService;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.TimeDriven;
-import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.event.EventBusModule;
-import uk.ac.imperial.presage2.core.network.ConstrainedNetworkController;
 import uk.ac.imperial.presage2.core.network.NetworkController;
 import uk.ac.imperial.presage2.core.simulator.Scenario;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
@@ -46,10 +35,9 @@ import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
-import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
+import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
-import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -189,7 +177,6 @@ public class RoadAgentTest {
 			public TestAgent(UUID id, String name, RoadLocation myLoc,
 					int mySpeed, RoadAgentGoals goals) {
 				super(id, name, myLoc, mySpeed, goals);
-				// TODO Auto-generated constructor stub
 			}
 
 			@Override
@@ -272,6 +259,7 @@ public class RoadAgentTest {
 		
 	}
 	
+	@SuppressWarnings("unused")
 	@Test
 	public void testSlowing() throws Exception {
 		setUp();
@@ -414,6 +402,7 @@ public class RoadAgentTest {
 		assertSpeed(c, 0);
 	}
 	
+	@SuppressWarnings("unused")
 	@Test
 	public void testSlowingWrap() throws Exception {
 		setUp();

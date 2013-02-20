@@ -3,11 +3,11 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages;
 
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.messaging.Performative;
 import uk.ac.imperial.presage2.core.network.BroadcastMessage;
 import uk.ac.imperial.presage2.core.network.NetworkAddress;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.*;
 
 /**
  * @author dws04

@@ -11,7 +11,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
-import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.LogarithmicAxis;
@@ -24,7 +23,6 @@ import org.jfree.data.Range;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.ui.tabbedui.VerticalLayout;
 
 import uk.ac.imperial.dws04.utils.convert.ToDouble;
 import uk.ac.imperial.dws04.utils.misc.ScreenImage;
@@ -36,7 +34,7 @@ import uk.ac.imperial.dws04.utils.misc.ScreenImage;
 public abstract class ChartUtils {
 	
 	public static void tweak(JFreeChart chart, Boolean toggleLegend, Boolean resize){
-		Class plotClass = chart.getPlot().getClass();
+		Class<? extends Plot> plotClass = chart.getPlot().getClass();
 		final Plot plot = chart.getPlot();
 	    plot.setBackgroundPaint(Color.white);
 		if (plotClass.isAssignableFrom(XYPlot.class)) {

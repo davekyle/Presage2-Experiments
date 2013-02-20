@@ -3,30 +3,24 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments;
 
-import java.io.Serializable;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
 import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
-import uk.ac.imperial.presage2.core.environment.StateTransformer;
 import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
-import uk.ac.imperial.presage2.util.environment.EnvironmentMembersService;
 import uk.ac.imperial.presage2.util.location.Cell;
-import uk.ac.imperial.presage2.util.location.Location;
 import uk.ac.imperial.presage2.util.location.LocationService;
-import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.AreaService;
+
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 /**
  * @author dws04
@@ -51,6 +45,7 @@ public class RoadLocationService extends LocationService {
 	/** Overriding to make insertion immediate instead of waiting until next state update
 	 * @see uk.ac.imperial.presage2.util.location.LocationService#registerParticipant(uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest)
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	public void registerParticipant(final EnvironmentRegistrationRequest req) {
 		super.registerParticipant(req);

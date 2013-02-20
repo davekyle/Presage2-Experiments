@@ -12,10 +12,10 @@ import java.util.UUID;
  */
 public class IPConRIC extends IPConFact {
 	
-	/*final Integer revision;
-	final String issue;
-	final UUID cluster;*/
-	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -8502667877933219703L;
 	/**
 	 * @param revision
 	 * @param issue

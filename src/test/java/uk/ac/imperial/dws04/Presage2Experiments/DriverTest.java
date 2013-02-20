@@ -13,12 +13,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import uk.ac.imperial.dws04.Presage2Experiments.Driver;
-import uk.ac.imperial.dws04.Presage2Experiments.LaneMoveHandler;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantRoadLocationService;
-import uk.ac.imperial.dws04.Presage2Experiments.ParticipantSpeedService;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadEnvironmentService;
-import uk.ac.imperial.dws04.Presage2Experiments.RoadLocation;
 import uk.ac.imperial.presage2.core.Action;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
@@ -33,8 +27,8 @@ import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.location.CellMove;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
-import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
+import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.participant.AbstractParticipant;
 
 import com.google.inject.AbstractModule;
@@ -234,7 +228,6 @@ public class DriverTest {
 	public void testLaneChange() throws ActionHandlingException {
 		int startSpeed = Random.randomInt();
 		int startLane = Random.randomInt(lanes);
-		int n = Random.randomInt();
 		CellMove move;
 		TestAgent a = createTestAgent("a", new RoadLocation(startLane, 0), startSpeed);
 
@@ -278,7 +271,6 @@ public class DriverTest {
 		move = a.driver.random();
 		assertTrue(move instanceof CellMove);
 		
-		// TODO Not written yet
 		move = a.driver.randomValid();
 		assertTrue(move instanceof CellMove);
 	}
@@ -287,8 +279,6 @@ public class DriverTest {
 	public void testGetters() throws ActionHandlingException {
 		int startSpeed = Random.randomInt();
 		int startLane = Random.randomInt(lanes);
-		int n = Random.randomInt();
-		CellMove move;
 		RoadLocation startLocation = new RoadLocation(startLane, 0);
 		TestAgent a = createTestAgent("a", startLocation, startSpeed);
 

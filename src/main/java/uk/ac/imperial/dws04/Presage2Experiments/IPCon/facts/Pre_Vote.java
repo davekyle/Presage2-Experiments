@@ -11,6 +11,10 @@ import java.util.UUID;
  */
 public class Pre_Vote extends IPConFact {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -5843776959610250625L;
 	final Integer ballot;
 
 	/**

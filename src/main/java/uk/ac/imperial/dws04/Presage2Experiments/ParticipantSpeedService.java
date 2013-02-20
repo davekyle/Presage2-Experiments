@@ -102,6 +102,7 @@ public class ParticipantSpeedService extends SpeedService {
 		// services are still being generated
 
 		try { // try to observe them; if you can then they're close enough.
+			@SuppressWarnings("unused")
 			final Location theirLoc = getLocationService().getAgentLocation(participantID);
 		} catch (CannotSeeAgent e) {
 			throw e;

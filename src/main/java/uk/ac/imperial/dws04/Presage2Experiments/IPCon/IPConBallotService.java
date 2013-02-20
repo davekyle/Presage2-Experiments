@@ -10,13 +10,13 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
-
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
+
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 /**
  * @author dws04
@@ -25,7 +25,9 @@ import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 @Singleton
 public class IPConBallotService extends EnvironmentService {
 
+	@SuppressWarnings("unused")
 	private final Logger logger = Logger.getLogger(this.getClass());
+	@SuppressWarnings("unused")
 	final private EnvironmentServiceProvider serviceProvider;
 	private Map<IPConRIC, Integer> intMap; 
 	

@@ -15,15 +15,11 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
-import org.drools.lang.dsl.DSLMapParser.entry_return;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.rule.FactHandle;
 import org.drools.runtime.rule.QueryResults;
 import org.drools.runtime.rule.QueryResultsRow;
 import org.drools.runtime.rule.Variable;
-
-import com.google.inject.Inject;
-import com.google.inject.Singleton;
 
 import uk.ac.imperial.dws04.Presage2Experiments.FinishEarlyEvent;
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent;
@@ -31,8 +27,6 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConTime;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Prepare1A;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Request0A;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -42,7 +36,6 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.dws04.utils.record.PairAThenBAscComparator;
-import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.db.StorageService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentRegistrationRequest;
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
@@ -55,6 +48,9 @@ import uk.ac.imperial.presage2.core.simulator.FinalizeEvent;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.core.util.random.Random;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+
 /**
  * @author dws04
  *
@@ -64,6 +60,7 @@ public class IPConService extends EnvironmentService {
 
 	private final Logger logger = Logger.getLogger(this.getClass());
 	StatefulKnowledgeSession session;
+	@SuppressWarnings("unused")
 	private final EnvironmentServiceProvider serviceProvider;
 	private FactHandle timeHandle;
 	private StorageService storage;
@@ -165,8 +162,9 @@ public class IPConService extends EnvironmentService {
 			session.insert(new HasRole(Role.ACCEPTOR, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.LEARNER, handle, revision, issue, cluster));
 			session.insert(new HasRole(Role.PROPOSER, handle, revision, issue, cluster));
-			// need to insert the agents goal (goal variable is Entry<String<Pair<Value,Tolerance>>) as it is trivially chosen here
-			// TODO FIXME doing it this way breaks things because there are no voted/reportedVote so the "safe" values are wrong !
+			/* want to insert the agents goal (goal variable is Entry<String<Pair<Value,Tolerance>>) as it is trivially chosen here
+			* but can't do it this way breaks things because there are no voted/reportedVote so the "safe" values are wrong !
+			*/
 			// session.insert(new Chosen(revision, ballot, value, issue, cluster));
 		}
 	}
@@ -649,7 +647,6 @@ public class IPConService extends EnvironmentService {
 				try {
 					this.storage.getSimulation().getEnvironment().setProperty(key, timestep, StringSerializer.toString(value));
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}

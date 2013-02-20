@@ -11,6 +11,10 @@ import java.util.UUID;
  */
 public class NeedToSync extends IPConFact {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -2056428053533461055L;
 	final IPConAgent agent;
 	final Object value;
 	/**

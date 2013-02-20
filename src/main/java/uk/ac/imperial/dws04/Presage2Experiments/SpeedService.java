@@ -5,12 +5,12 @@ package uk.ac.imperial.dws04.Presage2Experiments;
 
 import java.util.UUID;
 
-import com.google.inject.Inject;
-
 import uk.ac.imperial.presage2.core.environment.EnvironmentService;
 import uk.ac.imperial.presage2.core.environment.EnvironmentServiceProvider;
 import uk.ac.imperial.presage2.core.environment.EnvironmentSharedStateAccess;
 import uk.ac.imperial.presage2.core.environment.ServiceDependencies;
+
+import com.google.inject.Inject;
 //import uk.ac.imperial.presage2.core.environment.UnavailableServiceException;
 
 /**

@@ -3,7 +3,8 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,8 +15,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
-import org.drools.definition.type.FactType;
-import org.drools.runtime.ObjectFilter;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.rule.FactHandle;
 import org.drools.runtime.rule.QueryResults;
@@ -25,8 +24,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.AddRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
@@ -45,11 +42,20 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncAck;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.SyncReq;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.TimeStampedAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.Vote2B;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.*;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConFact;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConRIC;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Open_Vote;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Pre_Vote;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Proposed;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.QuorumSize;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.ReportedVote;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Voted;
 import uk.ac.imperial.presage2.core.util.random.Random;
 import uk.ac.imperial.presage2.rules.RuleModule;
 import uk.ac.imperial.presage2.rules.RuleStorage;
-
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -808,8 +814,6 @@ public class IPConDrlsTest {
 		//assertFactCount("Resign", 1);
 		assertActionCount("getPowers", "ResignLeadership", null, revision, issue, cluster, 1);
 		// all can leave
-		// TODO need to fix this holdsAt so each role doesn't count
-		// inadvertantly fixed this by putting into a HashSet to remove dups :P
 		//assertFactCount("Leave", 7);
 		//outputObjects();
 		// FIXME TODO work out why this sometimes fails ! (gives 4 instead of 5)
@@ -2442,33 +2446,6 @@ public class IPConDrlsTest {
 	}
 	
 	
-	private final FactType typeFromString(String factTypeString) {
-		return rules.getKbase().getFactType("uk.ac.imperial.dws04.Presage2Experiments.IPCon", factTypeString);
-	}
-	
-	/**
-	 * Wrapper function to check an object from the kbase is a drls FactType. Replaces instanceof functionality.
-	 * @param obj
-	 * @param factTypeName
-	 * @return
-	 */
-	@Deprecated
-	private final boolean isFactType(Object obj, FactType factType) {
-		try {
-			return ( ( factType.newInstance().getClass() ).equals( ( obj.getClass() ) ) );
-		} catch (NullPointerException e) {
-			//e.printStackTrace();
-			return false;
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-			return false;
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-			return false;
-		}
-		
-	}
-	
 	private final Collection<IPConFact> getFactQueryResults(	final String factType,
 																final Integer revision,
 																final String issue,
@@ -2514,62 +2491,9 @@ public class IPConDrlsTest {
 
 		Collection<Object> facts = new HashSet<Object>();
 		facts.addAll(getFactQueryResults(factTypeString, revision, issue, cluster));
-		// FIXME Checking to see if this is still required.. ?
 		//if (facts.size()==0) {
 		//	facts.addAll(assertObjectCount(factTypeString, revision, issue, cluster, count));
 		//}
-		assertEquals(count, facts.size());
-		return facts;
-	}
-	
-	/**
-	 * For compatibility with things I haven't updated to the new ways...
-	 * @param factTypeString
-	 * @param revision 
-	 * @param issue
-	 * @param cluster
-	 * @param count
-	 * @param revision
-	 * @param issue
-	 * @param cluster
-	 * @return
-	 */
-	@Deprecated
-	private final Collection<Object> assertObjectCount(final String factTypeString, final Integer revision, final String issue, final UUID cluster, final int count) {
-		Collection<Object> facts = new HashSet<Object>();
-		// try drls fact types
-		final FactType factType = typeFromString(factTypeString);
-		if (facts.size()==0) {
-			facts.addAll(session.getObjects(new ObjectFilter() {
-				@Override
-				public boolean accept(Object object) {
-					return (isFactType(object, factType) && matchesRIC(object, revision, issue, cluster) );
-				}
-			}));
-		}
-		// try java classes
-		//FIXME TODO would be nice to remove this... 
-		if (facts.size()==0) {
-			facts.addAll(session.getObjects(new ObjectFilter() {
-		
-				@Override
-				public boolean accept(Object object) {
-					Class<?> c;
-					try {
-						c = Class.forName("uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts." + factTypeString);
-						//logger.trace("Testing " + object + " which is a " + object.getClass());
-						return ( c.isInstance(object)  && matchesRIC(object, revision, issue, cluster) );
-					} catch (NullPointerException e) {
-						//e.printStackTrace();
-						return false;
-					} catch (ClassNotFoundException e) {
-						//e.printStackTrace();
-						return false;
-					}
-				}
-				
-			}));
-		}
 		assertEquals(count, facts.size());
 		return facts;
 	}

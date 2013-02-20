@@ -6,13 +6,13 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages;
 import org.apache.log4j.Logger;
 import org.drools.runtime.StatefulKnowledgeSession;
 
-import com.google.inject.Inject;
-
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.TimeStampedAction;
 import uk.ac.imperial.presage2.core.network.Message;
 import uk.ac.imperial.presage2.core.simulator.SimTime;
 import uk.ac.imperial.presage2.rules.MessagesToRuleEngine;
+
+import com.google.inject.Inject;
 
 /**
  * @author dws04

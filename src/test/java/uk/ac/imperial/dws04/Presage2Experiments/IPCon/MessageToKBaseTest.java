@@ -3,8 +3,8 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.IPCon;
 
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,8 +35,6 @@ import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConActionMsg;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Messages.IPConMsgToRuleEngine;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.ArrogateLeadership;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
-import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
 import uk.ac.imperial.presage2.core.IntegerTime;
 import uk.ac.imperial.presage2.core.Time;
 import uk.ac.imperial.presage2.core.TimeDriven;
@@ -56,8 +54,8 @@ import uk.ac.imperial.presage2.util.environment.AbstractEnvironment;
 import uk.ac.imperial.presage2.util.environment.AbstractEnvironmentModule;
 import uk.ac.imperial.presage2.util.location.ParticipantLocationService;
 import uk.ac.imperial.presage2.util.location.area.Area;
-import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.location.area.Area.Edge;
+import uk.ac.imperial.presage2.util.location.area.WrapEdgeHandler;
 import uk.ac.imperial.presage2.util.network.NetworkModule;
 
 import com.google.inject.AbstractModule;
@@ -207,7 +205,7 @@ public class MessageToKBaseTest {
 	
 	private TestAgent createAgent(String name, RoadLocation startLoc, int startSpeed) {
 		TestAgent a = new TestAgent(Random.randomUUID(), name, startLoc, startSpeed, new RoadAgentGoals((Random.randomInt(maxSpeed)+1), Random.randomInt(length), 0));
-		// FIXME TODO Not sure if this is needed...?
+		//Not sure if this is needed...?
 		injector.injectMembers(a);
 		a.initialise();
 		//Call this if needed
@@ -223,25 +221,10 @@ public class MessageToKBaseTest {
 		try {
 			Thread.sleep(500);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		env.incrementTime();
 		
-	}
-	
-	/**
-	 * Artificially inserting facts without the service for sake of testing
-	 */
-	private void addRoles(IPConAgent agent, Role[] roles, Integer revision, String issue, UUID cluster) {
-		//Set roles
-		for (Role role : roles) {
-			session.insert(new HasRole(role, agent, revision, issue, cluster));
-		}
-		// Initially didn't vote
-		//session.insert(new Voted(agent, revision, 0, IPCNV.val(), issue, cluster));
-		// And the reportedvote for the initially
-		//session.insert(new ReportedVote(agent, revision, 0, IPCNV.val(), revision, 0, issue, cluster));
 	}
 	
 	@Test

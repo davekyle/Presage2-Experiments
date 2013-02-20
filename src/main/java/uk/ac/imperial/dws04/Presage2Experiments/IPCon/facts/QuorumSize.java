@@ -11,6 +11,10 @@ import java.util.UUID;
  */
 public class QuorumSize extends IPConFact {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3143585996481465946L;
 	Integer quorumSize;
 
 	/**

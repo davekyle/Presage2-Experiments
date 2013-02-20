@@ -11,6 +11,10 @@ import java.util.UUID;
  */
 public class PossibleAddRevision extends IPConFact {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -42713450235200852L;
 	final Object value;
 
 	/**

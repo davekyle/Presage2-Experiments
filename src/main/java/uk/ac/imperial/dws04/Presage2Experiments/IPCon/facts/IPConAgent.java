@@ -5,7 +5,6 @@ package uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts;
 
 import java.util.UUID;
 
-import uk.ac.imperial.presage2.core.network.NetworkAddress;
 import uk.ac.imperial.presage2.core.util.random.Random;
 
 /**
@@ -16,6 +15,10 @@ import uk.ac.imperial.presage2.core.util.random.Random;
  */
 public class IPConAgent extends IPConFact {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 6133853640163172078L;
 	String name;
 	UUID uuid;
 

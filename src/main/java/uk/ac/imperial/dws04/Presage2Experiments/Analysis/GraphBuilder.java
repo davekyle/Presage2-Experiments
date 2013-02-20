@@ -31,9 +31,6 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.TextAnchor;
-import com.google.inject.Guice;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
 
 import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
@@ -47,6 +44,10 @@ import uk.ac.imperial.presage2.core.db.persistent.PersistentAgent;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentEnvironment;
 import uk.ac.imperial.presage2.core.db.persistent.PersistentSimulation;
 import uk.ac.imperial.presage2.util.location.CellMove;
+
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 
 /**
  * @author dws04
@@ -361,6 +362,7 @@ public class GraphBuilder {
 				dissCollection.getSeries(key).add(t, diss);
 				
 				logger.debug("Processing move utility for agent " + key);
+				@SuppressWarnings("unchecked")
 				Pair<CellMove,Integer> pair = (Pair<CellMove,Integer>) StringSerializer.fromString(pAgent.getState(t).getProperty("move"));
 				Integer util = null;
 				if (pair!=null) {
@@ -508,6 +510,8 @@ public class GraphBuilder {
 		}
 	}
 	
+	@SuppressWarnings("unused")
+	@Deprecated
 	private DefaultTimeSeriesChart makeAdjustedMoveUtilChart(final XYSeriesCollection data, Long simId, OwnChoiceMethod choiceMethod) {
 		XYSeriesCollection adjusted = new XYSeriesCollection();
 		for (Object serObj : data.getSeries()) {
@@ -613,6 +617,7 @@ public class GraphBuilder {
 			logger.info("Building sim datasets for method " + choiceMethod + "...");
 			// duplicate ricCount chart and rename dup to occupiedCount (HACK HACK HACK)
 			if (outerChartMap.get(choiceMethod).containsKey(ricCountTitle)) {
+				@SuppressWarnings("unchecked")
 				LinkedHashSet<Chart> occupiedRICSet = (LinkedHashSet<Chart>) outerChartMap.get(choiceMethod).get(ricCountTitle).clone();
 				outerChartMap.get(choiceMethod).put(occupiedRICTitle, occupiedRICSet);
 			}
@@ -692,7 +697,7 @@ public class GraphBuilder {
 			//return new DefaultTimeSeriesChart(Long.getLong("-1"), choiceMethod, (XYDataset)data, key, "x", "y");
 		}
 		else {
-			// TODO do this
+			// Not actually needed...
 			return null;
 		}
 	}
@@ -714,7 +719,6 @@ public class GraphBuilder {
 			}
 			
 			/*
-			 * FIXME TODO THIS IS WRONG - it doesn't need an "avg" it needs to get the right series
 			 * In congestion's case, we need to make one series - the congestion one - while ignoring the in/out
 			 * in ricCount we want both but separately !
 			 */
@@ -744,6 +748,7 @@ public class GraphBuilder {
 	 */
 	private XYSeries getSeriesEndingWith(String chartType, XYPlot xyPlot,
 			String keyEndStub) {
+		@SuppressWarnings("unchecked")
 		List<Object> seriesObjList = ((XYSeriesCollection)xyPlot.getDataset()).getSeries();
 		for (Object obj : seriesObjList) {
 			if ( ( (String)((XYSeries)obj).getKey() ).endsWith(keyEndStub) ) {
