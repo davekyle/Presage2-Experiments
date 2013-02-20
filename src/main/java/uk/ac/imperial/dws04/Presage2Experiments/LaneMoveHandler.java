@@ -168,6 +168,7 @@ public class LaneMoveHandler extends MoveHandler {
 				}
 			}
 			else {
+				logger.fatal(e.getMessage());
 				System.err.println("Exiting.");
 				this.eventBus.publish(new FinishEarlyEvent(time));
 			}
