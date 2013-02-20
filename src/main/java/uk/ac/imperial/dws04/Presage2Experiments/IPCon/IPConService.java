@@ -638,22 +638,24 @@ public class IPConService extends EnvironmentService {
 	}
 	
 	private void setTransient(String key, int timestep, Serializable value) {
-		if (value==null) {
-			value = "";
-		}
-		if (value.getClass().isAssignableFrom(String.class)) {
-			this.storage.getSimulation().getEnvironment().setProperty(key, timestep, (String) value);
-		}
-		else {
-			try {
-				this.storage.getSimulation().getEnvironment().setProperty(key, timestep, StringSerializer.toString(value));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NullPointerException npe) {
-				// do nothing
-				logger.warn("Got an NPE when trying to save{ key:" + key + " timestep:" + timestep + " value:" + value + "} - persistantSim is null ?");
+		try {
+			if (value==null) {
+				value = "";
 			}
+			if (value.getClass().isAssignableFrom(String.class)) {
+				this.storage.getSimulation().getEnvironment().setProperty(key, timestep, (String) value);
+			}
+			else {
+				try {
+					this.storage.getSimulation().getEnvironment().setProperty(key, timestep, StringSerializer.toString(value));
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		} catch (NullPointerException npe) {
+			// do nothing
+			logger.warn("Got an NPE when trying to save{ key:" + key + " timestep:" + timestep + " value:" + value + "} - persistantSim is null ?");
 		}
 	}
 }
