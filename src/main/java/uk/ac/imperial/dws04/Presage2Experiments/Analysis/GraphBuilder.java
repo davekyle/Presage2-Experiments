@@ -3,14 +3,10 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
-import java.awt.AWTException;
-import java.awt.BasicStroke;
-import java.awt.Color;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Panel;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,13 +19,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.jfree.chart.ChartUtilities;
-import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYTextAnnotation;
-import org.jfree.chart.plot.DatasetRenderingOrder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYDotRenderer;
-import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.general.Dataset;
 import org.jfree.data.general.DatasetChangeListener;
 import org.jfree.data.general.DatasetGroup;
@@ -50,8 +42,6 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.Role;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
-import uk.ac.imperial.dws04.utils.convert.ToDouble;
-import uk.ac.imperial.dws04.utils.misc.ScreenImage;
 import uk.ac.imperial.dws04.utils.record.Pair;
 import uk.ac.imperial.presage2.core.db.DatabaseModule;
 import uk.ac.imperial.presage2.core.db.DatabaseService;
@@ -81,17 +71,19 @@ public class GraphBuilder {
 	final static String imagePath = "/Users/dave/Documents/workspace/ExperimentalData/";
 	
 	
-	final static String speedTitle = "Agent Speed TimeSeries";
-	final static String dissTitle = "Agent Dissatisfaction TimeSeries";
-	final static String utilTitle = "Agent Move Utility TimeSeries";
-	final static String congestionTitle = "Congestion TimeSeries";
-	final static String ricCountTitle = "RIC Count TimeSeries";
-	final static String ricSizeTitle = "RIC Size TimeSeries";
+	final static String speedTitle = "Agent Speed";
+	final static String dissTitle = "Agent Dissatisfaction";
+	final static String utilTitle = "Agent Move Utility";
+	final static String congestionTitle = "Congestion";
+	final static String ricCountTitle = "RIC Count";
+	final static String ricSizeTitle = "RIC Size";
 	final static String speedBAWTitle = "Speed BAW";
 	final static String combinedSpeedBAWTitle = "Combined Speed BAW";
 	final static List<String> chartTitles = Arrays.asList(new String[]{
 		speedTitle, dissTitle, utilTitle, congestionTitle, ricCountTitle, ricSizeTitle, speedBAWTitle, combinedSpeedBAWTitle
 	});
+	// this isn't needed for the sim charts, but is for the combined
+	final static String occupiedRICTitle = "Occupied RIC Count";
 	
 	
 	
@@ -385,10 +377,10 @@ public class GraphBuilder {
 			}
 		}
 		
-		makeAvgLineOnChart(speedChart, endTime, "Speed", false);
-		makeAvgLineOnChart(ricAcceptorCountChart, endTime, "Size", true);
-		makeAvgLineOnChart(dissChart, endTime, "Dissatisfaction", false);
-		makeAvgLineOnChart(moveUtilChart, endTime, "Move Utility", false);
+		ChartUtils.makeAvgLineOnChart(speedChart, endTime, "Speed", false);
+		ChartUtils.makeAvgLineOnChart(ricAcceptorCountChart, endTime, "Size", true);
+		ChartUtils.makeAvgLineOnChart(dissChart, endTime, "Dissatisfaction", false);
+		ChartUtils.makeAvgLineOnChart(moveUtilChart, endTime, "Move Utility", false);
 		tweakMoveUtilChart(moveUtilChart);
 		
 		Double agentCount = 0.0;
@@ -413,13 +405,13 @@ public class GraphBuilder {
 		frame.add(panel);
 		for (Chart chart : charts.values()) {
 			ChartUtils.tweak(chart.getChart(), false, false);
-			saveChart(chart.getChart(), simId.toString(), chart.getChart().getTitle().getText());
+			ChartUtils.saveChart(chart.getChart(), imagePath, simId.toString(), chart.getChart().getTitle().getText());
 			panel.add(chart.getPanel());
 		}
 		frame.pack();
 		if (!headlessMode) {
 			frame.setVisible(true);
-			savePanel(panel, simId); // won't draw if not visible...
+			ChartUtils.savePanel(panel, imagePath, simId.toString(), "combination"); // won't draw if not visible...
 		}
 		
 		
@@ -427,41 +419,6 @@ public class GraphBuilder {
 		//db.stop();
 		logger.info("Done building charts for sim " + simId + ".");
 		return charts;
-	}
-
-	/**
-	 * @param panel
-	 * @param simId
-	 */
-	private void savePanel(Panel panel, Long simId) {
-		try {
-			Thread.sleep(1000);
-			BufferedImage img = ScreenImage.createImage(panel);
-			ScreenImage.writeImage(img, imagePath + simId + "_combined.png");
-		} catch (AWTException e) {
-			e.printStackTrace();
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-		} catch (IOException e2) {
-			e2.printStackTrace();
-		}
-	}
-	
-	/**
-	 * Filename will be simId + "_" + description + ".png"
-	 * @param chart
-	 * @param simId
-	 * @param description
-	 */
-	void saveChart(JFreeChart chart, String simId, String description) {
-		try {
-			ChartUtilities
-					.saveChartAsPNG(
-							new File(imagePath + simId + "_" + description + ".png"),
-							chart, 1280, 720);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**
@@ -475,78 +432,6 @@ public class GraphBuilder {
 		render.setDotWidth(dotSize);
 		utilPlot.setRenderer(0, render);
 		ChartUtils.makeLogRange(moveUtilChart);
-	}
-
-	/**
-	 * 
-	 * @param chart
-	 * @param endTime
-	 * @param keyStub end of key - will have "mean" prepended to it
-	 * @param includeLastCycle
-	 */
-	private void makeAvgLineOnChart(TimeSeriesChart chart, final int endTime, final String keyStub, final boolean includeLastCycle) {
-		XYSeriesCollection collection = (XYSeriesCollection)chart.getXYPlot().getDataset();
-		String key = "mean" + keyStub;
-		XYDataset avgData = new XYSeriesCollection(createAvgSeries(collection, key, endTime, includeLastCycle));
-		int avgIndex = chart.getXYPlot().getDatasetCount();
-		chart.getXYPlot().setDataset(avgIndex, avgData);
-		renderSeriesAsAvg(chart, avgIndex);
-	}
-
-	/**
-	 * @param chart
-	 * @param avgIndex
-	 */
-	private void renderSeriesAsAvg(TimeSeriesChart chart, int avgIndex) {
-		XYLineAndShapeRenderer avgRenderer = new XYLineAndShapeRenderer(true, false);
-		chart.getXYPlot().setRenderer(avgIndex, avgRenderer);
-		chart.getXYPlot().getRenderer(avgIndex).setSeriesStroke(
-			    0, 
-			    new BasicStroke(
-			        1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
-			        1.0f, new float[] {3.0f}/*new float[] {6.0f, 6.0f}*/, 0.0f
-			    ));
-		chart.getXYPlot().getRenderer(avgIndex).setSeriesPaint(0, Color.RED);
-		//chart.getXYPlot().setSeriesRenderingOrder(SeriesRenderingOrder.REVERSE);
-		chart.getXYPlot().setDatasetRenderingOrder(DatasetRenderingOrder.FORWARD);
-	}
-
-	/**
-	 * @param collection
-	 * @param avgSeriesKey
-	 * @param endTime
-	 * @param includeLastCycle
-	 * @return
-	 */
-	private XYSeries createAvgSeries(XYSeriesCollection collection, final String avgSeriesKey, final int endTime, final boolean includeLastCycle) {
-		XYSeries avgSeries = new XYSeries(avgSeriesKey, true, false);
-		int end = endTime;
-		if (!includeLastCycle) {
-			end--;
-		}
-		for (int t = 0; t<=end; t++) {
-			double total = 0.0;
-			double count = 0.0;
-			for (Object seriesObj : collection.getSeries()) {
-				XYSeries series = (XYSeries)seriesObj;
-				Double val = null;
-				Number tempVal = null;
-				try {
-					tempVal = series.getY(t);
-					if (tempVal!=null) {
-						val = ToDouble.toDouble(tempVal);
-						count++;
-						total = total+val;
-					}
-				}
-				catch (IndexOutOfBoundsException e) {
-					// ditch it
-					//e.printStackTrace();
-				}
-			}
-			avgSeries.add(t, (total/count));
-		}
-		return avgSeries;
 	}
 
 	/**
@@ -707,7 +592,7 @@ public class GraphBuilder {
 			DefaultBoxAndWhiskerCategoryDataset lengthBAWDataset = makeBAWDataFromHashMap(simLengthMap);
 			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Simulation length by choice method", "Choice Method", "Simulation Length (cycles)");
 			lengthBaw.hideLegend(true);
-			saveChart(lengthBaw.getChart(), "Overall", "LengthBaw");
+			ChartUtils.saveChart(lengthBaw.getChart(), imagePath, "Overall", "LengthBaw");
 			
 			// get charts
 			for (Entry<String,Chart> chartEntry : charts.entrySet()) {
@@ -728,7 +613,13 @@ public class GraphBuilder {
 			
 		// build datasets
 		for (OwnChoiceMethod choiceMethod : outerChartMap.keySet()) {
-			logger.info("Building avg datasets for method " + choiceMethod + "...");
+			logger.info("Building sim datasets for method " + choiceMethod + "...");
+			// duplicate ricCount chart and rename dup to occupiedCount (HACK HACK HACK)
+			if (outerChartMap.get(choiceMethod).containsKey(ricCountTitle)) {
+				HashSet<Chart> occupiedRICSet = (HashSet<Chart>) outerChartMap.get(choiceMethod).get(ricCountTitle).clone();
+				outerChartMap.get(choiceMethod).put(occupiedRICTitle, occupiedRICSet);
+			}
+			
 			dataMap.put(choiceMethod, new HashMap<String,Dataset>());
 			for (Entry<String, HashSet<Chart>> innerMapEntry : outerChartMap.get(choiceMethod).entrySet()) {
 				String chartType = innerMapEntry.getKey();
@@ -765,11 +656,11 @@ public class GraphBuilder {
 				else if (datasetClass.isAssignableFrom(BoxAndWhiskerCategoryDataset.class)) {
 					// do this
 				}
-				// dataset now has serieses for avg of each choiceMethod in it
-				logger.debug("Done building avg datasets for method " + choiceMethod + ".");
+				// dataset now has serieses for each sim
 			}
+			logger.debug("Done building sim datasets for method " + choiceMethod + ".");
 		}
-		logger.info("Done building avg datasets. Drawing graphs...");
+		logger.info("Done building sim datasets. Drawing graphs...");
 		
 		for (Entry<OwnChoiceMethod, HashMap<String, Dataset>> entry : dataMap.entrySet()) {
 			OwnChoiceMethod method = entry.getKey();
@@ -782,7 +673,7 @@ public class GraphBuilder {
 				Dataset chartDataset = chartDataEntry.getValue();
 				Chart chart = makeCombinedChartFromData__fromProcess(method, chartType, chartDataset);
 				if (chart!=null) {
-					saveChart(chart.getChart(), method.toString(), chartType);
+					ChartUtils.saveChart(chart.getChart(), imagePath, method.toString(), chartType);
 				}
 			}
 		}
@@ -791,15 +682,17 @@ public class GraphBuilder {
 		logger.info("Done combination processing.");
 	}
 
-	private Chart makeCombinedChartFromData__fromProcess(OwnChoiceMethod choiceMethod, String key, Dataset data) {
-		if (	key.equalsIgnoreCase(speedTitle) ||
-				key.equalsIgnoreCase(dissTitle) ||
-				key.equalsIgnoreCase(utilTitle) ||
-				key.equalsIgnoreCase(congestionTitle) ||
-				key.equalsIgnoreCase(ricCountTitle) ||
-				key.equalsIgnoreCase(ricSizeTitle) 
+	private Chart makeCombinedChartFromData__fromProcess(OwnChoiceMethod choiceMethod, String chartType, Dataset data) {
+		if (	chartType.equalsIgnoreCase(speedTitle) ||
+				chartType.equalsIgnoreCase(dissTitle) ||
+				chartType.equalsIgnoreCase(utilTitle) ||
+				chartType.equalsIgnoreCase(congestionTitle) ||
+				chartType.equalsIgnoreCase(ricCountTitle) ||
+				chartType.equalsIgnoreCase(ricSizeTitle)  ||
+				chartType.equalsIgnoreCase(occupiedRICTitle)
 				) {
-			return new DefaultTimeSeriesChart(Long.getLong("-1"), choiceMethod, (XYDataset)data, key, "x", "y");
+			return new ChoiceMethodTimeSeriesChart(choiceMethod, (XYDataset)data, chartType);
+			//return new DefaultTimeSeriesChart(Long.getLong("-1"), choiceMethod, (XYDataset)data, key, "x", "y");
 		}
 		else {
 			// TODO do this
@@ -816,7 +709,8 @@ public class GraphBuilder {
 	private XYSeries simSeriesFromChartType(String chartType, XYPlot xyPlot, int endTime) {
 		XYSeries result = null;
 		if (	chartType.equalsIgnoreCase(congestionTitle) ||
-				chartType.equalsIgnoreCase(ricCountTitle)
+				chartType.equalsIgnoreCase(ricCountTitle) ||
+				chartType.equalsIgnoreCase(occupiedRICTitle)
 				) {
 			if (xyPlot.getDatasetCount()!=1) {
 				logger.warn("Unexpectedly found a " + chartType + " chart with more than one dataset ! Result may be odd.");
@@ -832,6 +726,9 @@ public class GraphBuilder {
 			}
 			else if (chartType.equalsIgnoreCase(ricCountTitle)) {
 				result = getSeriesEndingWith(chartType, xyPlot, "ricCount");
+			}
+			else if (chartType.equalsIgnoreCase(occupiedRICTitle)) {
+				result = getSeriesEndingWith(chartType, xyPlot, "occupiedCount");
 			}
 			else {
 				logger.warn("Should never get here ! simSeriesFromChartType(" + chartType + ", " + xyPlot + ", " + endTime  + ")");
@@ -875,7 +772,8 @@ public class GraphBuilder {
 				chartType.equalsIgnoreCase(utilTitle) ||
 				chartType.equalsIgnoreCase(congestionTitle) ||
 				chartType.equalsIgnoreCase(ricCountTitle) ||
-				chartType.equalsIgnoreCase(ricSizeTitle) 
+				chartType.equalsIgnoreCase(ricSizeTitle)  ||
+				chartType.equalsIgnoreCase(occupiedRICTitle)
 				) {
 			return new XYSeriesCollection().getClass();
 		}
@@ -885,7 +783,7 @@ public class GraphBuilder {
 			return new DefaultBoxAndWhiskerCategoryDataset().getClass();
 		}
 		else {
-			logger.error("Did not recognise chartType: \"" + chartType + "\"");
+			logger.error("Did not recognise chartType: \"" + chartType + "\" so could not return the correct class.");
 			return null;
 		}
 	}
