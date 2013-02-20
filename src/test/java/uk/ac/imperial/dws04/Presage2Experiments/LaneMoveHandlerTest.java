@@ -92,6 +92,7 @@ public class LaneMoveHandlerTest {
 						bind(Integer.TYPE).annotatedWith(Names.named("params.junctionCount")).toInstance(junctionCount);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.nonStopMode")).toInstance(0);
 					}
 				});
 

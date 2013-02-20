@@ -152,6 +152,7 @@ public class IPConAgentTest {
 						bind(Integer.TYPE).annotatedWith(Names.named("params.junctionCount")).toInstance(junctionCount);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.lanes")).toInstance(lanes);
 						bind(Integer.TYPE).annotatedWith(Names.named("params.length")).toInstance(length);
+						bind(Integer.TYPE).annotatedWith(Names.named("params.nonStopMode")).toInstance(0);
 						// need to bind a time and a scenario
 						bind(Time.class).to(IntegerTime.class);
 						bind(Scenario.class).toInstance(scenario);
