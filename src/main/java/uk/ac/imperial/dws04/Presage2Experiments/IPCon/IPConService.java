@@ -650,6 +650,9 @@ public class IPConService extends EnvironmentService {
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+			} catch (NullPointerException npe) {
+				// do nothing
+				logger.warn("Got an NPE when trying to save{ key:" + key + " timestep:" + timestep + " value:" + value + "} - persistantSim is null ?");
 			}
 		}
 	}
