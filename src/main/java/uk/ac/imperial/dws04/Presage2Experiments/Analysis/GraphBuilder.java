@@ -98,11 +98,13 @@ public class GraphBuilder {
 			try {
 				List<Long> simIds = gui.init();
 				int endTime = gui.getEndTime(simIds);
-				HashMap<Long,HashMap<String,Chart>> charts = new HashMap<Long,HashMap<String,Chart>>();
+				HashMap<Long,HashMap<String,Chart>> simCharts = new HashMap<Long,HashMap<String,Chart>>();
 				for (Long simId : simIds) {
-					charts.put(simId,gui.buildForSim(simId));
+					simCharts.put(simId,gui.buildForSim(simId));
 				}
-				gui.process(charts, endTime);
+				HashMap<OwnChoiceMethod, HashMap<String, Chart>> methodCharts = gui.buildForMethod(simCharts, endTime);
+				gui.combineMethodCharts(methodCharts, endTime);
+				
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -545,10 +547,11 @@ public class GraphBuilder {
 	 * 
 	 * @param map map from simId:{map from ChartTitle:Chart}}
 	 * @param endTime
+	 * @return 
 	 * @throws IllegalAccessException 
 	 * @throws InstantiationException 
 	 */
-	private void process(HashMap<Long, HashMap<String,Chart>> map, int endTime) throws InstantiationException, IllegalAccessException {
+	private HashMap<OwnChoiceMethod, HashMap<String, Chart>> buildForMethod(HashMap<Long, HashMap<String,Chart>> map, int endTime) throws InstantiationException, IllegalAccessException {
 		logger.info("Beginning combination processing...");
 		/*
 		 * Want a chart for every chart type (from chartTitles)
@@ -662,29 +665,32 @@ public class GraphBuilder {
 			}
 			logger.debug("Done building sim datasets for method " + choiceMethod + ".");
 		}
-		logger.info("Done building sim datasets. Drawing graphs...");
+		logger.info("Done building sim datasets. Making avg lines and drawing graphs...");
 		
+		HashMap<OwnChoiceMethod, HashMap<String,Chart>> choiceMethodToChartsByChartType = new HashMap<OwnChoiceMethod, HashMap<String,Chart>>();
 		for (Entry<OwnChoiceMethod, HashMap<String, Dataset>> entry : dataMap.entrySet()) {
 			OwnChoiceMethod method = entry.getKey();
 			HashMap<String,Dataset> dataByChartType = entry.getValue();
+			choiceMethodToChartsByChartType.put(method, new HashMap<String,Chart>());
 			Frame frame = new Frame(method.toString());
 			Panel panel = new Panel(new GridLayout(0,2));
 			frame.add(panel);
 			for (Entry<String,Dataset> chartDataEntry : dataByChartType.entrySet()) {
 				String chartType = chartDataEntry.getKey();
 				Dataset chartDataset = chartDataEntry.getValue();
-				Chart chart = makeCombinedChartFromData__fromProcess(method, chartType, chartDataset);
+				Chart chart = makeCombinedChartFromData__fromBuildForMethod(method, chartType, chartDataset, endTime);
 				if (chart!=null) {
+					choiceMethodToChartsByChartType.get(method).put(chartType, chart);
 					ChartUtils.saveChart(chart.getChart(), imagePath, method.toString(), chartType);
 				}
 			}
 		}
 		
-		
-		logger.info("Done combination processing.");
+		logger.info("Done processing by choice method.");
+		return choiceMethodToChartsByChartType;
 	}
 
-	private Chart makeCombinedChartFromData__fromProcess(OwnChoiceMethod choiceMethod, String chartType, Dataset data) {
+	private Chart makeCombinedChartFromData__fromBuildForMethod(OwnChoiceMethod choiceMethod, String chartType, Dataset data, Integer endTime) {
 		if (	chartType.equalsIgnoreCase(speedTitle) ||
 				chartType.equalsIgnoreCase(dissTitle) ||
 				chartType.equalsIgnoreCase(utilTitle) ||
@@ -693,7 +699,7 @@ public class GraphBuilder {
 				chartType.equalsIgnoreCase(ricSizeTitle)  ||
 				chartType.equalsIgnoreCase(occupiedRICTitle)
 				) {
-			return new ChoiceMethodTimeSeriesChart(choiceMethod, (XYDataset)data, chartType);
+			return new ChoiceMethodTimeSeriesChart(choiceMethod, (XYDataset)data, chartType, endTime);
 			//return new DefaultTimeSeriesChart(Long.getLong("-1"), choiceMethod, (XYDataset)data, key, "x", "y");
 		}
 		else {
@@ -788,6 +794,58 @@ public class GraphBuilder {
 			logger.error("Did not recognise chartType: \"" + chartType + "\" so could not return the correct class.");
 			return null;
 		}
+	}
+
+	/**
+	 * Take the map from {choiceMethod:{chartType:chart}} and build one chart for each chartType
+	 * Each chart has on it an avg line for each choiceMethod
+	 * 
+	 * @param methodCharts
+	 * @param endTime
+	 */
+	private void combineMethodCharts( HashMap<OwnChoiceMethod, HashMap<String, Chart>> methodCharts, int endTime) {
+		logger.info("Combining data from method types...");
+		HashMap<String,XYDataset> outputData = new HashMap<String,XYDataset>();
+		for (Entry<OwnChoiceMethod, HashMap<String, Chart>> methodEntry : methodCharts.entrySet()) {
+			OwnChoiceMethod method = methodEntry.getKey();
+			HashMap<String,Chart> chartMap = methodEntry.getValue();
+			logger.debug("Getting data from method \"" + method + "\"...");
+			for (Entry<String,Chart> chartEntry : chartMap.entrySet()) {
+				String chartType = chartEntry.getKey();
+				Chart chart = chartEntry.getValue();
+				if (!outputData.containsKey(chartType)) {
+					outputData.put(chartType, new XYSeriesCollection());
+				}
+				// get avg series from chart to put into output dataset
+				XYPlot xyPlot = chart.getChart().getXYPlot();
+				XYSeries series = null;
+				// sanity check
+				if (xyPlot.getDatasetCount()!=1) {
+					try {
+						series = (XYSeries) ((XYSeriesCollection)xyPlot.getDataset(1)).getSeries(0).clone();
+					} catch (CloneNotSupportedException e) {
+						e.printStackTrace();
+					}
+				}
+				if (series!=null) {
+					logger.debug("Got data from method \"" + method + "\".");
+					series.setKey(method.toString());
+					((XYSeriesCollection)outputData.get(chartType)).addSeries(series);
+				}
+			}
+		}
+		logger.info("Got all method data. Drawing charts...");
+		for (Entry<String,XYDataset> dataEntry : outputData.entrySet()) {
+			String chartType = dataEntry.getKey();
+			XYDataset dataset = dataEntry.getValue();
+			logger.debug("Drawing " + chartType);
+			logger.debug("Drawing comparison of " + chartType + " chart...");
+			Chart chart = new CombinedTimeSeriesChart(chartType, dataset, endTime);
+			if (chart!=null) {
+				ChartUtils.saveChart(chart.getChart(), imagePath, "_comparison", chartType);
+			}
+		}
+		logger.info("Done drawing comparison charts.");
 	}
 	
 }

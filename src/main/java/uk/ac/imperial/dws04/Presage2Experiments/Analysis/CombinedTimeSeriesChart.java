@@ -20,14 +20,14 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgent.OwnChoiceMethod;
  * @author dws04
  *
  */
-public class ChoiceMethodTimeSeriesChart implements TimeSeriesChart, Serializable {
+public class CombinedTimeSeriesChart implements TimeSeriesChart, Serializable {
 	
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -518980725070751920L;
 
-	private static final Logger logger = Logger.getLogger(ChoiceMethodTimeSeriesChart.class);
+	private static final Logger logger = Logger.getLogger(CombinedTimeSeriesChart.class);
 	
 	
 	final XYDataset data;
@@ -35,26 +35,19 @@ public class ChoiceMethodTimeSeriesChart implements TimeSeriesChart, Serializabl
 	final ChartPanel panel;
 	final OwnChoiceMethod choiceMethod;
 
-	public ChoiceMethodTimeSeriesChart(OwnChoiceMethod choiceMethod, XYDataset data, String chartType, Integer endTime) {
-		Boolean includeLastCycle = false;
-		if ((chartType.equalsIgnoreCase(GraphBuilder.ricSizeTitle)) || (chartType.equalsIgnoreCase(GraphBuilder.occupiedRICTitle))) {
-			includeLastCycle = true;
-		}
+	public CombinedTimeSeriesChart(String chartType, XYDataset data, int endTime) {
 		this.data = data;
-		this.choiceMethod = choiceMethod;
+		this.choiceMethod = null;
 		String xLabel = "Timestep";
 		String yLabel = generateYLabel(chartType);
-		String title = generateTitle(choiceMethod, chartType);
+		String title = generateTitle(chartType);
 		chart = ChartFactory.createXYLineChart(title, xLabel, yLabel, data, PlotOrientation.VERTICAL, true, false, false);
 		panel = new ChartPanel(chart);
 
 		chart.getXYPlot().setBackgroundPaint(Color.WHITE);
 		chart.getXYPlot().getDomainAxis().setAutoRange(true);
-		
-		// add the avg line
-		ChartUtils.makeAvgLineOnChart(this, endTime, "", includeLastCycle);
 	}
-	
+
 	private static final String generateYLabel(final String chartType) {
 		String result = null;
 		if (chartType.equalsIgnoreCase(GraphBuilder.speedTitle)) {
@@ -85,8 +78,8 @@ public class ChoiceMethodTimeSeriesChart implements TimeSeriesChart, Serializabl
 		return result;
 	}
 
-	private static final String generateTitle(OwnChoiceMethod choiceMethod, String chartType) {
-		return chartType + " (" + choiceMethod.toString() + ")";
+	private static final String generateTitle(String chartType) {
+		return "Comparison of " + chartType + " by moveChoiceMethod";
 	}
 
 	@Override
