@@ -3,6 +3,7 @@
  */
 package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 
+import java.awt.Color;
 import java.io.Serializable;
 import java.util.ArrayList;
 
@@ -42,6 +43,7 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, valueLabel, data, true);
 		panel = new ChartPanel(chart);
 		this.choiceMethod = choiceMethod;
+		chart.getCategoryPlot().setBackgroundPaint(Color.WHITE);
 	}
 	
 	public DefaultBoxAndWhiskerChart(Long simId, OwnChoiceMethod choiceMethod, XYSeriesCollection data, String title, String categoryLabel, String valueLabel, Boolean stripNullAndNaNItems) {
@@ -51,6 +53,7 @@ public class DefaultBoxAndWhiskerChart implements Chart, Serializable {
 		this.chart = ChartFactory.createBoxAndWhiskerChart(title, categoryLabel, valueLabel, this.data, true);
 		panel = new ChartPanel(chart);
 		this.choiceMethod = choiceMethod;
+		chart.getCategoryPlot().setBackgroundPaint(Color.WHITE);
 	}
 
 	private DefaultBoxAndWhiskerCategoryDataset BAWDatasetFromXYCollection(XYSeriesCollection collection, Boolean stripNullAndNaNItems) {
