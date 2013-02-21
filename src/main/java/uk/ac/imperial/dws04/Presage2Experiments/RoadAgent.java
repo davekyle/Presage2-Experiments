@@ -1812,6 +1812,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 
 	/**
+	 * FIXME change this to a %age of goalspeed so that bigger is better (which means switching to ascending order)
+	 * This will make the charts at the end make sense...
 	 * 
 	 * @param list - can ignore the value in the entry. Only key (move) is of interest
 	 * @return list sorted in desc order by the difference between the speed of the move and the agent's goal speed (the Pair.B) (so last entry is best)
