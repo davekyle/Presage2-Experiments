@@ -57,6 +57,7 @@ import uk.ac.imperial.dws04.utils.MathsUtils.MathsUtils;
 import uk.ac.imperial.dws04.utils.convert.StringSerializer;
 import uk.ac.imperial.dws04.utils.convert.ToDouble;
 import uk.ac.imperial.dws04.utils.record.Pair;
+import uk.ac.imperial.dws04.utils.record.PairBAscComparator;
 import uk.ac.imperial.dws04.utils.record.PairBDescComparator;
 import uk.ac.imperial.presage2.core.environment.ActionHandlingException;
 import uk.ac.imperial.presage2.core.environment.ParticipantSharedState;
@@ -1812,11 +1813,11 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	}
 
 	/**
-	 * FIXME change this to a %age of goalspeed so that bigger is better (which means switching to ascending order)
-	 * This will make the charts at the end make sense...
+	 * DONE: change this to a %age of goalspeed so that bigger is better (which means switching to ascending order)
+	 * This will make the charts at the end make sense... although the others arent %ages, so still won't be directly comparable...
 	 * 
 	 * @param list - can ignore the value in the entry. Only key (move) is of interest
-	 * @return list sorted in desc order by the difference between the speed of the move and the agent's goal speed (the Pair.B) (so last entry is best)
+	 * @return list sorted in asc order by the percentage of the agent's goal speed that the speed of the move represents (so last entry is best)
 	 */
 	private LinkedList<Pair<CellMove,Integer>> sortBySpeedDiff(LinkedList<Entry<CellMove, Integer>> list) {
 		LinkedList<Pair<CellMove,Integer>> result = new LinkedList<Pair<CellMove,Integer>>();
@@ -1824,9 +1825,13 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		// iterate the list and calculate the difference between the move's speed and the goal speed, then insert to the new list
 		for (Entry<CellMove,Integer> entry : list) {
 			CellMove move = entry.getKey();
-			result.add(new Pair<CellMove, Integer>(move, Math.abs(move.getYInt()-goalSpeed)));
+			Integer speed = move.getYInt();
+			Double partialPercent = ToDouble.toDouble((speed/goalSpeed))*100;
+			Double diff = Math.abs(100-partialPercent);
+			Integer value = ((Double)(100-diff)).intValue();
+			result.add(new Pair<CellMove, Integer>(move, value));
 		}		
-		Collections.sort(result, new PairBDescComparator<Integer>());
+		Collections.sort(result, new PairBAscComparator<Integer>());
 		return result;
 	}
 
