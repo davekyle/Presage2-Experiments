@@ -594,9 +594,9 @@ public class GraphBuilder {
 			}
 			simLengthMap.get(method).add(length);
 			DefaultBoxAndWhiskerCategoryDataset lengthBAWDataset = makeBAWDataFromHashMap(simLengthMap);
-			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Simulation length by choice method", "Choice Method", "Simulation Length (cycles)");
+			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Comparison of simulation length by moveChoiceMethod", "Choice Method", "Simulation Length (cycles)");
 			lengthBaw.hideLegend(true);
-			ChartUtils.saveChart(lengthBaw.getChart(), imagePath, "Overall", "LengthBaw");
+			ChartUtils.saveChart(lengthBaw.getChart(), imagePath, "_comparison", "simLength");
 			
 			// get charts
 			for (Entry<String,Chart> chartEntry : charts.entrySet()) {
