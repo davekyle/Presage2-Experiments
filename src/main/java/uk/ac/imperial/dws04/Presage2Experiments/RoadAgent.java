@@ -331,7 +331,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				try {
 					locationService.getAgentLocation(entry.getValue().getFrom().getId());
 				}
-				catch (CannotSeeAgent e) {
+				catch (Exception e) {
+					// FIXME TODO This makes no sense... you check to see if they're close enough (badly) but then do the same thing regardless...
 					// do nothing
 				}
 				int join = 0;
