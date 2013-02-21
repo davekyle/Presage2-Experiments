@@ -72,6 +72,8 @@ public class GraphBuilder {
 	boolean outputMethodCharts = false;
 	boolean outputComparisonCharts = false;
 
+	private DefaultBoxAndWhiskerChart globalLengthBAW;
+
 	final static String imagePath = "/Users/dave/Documents/workspace/ExperimentalData/";
 	
 	
@@ -623,7 +625,11 @@ public class GraphBuilder {
 			DefaultBoxAndWhiskerCategoryDataset lengthBAWDataset = makeBAWDataFromHashMap(simLengthMap);
 			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Comparison of simulation length by moveChoiceMethod", "Choice Method", "Simulation Length (cycles)");
 			lengthBaw.hideLegend(true);
-			if (outputComparisonCharts) ChartUtils.saveChart(lengthBaw.getChart(), imagePath, "_comparison", "simLength");
+			if (outputComparisonCharts) {
+				// horrible global HACK HACK HACK
+				this.globalLengthBAW = lengthBaw;
+				ChartUtils.saveChart(lengthBaw.getChart(), imagePath, "_comparison", "simLength");
+			}
 			
 			// get charts
 			for (Entry<String,Chart> chartEntry : charts.entrySet()) {
@@ -862,16 +868,32 @@ public class GraphBuilder {
 			}
 		}
 		logger.info("Got all method data. Drawing charts...");
+		LinkedHashSet<Chart> finalCharts = new LinkedHashSet<Chart>();
 		for (Entry<String,XYDataset> dataEntry : outputData.entrySet()) {
 			String chartType = dataEntry.getKey();
 			XYDataset dataset = dataEntry.getValue();
 			logger.debug("Drawing " + chartType);
 			logger.debug("Drawing comparison of " + chartType + " chart...");
 			Chart chart = new CombinedTimeSeriesChart(chartType, dataset, endTime);
+			finalCharts.add(chart);
 			if (chart!=null && outputComparisonCharts) {
 				ChartUtils.saveChart(chart.getChart(), imagePath, "_comparison", chartType);
 			}
 		}
+		
+		if (!headlessMode && outputComparisonCharts) {
+			Frame frame = new Frame("Comparison Results");
+			Panel panel = new Panel(new GridLayout(0,2));
+			frame.add(panel);
+			for (Chart chart : finalCharts) {
+				panel.add(chart.getPanel());
+			}
+			panel.add(globalLengthBAW.getPanel());
+			frame.pack();
+			frame.setVisible(true);
+			ChartUtils.savePanel(panel, imagePath, "_", "comparison"); // won't draw if not visible...
+		}
+		
 		logger.info("Done drawing comparison charts.");
 	}
 	
