@@ -7,7 +7,6 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Panel;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +18,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Options;
 import org.apache.log4j.Logger;
 import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.plot.XYPlot;
@@ -65,6 +68,9 @@ public class GraphBuilder {
 	int t0 = -1;
 
 	boolean headlessMode = false;
+	boolean outputSimCharts = false;
+	boolean outputMethodCharts = false;
+	boolean outputComparisonCharts = false;
 
 	final static String imagePath = "/Users/dave/Documents/workspace/ExperimentalData/";
 	
@@ -93,10 +99,9 @@ public class GraphBuilder {
 		if (module != null) {
 			Injector injector = Guice.createInjector(module);
 			GraphBuilder gui = injector.getInstance(GraphBuilder.class);
-			if (args.length > 0 && Boolean.parseBoolean(args[0]) == true)
-				gui.headlessMode = true;
 			try {
-				List<Long> simIds = gui.init();
+				gui.init(args);
+				List<Long> simIds = gui.getSimulationList();
 				int endTime = gui.getEndTime(simIds);
 				HashMap<Long,HashMap<String,Chart>> simCharts = new HashMap<Long,HashMap<String,Chart>>();
 				for (Long simId : simIds) {
@@ -121,8 +126,30 @@ public class GraphBuilder {
 		this.sto = sto;
 	}
 	
-	private List<Long> init() throws Exception {
+	private void init(String[] args) throws Exception {
 		db.start();
+		Options options = new Options();
+		options.addOption("headless", false, "Run in headless mode ? (When specified, doesn't display anything to the screen) (default:false)");
+		options.addOption("outputSimCharts", false, "Output a set of charts for each simulation ? (default:false)");
+		options.addOption("outputMethodCharts", false, "Output a set of charts for each method ? (default:false)");
+		options.addOption("outputComparisonCharts", false, "Output a set of charts comparing each method ? (default:false)");
+		CommandLineParser parser = new GnuParser();
+		CommandLine cmd = parser.parse( options, args);
+		if (cmd.hasOption("headless")) {
+			this.headlessMode = true;
+		}
+		if (cmd.hasOption("outputSimCharts")) {
+			this.outputSimCharts = true;
+		}
+		if (cmd.hasOption("outputMethodCharts")) {
+			this.outputMethodCharts = true;
+		}
+		if (cmd.hasOption("outputComparisonCharts")) {
+			this.outputComparisonCharts = true;
+		}
+	}
+	
+	private List<Long> getSimulationList() {
 		List<Long> result = sto.getSimulations();
 		return result;
 	}
@@ -155,13 +182,13 @@ public class GraphBuilder {
 		
 		sim = sto.getSimulationById(simId);
 		OwnChoiceMethod choiceMethod = OwnChoiceMethod.fromString(sim.getParameters().get("ownChoiceMethod"));
-		if (headlessMode) {
+		/*if (headlessMode) {
 			File exportDir = new File(imagePath + sim.getName());
 			if (!exportDir.exists())
 				exportDir.mkdir();
 			else if (!exportDir.isDirectory())
 				System.exit(60);
-		}
+		}*/
 		
 		// get the data you want...
 		
@@ -406,11 +433,11 @@ public class GraphBuilder {
 		frame.add(panel);
 		for (Chart chart : charts.values()) {
 			ChartUtils.tweak(chart.getChart(), false, false);
-			ChartUtils.saveChart(chart.getChart(), imagePath, simId.toString(), chart.getChart().getTitle().getText());
+			if (outputSimCharts) ChartUtils.saveChart(chart.getChart(), imagePath, simId.toString(), chart.getChart().getTitle().getText());
 			panel.add(chart.getPanel());
 		}
 		frame.pack();
-		if (!headlessMode) {
+		if (!headlessMode && outputSimCharts) {
 			frame.setVisible(true);
 			ChartUtils.savePanel(panel, imagePath, simId.toString(), "combination"); // won't draw if not visible...
 		}
@@ -596,7 +623,7 @@ public class GraphBuilder {
 			DefaultBoxAndWhiskerCategoryDataset lengthBAWDataset = makeBAWDataFromHashMap(simLengthMap);
 			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Comparison of simulation length by moveChoiceMethod", "Choice Method", "Simulation Length (cycles)");
 			lengthBaw.hideLegend(true);
-			ChartUtils.saveChart(lengthBaw.getChart(), imagePath, "_comparison", "simLength");
+			if (outputComparisonCharts) ChartUtils.saveChart(lengthBaw.getChart(), imagePath, "_comparison", "simLength");
 			
 			// get charts
 			for (Entry<String,Chart> chartEntry : charts.entrySet()) {
@@ -681,7 +708,7 @@ public class GraphBuilder {
 				Chart chart = makeCombinedChartFromData__fromBuildForMethod(method, chartType, chartDataset, endTime);
 				if (chart!=null) {
 					choiceMethodToChartsByChartType.get(method).put(chartType, chart);
-					ChartUtils.saveChart(chart.getChart(), imagePath, method.toString(), chartType);
+					if (outputMethodCharts) ChartUtils.saveChart(chart.getChart(), imagePath, method.toString(), chartType);
 				}
 			}
 		}
@@ -841,7 +868,7 @@ public class GraphBuilder {
 			logger.debug("Drawing " + chartType);
 			logger.debug("Drawing comparison of " + chartType + " chart...");
 			Chart chart = new CombinedTimeSeriesChart(chartType, dataset, endTime);
-			if (chart!=null) {
+			if (chart!=null && outputComparisonCharts) {
 				ChartUtils.saveChart(chart.getChart(), imagePath, "_comparison", chartType);
 			}
 		}
