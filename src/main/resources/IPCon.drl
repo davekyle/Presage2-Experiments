@@ -594,5 +594,8 @@ query "getCurrentRICs" ( IPConAgent $agent )
 	$ric : IPConRIC( revision==$revision, issue==$issue, cluster==$cluster )
 end
 
-
+query "getIPConHandleFromID" ( UUID $uuid )
+// is IPConID not uuid because the getter is called getIPConID()
+	$agent : IPConAgent( IPConID==$uuid )
+end
 

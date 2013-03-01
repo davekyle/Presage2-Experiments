@@ -393,6 +393,8 @@ public class RoadSimulation extends InjectedSimulation {
 				// also do location and speed
 				getLocationService().removeAgent(uuid);
 				getSpeedService().removeAgent(uuid);
+				// hacky - only works because uuid = ipconhandle
+				getIPConService().removeAgent(uuid);
 				ids.remove(uuid);
 				return ids;
 			}

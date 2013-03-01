@@ -2285,6 +2285,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			storeInDB("location", time, this.myLoc);
 			storeInDB("speed", time, this.mySpeed);
 			
+			// FIXME TODO should probably also store (separately) the privacy dissatisfaction to show that it is always fulfilled.
 			Double speedDissatisfaction = calcStateDissatisfaction();
 			storeInDB("dissatisfaction", time, speedDissatisfaction);
 			

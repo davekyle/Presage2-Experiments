@@ -27,6 +27,7 @@ import uk.ac.imperial.dws04.Presage2Experiments.RoadAgentGoals;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPCNV;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConAction;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.IPConTime;
+import uk.ac.imperial.dws04.Presage2Experiments.IPCon.actions.LeaveCluster;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.Chosen;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.HasRole;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.facts.IPConAgent;
@@ -505,7 +506,7 @@ public class IPConService extends EnvironmentService {
 	/**
 	 * 
 	 * @param handle
-	 * @return all RICs the agent is a member of
+	 * @return all current (not out of date) RICs the agent is a member of
 	 */
 	public Collection<IPConRIC> getCurrentRICs(IPConAgent handle) {
 		Collection<IPConRIC> result = new HashSet<IPConRIC>();
@@ -653,6 +654,30 @@ public class IPConService extends EnvironmentService {
 		} catch (NullPointerException npe) {
 			// do nothing
 			logger.warn("Got an NPE when trying to save{ key:" + key + " timestep:" + timestep + " value:" + value + "} - persistantSim is null ?");
+		}
+	}
+
+	public void removeAgent(UUID uuid) {
+		IPConAgent handle = getIPConHandle(uuid);
+		if (handle!=null) {
+			Collection<IPConRIC> coll = getAllRICs(handle);
+			for (IPConRIC ric : coll) {
+				session.insert(new LeaveCluster(handle, ric.getCluster()));
+			}
+		}
+	}
+
+	private IPConAgent getIPConHandle(UUID uuid) {
+		ArrayList<IPConAgent> result = new ArrayList<IPConAgent>();
+		QueryResults coll = session.getQueryResults("getIPConHandleFromID", new Object[]{uuid});
+		for (QueryResultsRow row : coll) {
+			result.add((IPConAgent)row.get("$agent"));
+		}
+		if (result.size()!=0) {
+			return result.get(0);
+		}
+		else {
+			return null;
 		}
 	}
 }
