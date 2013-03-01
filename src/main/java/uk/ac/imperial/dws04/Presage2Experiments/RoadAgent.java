@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
+import org.drools.base.accumulators.MaxAccumulateFunction;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
@@ -2003,15 +2004,29 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 				// get the chosen for the agent you're looking at
 				Integer chosenSpeed = null;
 				Integer chosenLaneChange = null;
-				Pair<Integer, Integer> chosenPair = getInstSpeedAndLane_ForGenerateMoves(agent, startLoc);
+				Pair<Integer, Integer> chosenPair = getInstSpeedAndLaneChange_ForGenerateMoves(agent, startLoc);
 				chosenSpeed = chosenPair.getA();
 				chosenLaneChange = chosenPair.getB();
 				if (chosenSpeed!=null && chosenLaneChange!=null) {
-					// if the agent is doing those already, then just return those
-					// if the agent isnt at those, then generate the moves between what theyre currently doing, and what will let them do that
+					// generate the move the agent will make to try and accomplish the chosen values
 					logger.debug("[" + getID() + "] Agent " + getName() + " generating for " + agent + " and found chosenSpeed:" + chosenSpeed + " and chosenLaneChange:" + chosenLaneChange);
+					Integer laneChange = 0;
+					if (chosenLaneChange!=0) {
+						laneChange=1;
+					}
+					laneChange = laneChange*Integer.signum(chosenLaneChange);
+					Integer speed = chosenSpeed;
+					if (startSpeed+speedService.getMaxAccel()<chosenSpeed) {
+						speed = startSpeed+speedService.getMaxAccel();
+					}
+					else if (startSpeed-speedService.getMaxDecel()>chosenSpeed) {
+						speed = startSpeed-speedService.getMaxDecel();
+					}
+					RoadLocation endLoc = new RoadLocation(startLoc.getLane()+laneChange,MathsUtils.mod(startLoc.getOffset()+speed, locationService.getWrapPoint()) );
+					result.put(new CellMove(speed, laneChange), new Pair<RoadLocation,RoadLocation>(startLoc, endLoc));
 				}
 				else {
+					logger.warn("[" + getID() + "] Agent " + getName() + " generating for " + agent + " and got nulls!");
 					// get the lanes to be considered, but in relative terms
 					laneOffsets = generateLanes_ForGenerateMoves(allMoves, startLoc, laneOffsets);
 					// generate the moves from those lanes
@@ -2032,7 +2047,7 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 	 * @param agent
 	 * @param startLoc
 	 */
-	private Pair<Integer,Integer> getInstSpeedAndLane_ForGenerateMoves(final UUID agent, final RoadLocation startLoc) {
+	private Pair<Integer,Integer> getInstSpeedAndLaneChange_ForGenerateMoves(final UUID agent, final RoadLocation startLoc) {
 		Integer chosenSpeed = null;
 		Integer chosenLaneChange = null;
 		IPConRIC ric = null;
