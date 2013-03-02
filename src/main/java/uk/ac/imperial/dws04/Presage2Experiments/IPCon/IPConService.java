@@ -213,7 +213,7 @@ public class IPConService extends EnvironmentService {
 				return ((Chosen)obj.get(0));
 			}
 			else {
-				logger.warn("Got zero or multiple facts for getChosen(" + revision + "," + issue + "," + cluster  + ") : " + obj);
+				logger.debug("Got zero or multiple facts for getChosen(" + revision + "," + issue + "," + cluster  + ") : " + obj);
 				return null;
 			}
 		}
