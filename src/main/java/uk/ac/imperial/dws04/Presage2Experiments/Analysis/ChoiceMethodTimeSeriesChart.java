@@ -60,7 +60,8 @@ public class ChoiceMethodTimeSeriesChart implements TimeSeriesChart, Serializabl
 		if (chartType.equalsIgnoreCase(GraphBuilder.speedTitle)) {
 			result = "Speed";
 		}
-		else if (chartType.equalsIgnoreCase(GraphBuilder.speedUtilTitle)) {
+		else if (	(chartType.equalsIgnoreCase(GraphBuilder.speedUtilTitle)) ||
+				(chartType.equalsIgnoreCase(GraphBuilder.privacyUtilTitle)) ){
 			result = "Utility";
 		}
 		else if (chartType.equalsIgnoreCase(GraphBuilder.utilTitle)) {

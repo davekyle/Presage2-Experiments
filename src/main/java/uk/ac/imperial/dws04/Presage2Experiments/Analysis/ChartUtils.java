@@ -100,7 +100,7 @@ public abstract class ChartUtils {
 						total = total+val;
 					}
 				}
-				catch (IndexOutOfBoundsException e) {
+				catch (Exception e) {
 					// ditch it
 					//e.printStackTrace();
 				}

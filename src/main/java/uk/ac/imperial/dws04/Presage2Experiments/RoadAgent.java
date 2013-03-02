@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Level;
-import org.drools.base.accumulators.MaxAccumulateFunction;
 
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.HasIPConHandle;
 import uk.ac.imperial.dws04.Presage2Experiments.IPCon.IPConBallotService;
@@ -2291,6 +2290,19 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			Integer speedTolerance = this.goals.getSpeedTolerance();
 			Double speedUtility = calcGoalUtility(speed, speedGoal, speedTolerance);
 			storeInDB("speedUtil", time, speedUtility);
+			
+			Chosen spacingChosen = institutionalFacts.get("spacing");
+			Double spacingUtility;
+			if (spacingChosen!=null) {
+				Integer spacing = (Integer) spacingChosen.getValue();
+				Integer spacingGoal = this.goals.getSpacing();
+				Integer spacingTolerance = this.goals.getSpacingTolerance();
+				spacingUtility = calcGoalUtility(spacing, spacingGoal, spacingTolerance);
+			}
+			else {
+				spacingUtility = 0.0;
+			}
+			storeInDB("spacingUtil", time, spacingUtility);
 			
 		}
 	}
