@@ -53,8 +53,8 @@ public class CombinedTimeSeriesChart implements TimeSeriesChart, Serializable {
 		if (chartType.equalsIgnoreCase(GraphBuilder.speedTitle)) {
 			result = "Speed";
 		}
-		else if (chartType.equalsIgnoreCase(GraphBuilder.dissTitle)) {
-			result = "Dissatisfaction";
+		else if (chartType.equalsIgnoreCase(GraphBuilder.speedUtilTitle)) {
+			result = "Utility";
 		}
 		else if (chartType.equalsIgnoreCase(GraphBuilder.utilTitle)) {
 			result = "Move utility (/100)";

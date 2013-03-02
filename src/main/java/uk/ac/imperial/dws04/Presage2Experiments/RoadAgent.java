@@ -2285,9 +2285,12 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 			storeInDB("location", time, this.myLoc);
 			storeInDB("speed", time, this.mySpeed);
 			
-			// FIXME TODO should probably also store (separately) the privacy dissatisfaction to show that it is always fulfilled.
-			Double speedDissatisfaction = calcStateDissatisfaction();
-			storeInDB("dissatisfaction", time, speedDissatisfaction);
+			// FIXME TODO should probably also store (separately) the privacy utility to show that it is always fulfilled.
+			Integer speed = this.mySpeed;
+			Integer speedGoal = this.goals.getSpeed();
+			Integer speedTolerance = this.goals.getSpeedTolerance();
+			Double speedUtility = calcGoalUtility(speed, speedGoal, speedTolerance);
+			storeInDB("speedUtil", time, speedUtility);
 			
 		}
 	}
@@ -2322,32 +2325,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		}
 	}
 
-	private Double calcStateDissatisfaction() {
-		Integer speed = this.mySpeed;
-		Integer speedGoal = this.goals.getSpeed();
-		Integer speedTolerance = this.goals.getSpeedTolerance();
-		Double speedDissatisfaction;
-		if (speed==speedGoal) {
-			speedDissatisfaction = 0.0;
-		}
-		// FIXME this is probably a stupid way of doing it since I'm going to be abs'ing it...
-		else if (speed>speedGoal) {
-			if (speed > speedGoal+speedTolerance) {
-				speedDissatisfaction = (ToDouble.toDouble(speedTolerance)/2) + speed-(speedGoal+speedTolerance);
-			}
-			else {
-				speedDissatisfaction = (ToDouble.toDouble(speed-speedGoal)/2);
-			}
-		}
-		else {
-			if (speed < speedGoal-speedTolerance) {
-				speedDissatisfaction = (ToDouble.toDouble(speedTolerance)/2) + (speedGoal+speedTolerance)-speed;
-			}
-			else {
-				speedDissatisfaction = (ToDouble.toDouble(speedGoal-speed)/2);
-			}
-		}
-		return Math.abs(speedDissatisfaction);
+	private Double calcGoalUtility(Integer achieved, Integer goal, Integer tolerance) {
+		return ( Math.exp( -( (Math.pow((achieved - goal),2)) / tolerance ) ) );
 	}
 
 	/* (non-Javadoc)

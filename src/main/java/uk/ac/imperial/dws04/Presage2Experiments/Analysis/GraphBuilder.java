@@ -78,7 +78,7 @@ public class GraphBuilder {
 	
 	
 	final static String speedTitle = "Agent Speed";
-	final static String dissTitle = "Agent Dissatisfaction";
+	final static String speedUtilTitle = "Agent Speed Utility";
 	final static String utilTitle = "Agent Move Utility";
 	final static String congestionTitle = "Congestion";
 	final static String ricCountTitle = "RIC Count";
@@ -86,7 +86,7 @@ public class GraphBuilder {
 	final static String speedBAWTitle = "Speed BAW";
 	final static String combinedSpeedBAWTitle = "Combined Speed BAW";
 	final static List<String> chartTitles = Arrays.asList(new String[]{
-		speedTitle, dissTitle, utilTitle, congestionTitle, ricCountTitle, ricSizeTitle, speedBAWTitle, combinedSpeedBAWTitle
+		speedTitle, speedUtilTitle, utilTitle, congestionTitle, ricCountTitle, ricSizeTitle, speedBAWTitle, combinedSpeedBAWTitle
 	});
 	// this isn't needed for the sim charts, but is for the combined
 	final static String occupiedRICTitle = "Occupied RIC Count";
@@ -266,8 +266,8 @@ public class GraphBuilder {
 		XYDataset speedDataset = new XYSeriesCollection();
 		XYSeriesCollection speedCollection = (XYSeriesCollection)speedDataset;
 
-		XYDataset dissDataset = new XYSeriesCollection();
-		XYSeriesCollection dissCollection = (XYSeriesCollection)dissDataset;
+		XYDataset speedUtilDataset = new XYSeriesCollection();
+		XYSeriesCollection speedUtilCollection = (XYSeriesCollection)speedUtilDataset;
 		XYDataset moveUtilDataset = new XYSeriesCollection();
 		XYSeriesCollection moveUtilCollection = (XYSeriesCollection)moveUtilDataset;
 		
@@ -306,9 +306,9 @@ public class GraphBuilder {
 		DefaultTimeSeriesChart speedChart = new DefaultTimeSeriesChart(simId, choiceMethod, speedDataset, speedTitle, "timestep", "speed");
 		speedChart.hideLegend(true);
 		charts.put(speedTitle, speedChart);
-		DefaultTimeSeriesChart dissChart = new DefaultTimeSeriesChart(simId, choiceMethod, dissDataset, dissTitle, "timestep", "dissatisfaction");
-		dissChart.hideLegend(true);
-		charts.put(dissTitle, dissChart); 
+		DefaultTimeSeriesChart speedUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, speedUtilDataset, speedUtilTitle, "timestep", "utility");
+		speedUtilChart.hideLegend(true);
+		charts.put(speedUtilTitle, speedUtilChart); 
 		DefaultTimeSeriesChart moveUtilChart = new DefaultTimeSeriesChart(simId, choiceMethod, moveUtilDataset, utilTitle, "timestep", "utility");
 		moveUtilChart.hideLegend(true);
 		charts.put(utilTitle, moveUtilChart);
@@ -358,7 +358,7 @@ public class GraphBuilder {
 			
 			// add series' in all the relevant collections
 			speedCollection.addSeries(new XYSeries(key, true, false));
-			dissCollection.addSeries(new XYSeries(key, true, false));
+			speedUtilCollection.addSeries(new XYSeries(key, true, false));
 			moveUtilCollection.addSeries(new XYSeries(key, true, false));	
 			
 			
@@ -388,9 +388,9 @@ public class GraphBuilder {
 				Integer speed = (Integer) StringSerializer.fromString(pAgent.getState(t).getProperty("speed"));
 				speedCollection.getSeries(key).add(t, speed);
 				
-				logger.debug("Processing dissatisfaction for agent " + key);
-				Double diss = (Double) StringSerializer.fromString(pAgent.getState(t).getProperty("dissatisfaction"));
-				dissCollection.getSeries(key).add(t, diss);
+				logger.debug("Processing speed utility for agent " + key);
+				Double diss = (Double) StringSerializer.fromString(pAgent.getState(t).getProperty("speedUtil"));
+				speedUtilCollection.getSeries(key).add(t, diss);
 				
 				logger.debug("Processing move utility for agent " + key);
 				@SuppressWarnings("unchecked")
@@ -409,7 +409,7 @@ public class GraphBuilder {
 		
 		ChartUtils.makeAvgLineOnChart(speedChart, endTime, "Speed", false);
 		ChartUtils.makeAvgLineOnChart(ricAcceptorCountChart, endTime, "Size", true);
-		ChartUtils.makeAvgLineOnChart(dissChart, endTime, "Dissatisfaction", false);
+		ChartUtils.makeAvgLineOnChart(speedUtilChart, endTime, "Speed Utility", false);
 		ChartUtils.makeAvgLineOnChart(moveUtilChart, endTime, "Move Utility", false);
 		tweakMoveUtilChart(moveUtilChart);
 		
@@ -725,7 +725,7 @@ public class GraphBuilder {
 
 	private Chart makeCombinedChartFromData__fromBuildForMethod(OwnChoiceMethod choiceMethod, String chartType, Dataset data, Integer endTime) {
 		if (	chartType.equalsIgnoreCase(speedTitle) ||
-				chartType.equalsIgnoreCase(dissTitle) ||
+				chartType.equalsIgnoreCase(speedUtilTitle) ||
 				chartType.equalsIgnoreCase(utilTitle) ||
 				chartType.equalsIgnoreCase(congestionTitle) ||
 				chartType.equalsIgnoreCase(ricCountTitle) ||
@@ -809,7 +809,7 @@ public class GraphBuilder {
 	 */
 	private Class<? extends Dataset> datasetClassFromChartType(String chartType) {
 		if (	chartType.equalsIgnoreCase(speedTitle) ||
-				chartType.equalsIgnoreCase(dissTitle) ||
+				chartType.equalsIgnoreCase(speedUtilTitle) ||
 				chartType.equalsIgnoreCase(utilTitle) ||
 				chartType.equalsIgnoreCase(congestionTitle) ||
 				chartType.equalsIgnoreCase(ricCountTitle) ||
