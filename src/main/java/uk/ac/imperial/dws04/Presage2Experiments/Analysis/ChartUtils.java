@@ -96,8 +96,10 @@ public abstract class ChartUtils {
 					tempVal = series.getY(t);
 					if (tempVal!=null) {
 						val = ToDouble.toDouble(tempVal);
-						count++;
-						total = total+val;
+						if ( (!val.isInfinite()) && (!val.isNaN()) ) {
+							count++;
+							total = total+val;
+						}
 					}
 				}
 				catch (Exception e) {

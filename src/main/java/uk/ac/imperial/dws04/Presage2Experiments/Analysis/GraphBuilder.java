@@ -376,14 +376,18 @@ public class GraphBuilder {
 			Double inValue = null;
 			try {
 				inValue = (Double) congestionChangeIn.getY(insertedAt);
-			} catch (IndexOutOfBoundsException e) {
+			} catch (Exception e) {
 				// ditch it
 			}
 			if (inValue!=null) {
 				congestionChangeIn.update((Number)(insertedAt), (Number)(inValue+1));
 			}
 			if (leftAt!=null) {
-				Double outValue = (Double) congestionChangeOut.getY(leftAt-1);
+				Integer modOut = leftAt;
+				if (leftAt>0) {
+					modOut--;
+				}
+				Double outValue = (Double) congestionChangeOut.getY(modOut);
 				congestionChangeOut.update((Number)(leftAt), (Number)(outValue+1));
 			}
 			
