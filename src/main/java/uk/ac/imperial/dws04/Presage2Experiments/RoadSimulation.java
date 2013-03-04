@@ -61,26 +61,26 @@ import com.google.inject.Singleton;
 @Singleton
 public class RoadSimulation extends InjectedSimulation {
 
-	@Parameter(name="length")
-	public int length;
+	@Parameter(name="length", optional=true)
+	public int length = 50;
 	
 	/**
 	 * We expect this to be 3(or more): onramp not counted
 	 */
-	@Parameter(name="lanes")
-	public int lanes;
+	@Parameter(name="lanes", optional=true)
+	public int lanes = 3;
 	 
-	@Parameter(name="initialAgents")
-	public int initialAgents;
+	@Parameter(name="initialAgents", optional=true)
+	public int initialAgents = 2;
 	 
-	@Parameter(name="maxSpeed")
-	public int maxSpeed;
+	@Parameter(name="maxSpeed", optional=true)
+	public int maxSpeed = 4;
 	 
-	@Parameter(name="maxAccel")
-	public int maxAccel;
+	@Parameter(name="maxAccel", optional=true)
+	public int maxAccel = 1;
 	 
-	@Parameter(name="maxDecel")
-	public int maxDecel;
+	@Parameter(name="maxDecel", optional=true)
+	public int maxDecel = 1;
 	 
 	@Parameter(name="junctionCount")
 	public int junctionCount;
@@ -97,7 +97,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public String seed = ((Integer)Random.randomInt()).toString(); 
 	
 	@Parameter(name="insertMethod", optional=true)
-	public String insertMethod = "odd";
+	public String insertMethod = "low";
 	
 	@Parameter(name="nonStopMode", optional=true)
 	public int nonStopMode = 1;
