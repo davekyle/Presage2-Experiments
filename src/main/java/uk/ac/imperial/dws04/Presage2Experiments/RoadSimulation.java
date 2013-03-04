@@ -65,7 +65,7 @@ public class RoadSimulation extends InjectedSimulation {
 	public int length;
 	
 	/**
-	 * We expect this to be 4(or more): lane0 is the "onramp" with lane1+ being the actual lanes.
+	 * We expect this to be 3(or more): onramp not counted
 	 */
 	@Parameter(name="lanes")
 	public int lanes;

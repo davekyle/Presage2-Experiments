@@ -430,9 +430,10 @@ public class GraphBuilder {
 		tweakMoveUtilChart(moveUtilChart);
 		
 		Double agentCount = 0.0;
+		Integer cellCount = Integer.valueOf(sim.getParameters().get("length")) * Integer.valueOf(sim.getParameters().get("lanes"));
 		for (int t=0; t<=endTime; t++) {
 			agentCount = agentCount + (Double)congestionChangeIn.getY(t) - (Double)congestionChangeOut.getY(t);
-			congestionCount.add(t, agentCount);
+			congestionCount.add(t, (Double)(agentCount/cellCount));
 			annotateCongestionChart(congestionChart, t, simId);
 		}
 		
