@@ -1499,7 +1499,8 @@ public class RoadAgent extends AbstractParticipant implements HasIPConHandle {
 		if (myLoc.getLane()==0) {
 			if (	(nextJunctionDist>= Math.max((mySpeed-speedService.getMaxDecel()), 1)) &&
 					(nextJunctionDist<= Math.min((mySpeed+speedService.getMaxAccel()), speedService.getMaxSpeed())) ) {
-				result = new Pair<CellMove,Integer>(new CellMove(-1, (mySpeed+speedService.getMaxAccel())),Integer.MAX_VALUE);
+				//result = new Pair<CellMove,Integer>(new CellMove(-1, (mySpeed+speedService.getMaxAccel())),Integer.MAX_VALUE);
+				result = new Pair<CellMove,Integer>(driver.turnOff(),Integer.MAX_VALUE);
 				logger.debug("[" + getID() + "] Agent " + getName() + " turning off in " + nextJunctionDist);
 			}
 			else {
