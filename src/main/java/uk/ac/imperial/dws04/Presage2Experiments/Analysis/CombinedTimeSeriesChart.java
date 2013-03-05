@@ -61,7 +61,7 @@ public class CombinedTimeSeriesChart implements TimeSeriesChart, Serializable {
 			result = "Move utility (/100)";
 		}
 		else if (chartType.equalsIgnoreCase(GraphBuilder.congestionTitle)) {
-			result = "Number of agents";
+			result = "Agent density";
 		}
 		else if (chartType.equalsIgnoreCase(GraphBuilder.ricCountTitle)) {
 			result = "Number of RICs";
