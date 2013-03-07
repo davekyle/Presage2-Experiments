@@ -70,7 +70,7 @@ public class CombinedTimeSeriesChart implements TimeSeriesChart, Serializable {
 			result = "Number of agents per RIC";
 		}
 		else if (chartType.equalsIgnoreCase(GraphBuilder.occupiedRICTitle)) {
-			result = "Number of RICs";
+			result = "Number of clusters";
 		}
 		else {
 			logger.warn("Did not recognise chartType " + chartType);
@@ -80,7 +80,7 @@ public class CombinedTimeSeriesChart implements TimeSeriesChart, Serializable {
 	}
 
 	private static final String generateTitle(String chartType) {
-		return "Comparison of " + chartType + " by moveChoiceMethod";
+		return "Comparison of " + chartType + " by movement choice method";
 	}
 
 	@Override

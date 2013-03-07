@@ -25,6 +25,7 @@ import org.apache.commons.cli.Options;
 import org.apache.log4j.Logger;
 import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.category.BoxAndWhiskerRenderer;
 import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.data.general.Dataset;
 import org.jfree.data.statistics.BoxAndWhiskerCategoryDataset;
@@ -77,11 +78,11 @@ public class GraphBuilder {
 	final static String imagePath = "/Users/dave/Documents/workspace/ExperimentalData/";
 	
 	
-	final static String speedTitle = "Agent Speed";
-	final static String speedUtilTitle = "Agent Speed Utility";
-	final static String privacyUtilTitle = "Agent Privacy Utility";
+	final static String speedTitle = "agent speed";
+	final static String speedUtilTitle = "agent speed utility";
+	final static String privacyUtilTitle = "agent privacy utility";
 	final static String utilTitle = "Agent Move Utility";
-	final static String congestionTitle = "Congestion";
+	final static String congestionTitle = "congestion";
 	final static String ricCountTitle = "RIC Count";
 	final static String ricSizeTitle = "RIC Size";
 	final static String speedBAWTitle = "Speed BAW";
@@ -90,7 +91,7 @@ public class GraphBuilder {
 		speedTitle, speedUtilTitle, privacyUtilTitle, utilTitle, congestionTitle, ricCountTitle, ricSizeTitle, speedBAWTitle, combinedSpeedBAWTitle
 	});
 	// this isn't needed for the sim charts, but is for the combined
-	final static String occupiedRICTitle = "Occupied RIC Count";
+	final static String occupiedRICTitle = "occupied cluster count";
 	
 	
 	
@@ -640,7 +641,11 @@ public class GraphBuilder {
 			}
 			simLengthMap.get(method).add(length);
 			DefaultBoxAndWhiskerCategoryDataset lengthBAWDataset = makeBAWDataFromHashMap(simLengthMap);
-			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Comparison of simulation length by moveChoiceMethod", "Choice Method", "Simulation Length (cycles)");
+			DefaultBoxAndWhiskerChart lengthBaw = new DefaultBoxAndWhiskerChart(simId, null, lengthBAWDataset, "Comparison of simulation length by movement choice method", "Choice Method", "Simulation Length (cycles)");
+			//ExtendedBoxAndWhiskerRenderer renderer = new ExtendedBoxAndWhiskerRenderer();
+			//renderer.setFaroutPaint(Color.white);
+			//lengthBaw.getChart().getCategoryPlot().setRenderer(renderer);
+			((BoxAndWhiskerRenderer)(lengthBaw.getChart().getCategoryPlot().getRenderer())).setMeanVisible(false);
 			lengthBaw.hideLegend(true);
 			if (outputComparisonCharts) {
 				// horrible global HACK HACK HACK
