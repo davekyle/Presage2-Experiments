@@ -35,7 +35,7 @@ public class CombinedTimeSeriesChart implements TimeSeriesChart, Serializable {
 	final ChartPanel panel;
 	final OwnChoiceMethod choiceMethod;
 
-	public CombinedTimeSeriesChart(String chartType, XYDataset data, int endTime) {
+	public CombinedTimeSeriesChart(String chartType, XYDataset data, int endTime, int sizeIncrease) {
 		this.data = data;
 		this.choiceMethod = null;
 		String xLabel = "Timestep";
@@ -43,6 +43,8 @@ public class CombinedTimeSeriesChart implements TimeSeriesChart, Serializable {
 		String title = generateTitle(chartType);
 		chart = ChartFactory.createXYLineChart(title, xLabel, yLabel, data, PlotOrientation.VERTICAL, true, false, false);
 		panel = new ChartPanel(chart);
+		
+		ChartUtils.increaseFontSize(chart, sizeIncrease);
 
 		chart.getXYPlot().setBackgroundPaint(Color.WHITE);
 		chart.getXYPlot().getDomainAxis().setAutoRange(true);

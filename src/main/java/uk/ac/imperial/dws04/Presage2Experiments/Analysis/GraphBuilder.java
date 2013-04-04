@@ -92,6 +92,8 @@ public class GraphBuilder {
 	});
 	// this isn't needed for the sim charts, but is for the combined
 	final static String occupiedRICTitle = "occupied cluster count";
+
+	private static final int sizeIncrease = 6;
 	
 	
 	
@@ -650,6 +652,7 @@ public class GraphBuilder {
 			if (outputComparisonCharts) {
 				// horrible global HACK HACK HACK
 				this.globalLengthBAW = lengthBaw;
+				ChartUtils.increaseFontSize(globalLengthBAW.getChart(), sizeIncrease);
 				ChartUtils.saveChart(lengthBaw.getChart(), imagePath, "_comparison", "simLength");
 			}
 			
@@ -898,7 +901,7 @@ public class GraphBuilder {
 			XYDataset dataset = dataEntry.getValue();
 			logger.debug("Drawing " + chartType);
 			logger.debug("Drawing comparison of " + chartType + " chart...");
-			Chart chart = new CombinedTimeSeriesChart(chartType, dataset, endTime);
+			Chart chart = new CombinedTimeSeriesChart(chartType, dataset, endTime, sizeIncrease);
 			finalCharts.add(chart);
 			if (chart!=null && outputComparisonCharts) {
 				ChartUtils.saveChart(chart.getChart(), imagePath, "_comparison", chartType);

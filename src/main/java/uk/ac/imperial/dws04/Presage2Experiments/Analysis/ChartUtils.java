@@ -6,11 +6,13 @@ package uk.ac.imperial.dws04.Presage2Experiments.Analysis;
 import java.awt.AWTException;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Panel;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.log4j.Logger;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.LogarithmicAxis;
@@ -32,6 +34,7 @@ import uk.ac.imperial.dws04.utils.misc.ScreenImage;
  *
  */
 public abstract class ChartUtils {
+	private final static Logger logger = Logger.getLogger(ChartUtils.class);
 	
 	public static void tweak(JFreeChart chart, Boolean toggleLegend, Boolean resize){
 		Class<? extends Plot> plotClass = chart.getPlot().getClass();
@@ -182,6 +185,44 @@ public abstract class ChartUtils {
 			e1.printStackTrace();
 		} catch (IOException e2) {
 			e2.printStackTrace();
+		}
+	}
+
+	/**
+	 * 
+	 */
+	public static void increaseFontSize(JFreeChart chart, int sizeChange) {
+		Font titleFont = new Font("Tahoma", Font.BOLD, 20+sizeChange);
+		Font labelFont = new Font("Tahoma", Font.BOLD, 14+sizeChange);
+		Font tickLegendFont = new Font("Tahoma", Font.PLAIN, 12+sizeChange);
+		Boolean isCategory = false;
+	
+		chart.getTitle().setFont(titleFont);
+		
+		try {
+			chart.getCategoryPlot().getDomainAxis().setLabelFont(labelFont);
+			chart.getCategoryPlot().getRangeAxis().setLabelFont(labelFont);
+			
+			chart.getCategoryPlot().getDomainAxis().setTickLabelFont(tickLegendFont);
+			chart.getCategoryPlot().getRangeAxis().setTickLabelFont(tickLegendFont);
+			isCategory = true;
+		}
+		catch (ClassCastException e) {
+			// expected
+		}
+		if (!isCategory)
+		{
+			try {
+				chart.getXYPlot().getDomainAxis().setLabelFont(labelFont);
+				chart.getXYPlot().getRangeAxis().setLabelFont(labelFont);
+				
+				chart.getXYPlot().getDomainAxis().setTickLabelFont(tickLegendFont);
+				chart.getXYPlot().getRangeAxis().setTickLabelFont(tickLegendFont);
+				chart.getLegend().setItemFont(tickLegendFont);
+			}
+			catch (ClassCastException e1) {
+				logger.warn("Chart : " + chart + " was neither XY nor Category! Font not changed.");
+			}
 		}
 	}
 
